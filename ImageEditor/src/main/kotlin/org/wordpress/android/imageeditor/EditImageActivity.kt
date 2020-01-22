@@ -16,14 +16,10 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.navigation.fragment.NavHostFragment
-import androidx.recyclerview.widget.RecyclerView
 import com.yalantis.ucrop.UCropFragment.UCropResult
 import com.yalantis.ucrop.UCropFragmentCallback
-import org.wordpress.android.imageeditor.adapters.ActionsAdapter
 
 class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
-    private lateinit var actionsRecyclerView: RecyclerView
-    private lateinit var actionsAdapter: ActionsAdapter
     private lateinit var hostFragment: NavHostFragment
     private lateinit var toolbar: Toolbar
     private lateinit var progressBar: ProgressBar
@@ -51,10 +47,9 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
         hostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment? ?: return
 
         setupActionBar()
-
-        setupNavGraph()
-
-        setupActionsUi()
+        if (savedInstanceState == null) {
+            setupNavGraph()
+        }
     }
 
     private fun setupActionBar() {
@@ -86,16 +81,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
         navController.setGraph(graph, bundle)
     }
 
-    private fun setupActionsUi() {
-        val actions = bundle?.getStringArray(ARG_ACTIONS)
-        actionsRecyclerView = findViewById(R.id.actions_recycler_view)
-
-        actions?.let {
-            actionsAdapter = ActionsAdapter(it)
-            actionsRecyclerView.adapter = actionsAdapter
-        }
-    }
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             onBackPressed()
@@ -113,7 +98,9 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
         Handler().postDelayed({ finish() }, 1500)
     }
 
-    override fun onCropFinish(result: UCropResult?) {}
+    override fun onCropFinish(result: UCropResult?) {
+        // TODO:
+    }
 
     override fun loadingProgress(showLoader: Boolean) {
         progressBar.visibility = if (showLoader) View.VISIBLE else View.GONE
@@ -123,7 +110,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
         const val ARG_BUNDLE = "arg_bundle"
 
         const val ARG_IMAGE_CONTENT_URI = "arg_image_content_uri"
-        const val ARG_ACTIONS = "arg_actions"
         const val ARG_START_DESTINATION = "arg_start_destination"
 
         fun startIntent(context: Context, intent: Intent) {

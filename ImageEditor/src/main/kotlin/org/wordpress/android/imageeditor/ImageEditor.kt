@@ -9,12 +9,9 @@ import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.UCrop.Options
 import com.yalantis.ucrop.model.AspectRatio
 import com.yalantis.ucrop.view.CropImageView
-import org.wordpress.android.imageeditor.enums.ImageEditorOperation.CROP
 import java.io.File
 
 class ImageEditor {
-    private val actions: Array<String> = arrayOf(CROP.name)
-
     /**
      * @param context self explanatory
      * @param contentUri URI of initial media - can be local or remote
@@ -33,7 +30,6 @@ class ImageEditor {
 
         bundle.putInt(EditImageActivity.ARG_START_DESTINATION, startDestination)
         bundle.putString(EditImageActivity.ARG_IMAGE_CONTENT_URI, contentUri)
-        bundle.putStringArray(EditImageActivity.ARG_ACTIONS, actions)
 
         intent.putExtra(EditImageActivity.ARG_BUNDLE, bundle)
 

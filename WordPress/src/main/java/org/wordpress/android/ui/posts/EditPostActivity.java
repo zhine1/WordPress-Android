@@ -1674,7 +1674,7 @@ public class EditPostActivity extends AppCompatActivity implements
         // TODO:
         // Temporarily linking ImageEditor at this point
         // Replacing media preview activity with one for editing an image
-        ImageEditor imageEditor = new ImageEditor();
+        ImageEditor imageEditor = new ImageEditor(); // TODO: inject
         imageEditor.edit(this, mediaUrl);
     }
 

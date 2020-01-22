@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.text.TextUtils
 import android.view.MenuItem
+import android.view.View
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
@@ -15,13 +17,16 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.RecyclerView
+import com.yalantis.ucrop.UCropFragment.UCropResult
+import com.yalantis.ucrop.UCropFragmentCallback
 import org.wordpress.android.imageeditor.adapters.ActionsAdapter
 
-class EditImageActivity : AppCompatActivity() {
+class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
     private lateinit var actionsRecyclerView: RecyclerView
     private lateinit var actionsAdapter: ActionsAdapter
     private lateinit var hostFragment: NavHostFragment
     private lateinit var toolbar: Toolbar
+    private lateinit var progressBar: ProgressBar
 
     private var bundle: Bundle? = null
 
@@ -42,6 +47,7 @@ class EditImageActivity : AppCompatActivity() {
             return
         }
 
+        progressBar = findViewById(R.id.progress_loading)
         hostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment? ?: return
 
         setupActionBar()
@@ -105,6 +111,12 @@ class EditImageActivity : AppCompatActivity() {
 
     private fun delayedFinish() {
         Handler().postDelayed({ finish() }, 1500)
+    }
+
+    override fun onCropFinish(result: UCropResult?) {}
+
+    override fun loadingProgress(showLoader: Boolean) {
+        progressBar.visibility = if (showLoader) View.VISIBLE else View.GONE
     }
 
     companion object {

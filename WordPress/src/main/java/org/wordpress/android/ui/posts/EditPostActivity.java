@@ -117,6 +117,7 @@ import org.wordpress.android.ui.posts.editor.EditorActionsProvider;
 import org.wordpress.android.ui.posts.editor.EditorPhotoPicker;
 import org.wordpress.android.ui.posts.editor.EditorPhotoPickerListener;
 import org.wordpress.android.ui.posts.editor.EditorTracker;
+import org.wordpress.android.ui.posts.editor.WPImageEditor;
 import org.wordpress.android.ui.posts.editor.PostLoadingState;
 import org.wordpress.android.ui.posts.editor.PrimaryEditorAction;
 import org.wordpress.android.ui.posts.editor.SecondaryEditorAction;
@@ -321,6 +322,7 @@ public class EditPostActivity extends AppCompatActivity implements
     @Inject EditorActionsProvider mEditorActionsProvider;
     @Inject DateTimeUtilsWrapper mDateTimeUtils;
     @Inject ViewModelProvider.Factory mViewModelFactory;
+    @Inject WPImageEditor mWPImageEditor;
 
     private StorePostViewModel mViewModel;
 
@@ -1674,8 +1676,7 @@ public class EditPostActivity extends AppCompatActivity implements
         // TODO:
         // Temporarily linking ImageEditor at this point
         // Replacing media preview activity with one for editing an image
-        ImageEditor imageEditor = new ImageEditor(); // TODO: inject
-        imageEditor.edit(this, mediaUrl);
+        mWPImageEditor.edit(this, mediaUrl);
     }
 
     @Override

@@ -13,7 +13,6 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
-import org.wordpress.android.imageeditor.EditImageActivity
 import org.wordpress.android.imageeditor.R
 
 class MainImageFragment : Fragment() {
@@ -26,7 +25,7 @@ class MainImageFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        contentUri = arguments?.getString(EditImageActivity.ARG_IMAGE_CONTENT_URI)
+//        contentUri = arguments?.getString(EditImageActivity.ARG_IMAGE_CONTENT_URI)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {

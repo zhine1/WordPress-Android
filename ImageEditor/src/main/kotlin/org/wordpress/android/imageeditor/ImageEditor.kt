@@ -15,31 +15,21 @@ import javax.inject.Singleton
 
 @Singleton
 class ImageEditor @Inject constructor() {
-    /**
-     * @param context self explanatory
-     * @param contentUri URI of initial media - can be local or remote
-     */
     fun edit(
         context: Context,
-        contentUri: String
+        mediaUrl: String
     ) {
         // TODO
         // Temporarily goes to edit image activity
         val intent = Intent(context, EditImageActivity::class.java)
 
-        val bundle = prepareUCropBundle(contentUri, context) ?: Bundle()
-
-        val startDestination = R.id.crop_frag
-
-        bundle.putInt(EditImageActivity.ARG_START_DESTINATION, startDestination)
-        bundle.putString(EditImageActivity.ARG_IMAGE_CONTENT_URI, contentUri)
-
+        val bundle = prepareUCropBundle(mediaUrl, context) ?: Bundle()
         intent.putExtra(EditImageActivity.ARG_BUNDLE, bundle)
 
         EditImageActivity.startIntent(context, intent)
     }
 
-    private fun prepareUCropBundle(contentUri: String, context: Context): Bundle? {
+    private fun prepareUCropBundle(mediaUrl: String, context: Context): Bundle? {
         val options = Options()
         options.setShowCropGrid(true)
         options.setFreeStyleCropEnabled(true)
@@ -55,7 +45,7 @@ class ImageEditor @Inject constructor() {
         )
 
         val uCrop = UCrop.of(
-            Uri.parse(contentUri),
+            Uri.parse(mediaUrl),
             Uri.fromFile(File(context.cacheDir, "cropped_image.jpg")) // TODO
         ).withOptions(options)
 

@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.os.Handler
-import android.text.TextUtils
 import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
@@ -37,12 +35,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
             intent.getBundleExtra(ARG_BUNDLE)
         }
 
-        val contentUri = bundle?.getString(ARG_IMAGE_CONTENT_URI)
-        if (TextUtils.isEmpty(contentUri)) {
-            delayedFinish()
-            return
-        }
-
         progressBar = findViewById(R.id.progress_loading)
         hostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment? ?: return
 
@@ -72,12 +64,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
     private fun setupNavGraph() {
         val navController = hostFragment.navController
         val graph = navController.navInflater.inflate(R.navigation.mobile_navigation)
-
-        val startDestination = bundle?.getInt(ARG_START_DESTINATION, R.id.home_dest)
-        startDestination?.let {
-            graph.startDestination = it
-        }
-
         navController.setGraph(graph, bundle)
     }
 
@@ -94,10 +80,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
         outState.putBundle(ARG_BUNDLE, bundle)
     }
 
-    private fun delayedFinish() {
-        Handler().postDelayed({ finish() }, 1500)
-    }
-
     override fun onCropFinish(result: UCropResult?) {
         // TODO:
     }
@@ -108,9 +90,6 @@ class EditImageActivity : AppCompatActivity(), UCropFragmentCallback {
 
     companion object {
         const val ARG_BUNDLE = "arg_bundle"
-
-        const val ARG_IMAGE_CONTENT_URI = "arg_image_content_uri"
-        const val ARG_START_DESTINATION = "arg_start_destination"
 
         fun startIntent(context: Context, intent: Intent) {
             val options = ActivityOptionsCompat.makeCustomAnimation(

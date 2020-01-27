@@ -7,7 +7,6 @@ import androidx.lifecycle.Observer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import org.wordpress.android.BuildConfig
-import org.wordpress.android.R
 import org.wordpress.android.datasets.ReaderBlogTable
 import org.wordpress.android.datasets.ReaderTagTable
 import org.wordpress.android.models.ReaderTag
@@ -19,15 +18,14 @@ import org.wordpress.android.ui.news.NewsTracker.NewsCardOrigin.READER
 import org.wordpress.android.ui.news.NewsTrackerHelper
 import org.wordpress.android.ui.prefs.AppPrefsWrapper
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType
+import org.wordpress.android.ui.reader.subfilter.SubfilterCategory
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem
-import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.Divider
-import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.SectionTitle
+import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.ItemType
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.Site
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.SiteAll
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.Tag
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItemMapper
 import org.wordpress.android.ui.reader.utils.ReaderUtils
-import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.viewmodel.Event
 import org.wordpress.android.viewmodel.ScopedViewModel
 import org.wordpress.android.viewmodel.SingleLiveEvent
@@ -65,6 +63,9 @@ class ReaderPostListViewModel @Inject constructor(
     private val _shouldCollapseToolbar = MutableLiveData<Boolean>()
     val shouldCollapseToolbar: LiveData<Boolean> = _shouldCollapseToolbar
 
+    private val _filtersMatchCount = MutableLiveData<HashMap<SubfilterCategory, Int>>()
+    val filtersMatchCount: LiveData<HashMap<SubfilterCategory, Int>> = _filtersMatchCount
+
     /**
      * First tag for which the card was shown.
      */
@@ -88,6 +89,7 @@ class ReaderPostListViewModel @Inject constructor(
         }
 
         _shouldCollapseToolbar.value = collapseToolbar
+        _filtersMatchCount.value = hashMapOf()
 
         isStarted = true
     }
@@ -130,48 +132,87 @@ class ReaderPostListViewModel @Inject constructor(
         newsTracker.trackNewsCardExtendedInfoRequested(READER, item.version)
     }
 
-    fun loadSubFilters() {
+    fun loadSubFilters(/*category: SubfilterCategory*/) {
         launch {
             val filterList = ArrayList<SubfilterListItem>()
 
-            filterList.add(SectionTitle(UiStringRes(R.string.reader_filter_sites_title)))
-            filterList.add(
-                    SiteAll(
-                        onClickAction = ::onSubfilterClicked,
-                        isSelected = (getCurrentSubfilterValue() is SiteAll)
-                    )
-            )
+            /*when(category) {
+                SITES -> {*/
+                    // Filtering Discover out
+                    val followedBlogs = ReaderBlogTable.getFollowedBlogs().let { blogList ->
+                        blogList.filter { blog ->
+                            !(blog.url.startsWith("https://discover.wordpress.com"))
+                        }
+                    }
 
-            // Filtering Discover out
-            val followedBlogs = ReaderBlogTable.getFollowedBlogs().let { blogList ->
-                blogList.filter { blog ->
-                    !(blog.url.startsWith("https://discover.wordpress.com"))
-                }
-            }
+                    for (blog in followedBlogs) {
+                        filterList.add(Site(
+                                onClickAction = ::onSubfilterClicked,
+                                blog = blog,
+                                isSelected = (getCurrentSubfilterValue() is Site) &&
+                                        (getCurrentSubfilterValue() as Site).blog.name == blog.name
+                        ))
+                    }
+                /*}
+                TAGS -> {*/
+                    val tags = ReaderTagTable.getFollowedTags()
 
-            for (blog in followedBlogs) {
-                filterList.add(Site(
-                        onClickAction = ::onSubfilterClicked,
-                        blog = blog,
-                        isSelected = (getCurrentSubfilterValue() is Site) &&
-                                (getCurrentSubfilterValue() as Site).blog.name == blog.name
-                ))
-            }
+                    for (tag in tags) {
+                        filterList.add(Tag(
+                                onClickAction = ::onSubfilterClicked,
+                                tag = tag,
+                                isSelected = (getCurrentSubfilterValue() is Tag) &&
+                                        (getCurrentSubfilterValue() as Tag).tag.tagTitle == tag.tagTitle
+                        ))
+                    }
+                /*}
+            }*/
 
-            filterList.add(Divider)
-
-            filterList.add(SectionTitle(UiStringRes(R.string.reader_filter_tags_title)))
-
-            val tags = ReaderTagTable.getFollowedTags()
-
-            for (tag in tags) {
-                filterList.add(Tag(
-                        onClickAction = ::onSubfilterClicked,
-                        tag = tag,
-                        isSelected = (getCurrentSubfilterValue() is Tag) &&
-                                (getCurrentSubfilterValue() as Tag).tag.tagTitle == tag.tagTitle
-                ))
-            }
+            //// ++ TITLE
+            //filterList.add(SectionTitle(UiStringRes(R.string.reader_filter_sites_title)))
+            //
+            //// ++ SITE ALL
+            //filterList.add(
+            //        SiteAll(
+            //            onClickAction = ::onSubfilterClicked,
+            //            isSelected = (getCurrentSubfilterValue() is SiteAll)
+            //        )
+            //)
+//
+            //// ++ SITES
+            //// Filtering Discover out
+            //val followedBlogs = ReaderBlogTable.getFollowedBlogs().let { blogList ->
+            //    blogList.filter { blog ->
+            //        !(blog.url.startsWith("https://discover.wordpress.com"))
+            //    }
+            //}
+//
+            //for (blog in followedBlogs) {
+            //    filterList.add(Site(
+            //            onClickAction = ::onSubfilterClicked,
+            //            blog = blog,
+            //            isSelected = (getCurrentSubfilterValue() is Site) &&
+            //                    (getCurrentSubfilterValue() as Site).blog.name == blog.name
+            //    ))
+            //}
+//
+            //// ++ DIVIDER
+            //filterList.add(Divider)
+            //
+            //// ++ TITLE
+            //filterList.add(SectionTitle(UiStringRes(R.string.reader_filter_tags_title)))
+//
+            //// ++ TAGS
+            //val tags = ReaderTagTable.getFollowedTags()
+//
+            //for (tag in tags) {
+            //    filterList.add(Tag(
+            //            onClickAction = ::onSubfilterClicked,
+            //            tag = tag,
+            //            isSelected = (getCurrentSubfilterValue() is Tag) &&
+            //                    (getCurrentSubfilterValue() as Tag).tag.tagTitle == tag.tagTitle
+            //    ))
+            //}
 
             _subFilters.postValue(filterList)
         }
@@ -243,7 +284,8 @@ class ReaderPostListViewModel @Inject constructor(
                     0,
                     requestNewerPosts,
                     subfilterListItem.label,
-                    isFirstLoad
+                    isFirstLoad,
+                    false
             ))
             SubfilterListItem.ItemType.SITE -> {
                 val currentFeedId = (subfilterListItem as Site).blog.feedId
@@ -259,7 +301,8 @@ class ReaderPostListViewModel @Inject constructor(
                         currentFeedId,
                         requestNewerPosts,
                         subfilterListItem.label,
-                        isFirstLoad
+                        isFirstLoad,
+                        true
                 ))
             }
             SubfilterListItem.ItemType.TAG -> _readerModeInfo.value = (ReaderModeInfo(
@@ -269,7 +312,8 @@ class ReaderPostListViewModel @Inject constructor(
                     0,
                     requestNewerPosts,
                     subfilterListItem.label,
-                    isFirstLoad
+                    isFirstLoad,
+                    true
             ))
         }
         isFirstLoad = false
@@ -277,6 +321,16 @@ class ReaderPostListViewModel @Inject constructor(
 
     fun setCollapseToolbar(collapse: Boolean) {
         _shouldCollapseToolbar.value = collapse
+    }
+
+    fun updateTabTitle(category: SubfilterCategory, count: Int) {
+        val currentValue = _filtersMatchCount.value
+
+         currentValue?.let {
+            it.put(category, count)
+        }
+
+        _filtersMatchCount.postValue(currentValue)
     }
 
     private fun updateSubfilter(filter: SubfilterListItem) {

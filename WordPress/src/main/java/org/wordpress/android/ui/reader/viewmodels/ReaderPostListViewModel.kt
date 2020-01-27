@@ -20,7 +20,6 @@ import org.wordpress.android.ui.prefs.AppPrefsWrapper
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType
 import org.wordpress.android.ui.reader.subfilter.SubfilterCategory
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem
-import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.ItemType
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.Site
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.SiteAll
 import org.wordpress.android.ui.reader.subfilter.SubfilterListItem.Tag
@@ -150,7 +149,8 @@ class ReaderPostListViewModel @Inject constructor(
                                 onClickAction = ::onSubfilterClicked,
                                 blog = blog,
                                 isSelected = (getCurrentSubfilterValue() is Site) &&
-                                        (getCurrentSubfilterValue() as Site).blog.name == blog.name
+                                        //(getCurrentSubfilterValue() as Site).blog.name == blog.name
+                                        (getCurrentSubfilterValue() as Site).blog.isSameAs(blog)
                         ))
                     }
                 /*}
@@ -162,7 +162,8 @@ class ReaderPostListViewModel @Inject constructor(
                                 onClickAction = ::onSubfilterClicked,
                                 tag = tag,
                                 isSelected = (getCurrentSubfilterValue() is Tag) &&
-                                        (getCurrentSubfilterValue() as Tag).tag.tagTitle == tag.tagTitle
+                                        //(getCurrentSubfilterValue() as Tag).tag.tagTitle == tag.tagTitle
+                                        (getCurrentSubfilterValue() as Tag).tag == tag
                         ))
                     }
                 /*}

@@ -52,8 +52,6 @@ import java.lang.ref.WeakReference
 import java.util.EnumSet
 import javax.inject.Inject
 
-
-
 class SubfilterPageFragment : DaggerFragment() {
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
     private lateinit var viewModel: ReaderPostListViewModel

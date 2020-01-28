@@ -1102,15 +1102,9 @@
 
 
     <style name="SiteTagFilteredUrl" parent="SiteTagFilteredTitle">
-        <item name="android:textSize">@dimen/text_sz_small</item>
+        <item name="android:textSize">@dimen/text_sz_medium</item>
+        <item name="android:textColor">?attr/wpColorTextSubtle</item>
         <item name="android:paddingTop">0dp</item>
-    </style>
-
-    <style name="SiteTagBottomSheetTitle" parent="SiteTagFilteredTitle">
-        <item name="android:layout_height">@dimen/one_line_list_item_height</item>
-        <item name="android:paddingStart">@dimen/content_margin_site_row_start</item>
-        <item name="android:paddingEnd">@dimen/content_margin_site_row_start</item>
-        <item name="android:textStyle">bold</item>
     </style>
 
     <style name="SiteTagBottomSheetTitle" parent="SiteTagFilteredTitle">

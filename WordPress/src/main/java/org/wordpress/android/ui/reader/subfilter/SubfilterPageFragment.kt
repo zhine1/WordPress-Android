@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.OnClickListener
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.annotation.StringRes
@@ -25,10 +26,13 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.wordpress.android.R
+import org.wordpress.android.ui.ActionableEmptyView
 import org.wordpress.android.ui.pages.PageListFragment
 import org.wordpress.android.ui.pages.PagesPagerAdapter
 import org.wordpress.android.ui.pages.PagesPagerAdapter.Companion
+import org.wordpress.android.ui.reader.ReaderActivityLauncher
 import org.wordpress.android.ui.reader.ReaderEvents
+import org.wordpress.android.ui.reader.ReaderSubsActivity
 import org.wordpress.android.ui.reader.services.update.ReaderUpdateLogic.UpdateTask
 import org.wordpress.android.ui.reader.services.update.ReaderUpdateServiceStarter
 import org.wordpress.android.ui.reader.subfilter.SubfilterCategory.SITES
@@ -57,6 +61,7 @@ class SubfilterPageFragment : DaggerFragment() {
     private lateinit var viewModel: ReaderPostListViewModel
     @Inject lateinit var uiHelpers: UiHelpers
     private lateinit var recyclerView: RecyclerView
+    //private lateinit var emptyView: ActionableEmptyView
 
     companion object {
         const val CATEGORY_KEY = "category_key"
@@ -83,9 +88,11 @@ class SubfilterPageFragment : DaggerFragment() {
 
         val category = arguments?.getSerializable(CATEGORY_KEY) as SubfilterCategory
 
-        recyclerView = view.findViewById<RecyclerView>(R.id.content_recycler_view)
+        recyclerView = view.findViewById(R.id.content_recycler_view)
         recyclerView.layoutManager = LinearLayoutManager(requireActivity())
         recyclerView.adapter = SubfilterListAdapter(uiHelpers)
+
+        //emptyView = view.findViewById(R.id.actionable_empty_view)
 
         //when(category) {
         //    SITES -> recyclerView.setBackgroundColor(resources.getColor(R.color.yellow))
@@ -97,8 +104,12 @@ class SubfilterPageFragment : DaggerFragment() {
         viewModel.subFilters.observe(this, Observer {
            (recyclerView.adapter as? SubfilterListAdapter)?.let { adapter ->
                val items = it?.filter { it.type == category.type } ?: listOf()
+               manageEmptyView(items.size == 0, category)
+
                adapter.update(items)
                viewModel.updateTabTitle(category, items.size)
+
+
            }
         })
         performUpdate(/*category.task*/)
@@ -149,6 +160,42 @@ class SubfilterPageFragment : DaggerFragment() {
         }
 
         ReaderUpdateServiceStarter.startService(activity, tasks)
+    }
+
+    private fun manageEmptyView(isEmpty: Boolean, category: SubfilterCategory) {
+        if (!isAdded || view == null) {
+            return
+        }
+
+        val actionableEmptyView = view?.findViewById<ActionableEmptyView>(R.id.actionable_empty_view) ?: return
+
+        if (isEmpty) {
+            actionableEmptyView.apply{
+                visibility = View.VISIBLE
+                image.visibility = View.GONE
+                title.setText(if (category == SITES) R.string.reader_filter_empty_sites_list else R.string.reader_filter_empty_tags_list)
+                subtitle.setText(if (category == SITES) R.string.reader_filter_empty_sites_list else R.string.reader_filter_empty_tags_list)
+                button.setText(if (category == SITES) R.string.reader_filter_empty_sites_action else R.string.reader_filter_empty_tags_action)
+                button.visibility = View.VISIBLE
+                actionableEmptyView.button.setOnClickListener {
+                    //ReaderActivityLauncher.showReaderSubs(
+                    //        requireActivity(),
+                    //        if (category == SITES)
+                    //            ReaderSubsActivity.TAB_IDX_FOLLOWED_BLOGS
+                    //        else
+                    //            ReaderSubsActivity.TAB_IDX_FOLLOWED_TAGS
+                    //)
+                    viewModel.onBottomSheetActionClicked(
+                            if (category == SITES)
+                                ReaderSubsActivity.TAB_IDX_FOLLOWED_BLOGS
+                            else
+                                ReaderSubsActivity.TAB_IDX_FOLLOWED_TAGS
+                    )
+                }
+            }
+        } else {
+            actionableEmptyView.visibility = View.GONE
+        }
     }
 }
 

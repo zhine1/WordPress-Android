@@ -448,6 +448,13 @@ public class ReaderPostListFragment extends Fragment
                     return null;
                 });
             });
+
+            mViewModel.getStartSubsActivity().observe(this, event -> {
+                event.applyIfNotHandled(tabIndex -> {
+                    ReaderActivityLauncher.showReaderSubs(requireActivity(), tabIndex);
+                    return null;
+                });
+            });
         }
 
         if (BuildConfig.INFORMATION_ARCHITECTURE_AVAILABLE) {

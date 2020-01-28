@@ -131,7 +131,7 @@ class ReaderPostListViewModel @Inject constructor(
         newsTracker.trackNewsCardExtendedInfoRequested(READER, item.version)
     }
 
-    fun loadSubFilters(/*category: SubfilterCategory*/) {
+    fun loadSubFilters() {
         launch {
             val filterList = ArrayList<SubfilterListItem>()
 

@@ -44,13 +44,10 @@ sealed class SiteCreationSegmentViewHolder(internal val parent: ViewGroup, @Layo
                     ScaleType.CENTER,
                     null,
                     object : RequestListener<Drawable> {
-                        override fun onLoadFailed(e: Exception?, isFirstResource: Boolean) {
+                        override fun onLoadFailed(e: Exception?) {
                         }
 
-                        override fun onResourceReady(
-                            resource: Drawable,
-                            isFirstResource: Boolean
-                        ) {
+                        override fun onResourceReady(resource: Drawable) {
                             try {
                                 icon.setColorFilter(Color.parseColor(uiState.iconColor), PorterDuff.Mode.SRC_IN)
                             } catch (e: IllegalArgumentException) {

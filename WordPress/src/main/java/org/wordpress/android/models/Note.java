@@ -295,6 +295,14 @@ public class Note {
         }
     }
 
+    public void setUnread() {
+        try {
+            mNoteJSON.putOpt("read", 0);
+        } catch (JSONException e) {
+            AppLog.e(AppLog.T.NOTIFS, "Failed to set 'read' property", e);
+        }
+    }
+
     /**
      * Get the timestamp provided by the API for the note
      */

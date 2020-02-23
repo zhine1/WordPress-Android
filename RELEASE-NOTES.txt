@@ -9,7 +9,8 @@
 * Block editor: Fix issue where adding emojis to the post title added strong HTML elements to the title of the post
 * Block editor: We’ve introduced a new toolbar that floats above the block you’re editing, which makes navigating your blocks easier — especially complex ones.
 * Reader Information Architecture: added tab filtering; added bottom sheet to filter and navigate the followed sites/tags posts.
- 
+* You can now mark notifications as read or unread with a long-press.
+
 14.2
 -----
 * Block editor: Long-press Inserter icon to show options to add before/after

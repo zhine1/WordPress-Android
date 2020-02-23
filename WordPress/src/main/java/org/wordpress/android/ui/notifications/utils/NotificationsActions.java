@@ -80,6 +80,28 @@ public class NotificationsActions {
         }
     }
 
+    public static void markNoteAsUnread(final Note note) {
+        if (note == null) {
+            return;
+        }
+
+        // mark the note as unread if it's read
+        if (!note.isUnread()) {
+            WordPress.getRestClientUtilsV1_1().decrementUnreadCount(note.getId(), "-9999", new RestRequest.Listener() {
+                @Override
+                public void onResponse(JSONObject response) {
+                    note.setUnread();
+                    NotificationsTable.saveNote(note);
+                }
+            }, new RestRequest.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    AppLog.e(AppLog.T.NOTIFS, "Could not mark note as unread via API.");
+                }
+            });
+        }
+    }
+
     public static void downloadNoteAndUpdateDB(final String noteID, final RestRequest.Listener respoListener,
                                                final RestRequest.ErrorListener errorListener) {
         WordPress.getRestClientUtilsV1_1().getNotification(

@@ -1139,6 +1139,8 @@
     <string name="notifications_tab_title_comments" translatable="false">@string/comments</string>
     <string name="notifications_tab_title_follows" translatable="false">@string/follows</string>
     <string name="notifications_tab_title_likes" translatable="false">@string/stats_likes</string>
+    <string name="notifications_mark_read">Mark read</string>
+    <string name="notifications_mark_unread">Mark unread</string>
 
     <!-- Notification Settings -->
     <string name="notification_settings">Notification Settings</string>

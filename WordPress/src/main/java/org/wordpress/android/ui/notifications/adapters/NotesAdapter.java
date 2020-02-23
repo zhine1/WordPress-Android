@@ -291,19 +291,19 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         String avatarUrl = GravatarUtils.fixGravatarUrl(note.getIconURL(), mAvatarSz);
         mImageManager.loadIntoCircle(noteViewHolder.mImgAvatar, ImageType.AVATAR_WITH_BACKGROUND, avatarUrl);
 
-        boolean isUnread = note.isUnread();
+        noteViewHolder.mIsUnread = note.isUnread();
 
         int gridicon = mNoticonUtils.noticonToGridicon(note.getNoticonCharacter());
         mImageManager.load(noteViewHolder.mNoteIcon, gridicon);
         if (commentStatus == CommentStatus.UNAPPROVED) {
             noteViewHolder.mNoteIcon.setBackgroundResource(R.drawable.bg_oval_warning_stroke_white);
-        } else if (isUnread) {
+        } else if (noteViewHolder.mIsUnread) {
             noteViewHolder.mNoteIcon.setBackgroundResource(R.drawable.bg_oval_primary_40_stroke_notification_unread);
         } else {
             noteViewHolder.mNoteIcon.setBackgroundResource(R.drawable.bg_oval_neutral_20_stroke_white);
         }
 
-        if (isUnread) {
+        if (noteViewHolder.mIsUnread) {
             noteViewHolder.itemView.setBackgroundColor(mColorUnread);
         } else {
             noteViewHolder.itemView.setBackgroundColor(mColorRead);
@@ -361,6 +361,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         private final TextView mTxtDetail;
         private final ImageView mImgAvatar;
         private final ImageView mNoteIcon;
+        private boolean mIsUnread;
 
         NoteViewHolder(View view) {
             super(view);
@@ -373,6 +374,16 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
             mNoteIcon = view.findViewById(R.id.note_icon);
 
             mContentView.setOnClickListener(mOnClickListener);
+            mContentView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (mOnNoteClickListener != null && v.getTag() instanceof String) {
+                        mOnNoteClickListener.onLongClickNote(v, (String) v.getTag(), mIsUnread);
+                    }
+
+                    return true;
+                }
+            });
         }
     }
 

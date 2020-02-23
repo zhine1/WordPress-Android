@@ -1,16 +1,21 @@
 package org.wordpress.android.ui.notifications;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+import androidx.appcompat.widget.ListPopupWindow;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -51,6 +56,8 @@ import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.helpers.SwipeToRefreshHelper;
 import org.wordpress.android.util.widgets.CustomSwipeRefreshLayout;
 import org.wordpress.android.widgets.AppRatingDialog;
+
+import java.util.Collections;
 
 import javax.inject.Inject;
 
@@ -103,6 +110,7 @@ public class NotificationsListFragmentPage extends Fragment implements
 
     public interface OnNoteClickListener {
         void onClickNote(String noteId);
+        void onLongClickNote(View view, String noteId, boolean isUnread);
     }
 
     @Override
@@ -277,7 +285,51 @@ public class NotificationsListFragmentPage extends Fragment implements
             // from the list after it was updated by another fragment (such as NotificationsDetailListFragment).
             openNoteForReply(getActivity(), noteId, false, null, mNotesAdapter.getCurrentFilter(), false);
         }
+
+        @Override
+        public void onLongClickNote(View view, String noteId, boolean isUnread) {
+            if (!TextUtils.isEmpty(noteId)) {
+                showPopupMarkReadUnread(view, noteId, isUnread);
+            }
+        }
     };
+
+    private void showPopupMarkReadUnread(View view, String noteId, boolean isUnread) {
+        Context context = requireContext();
+        final ListPopupWindow listPopup = new ListPopupWindow(context);
+        listPopup.setWidth(context.getResources().getDimensionPixelSize(R.dimen.menu_item_width));
+        listPopup.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, Collections.singletonList(
+                getString(isUnread ? R.string.notifications_mark_read : R.string.notifications_mark_unread))));
+        listPopup.setDropDownGravity(Gravity.END);
+        listPopup.setAnchorView(view);
+        listPopup.setModal(true);
+        listPopup.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                Note note = NotificationsTable.getNoteById(noteId);
+
+                if (note != null) {
+                    if (isUnread) {
+                        NotificationsActions.markNoteAsRead(note);
+                        note.setRead();
+                    } else {
+                        NotificationsActions.markNoteAsUnread(note);
+                        note.setUnread();
+                    }
+
+                    NotificationsTable.saveNote(note);
+                    EventBus.getDefault().post(new NotificationsChanged());
+                }
+
+                listPopup.dismiss();
+            }
+        });
+        listPopup.show();
+    }
 
     private final RecyclerView.OnScrollListener mOnScrollListener = new RecyclerView.OnScrollListener() {
         @Override

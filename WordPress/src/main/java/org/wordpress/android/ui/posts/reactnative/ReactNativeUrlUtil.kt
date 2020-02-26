@@ -11,7 +11,10 @@ class ReactNativeUrlUtil @Inject constructor() {
         wpComSiteId: Long
     ): Pair<String, Map<String, String>>? =
             parsePathAndParams(pathWithParams)?.let { (path, params) ->
-                val url = WPCOM_ENDPOINT + path.replace("wp/v2/", "wp/v2/sites/$wpComSiteId/")
+                val pathWithSiteId = path
+                        .replace("wp/v2/", "wp/v2/sites/$wpComSiteId/")
+                        .replace( "wpcom/v2/", "wpcom/v2/sites/$wpComSiteId/" )
+                val url = WPCOM_ENDPOINT + pathWithSiteId
                 Pair(url, params)
             }
 

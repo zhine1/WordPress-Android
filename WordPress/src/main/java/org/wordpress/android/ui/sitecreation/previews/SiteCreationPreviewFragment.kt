@@ -13,6 +13,7 @@ import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.webkit.WebView
+import android.widget.TextSwitcher
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
@@ -41,10 +42,14 @@ import org.wordpress.android.util.AutoForeground.ServiceEventConnection
 import org.wordpress.android.util.ErrorManagedWebViewClient.ErrorManagedWebViewClientListener
 import org.wordpress.android.util.URLFilteredWebViewClient
 import org.wordpress.android.util.getColorFromAttribute
+import org.wordpress.android.util.helpers.DynamicTextsProgressionHelper
+import java.lang.ref.WeakReference
 import javax.inject.Inject
 
 private const val ARG_DATA = "arg_site_creation_data"
 private const val SLIDE_IN_ANIMATION_DURATION = 450L
+// 2 seconds for preview of each text in the site creation "loading" state:
+private const val SITE_CREATION_PREVIEW_TEXT_DURATION_MS = 2000L
 
 class SiteCreationPreviewFragment : SiteCreationBaseFormFragment(),
         ErrorManagedWebViewClientListener {
@@ -71,6 +76,9 @@ class SiteCreationPreviewFragment : SiteCreationBaseFormFragment(),
     private lateinit var helpClickedListener: OnHelpClickedListener
 
     private var okButtonContainer: View? = null
+
+    // an instance helping sequence texts while in `loading` state
+    private var dynamicTextsProgressionHelper: DynamicTextsProgressionHelper? = null
 
     override fun onAttach(context: Context?) {
         super.onAttach(context)
@@ -133,6 +141,16 @@ class SiteCreationPreviewFragment : SiteCreationBaseFormFragment(),
                 uiHelpers.updateVisibility(sitePreviewWebError, uiState.webViewErrorVisibility)
                 uiHelpers.updateVisibility(sitePreviewWebViewShimmerLayout, uiState.shimmerVisibility)
                 uiHelpers.updateVisibility(fullscreenErrorLayout, uiState.fullscreenErrorLayoutVisibility)
+
+                // special care required for the animated texts displayed while in loading state
+                // which may be currently running the sequence:
+                if (dynamicTextsProgressionHelper != null && uiState !is SitePreviewFullscreenProgressUiState) {
+                    dynamicTextsProgressionHelper?.let {
+                        // capture before using it
+                        it.cancel()
+                        dynamicTextsProgressionHelper = null
+                    }
+                }
             }
         })
         viewModel.preloadPreview.observe(this, Observer { url ->
@@ -214,7 +232,18 @@ class SiteCreationPreviewFragment : SiteCreationBaseFormFragment(),
 
     private fun updateLoadingLayout(progressUiState: SitePreviewFullscreenProgressUiState) {
         progressUiState.apply {
-            uiHelpers.setTextOrHide(fullscreenProgressLayout.findViewById(R.id.progress_text), loadingTextResId)
+            fullscreenProgressLayout.findViewById<TextSwitcher>(R.id.progress_text)?.apply {
+                // create a progress helper and let it run
+                DynamicTextsProgressionHelper(
+                        WeakReference(this),
+                        loadingTextResIds,
+                        SITE_CREATION_PREVIEW_TEXT_DURATION_MS,
+                        R.layout.site_creation_progress_text
+                ).also {
+                    dynamicTextsProgressionHelper = it
+                    postDelayed(it, SITE_CREATION_PREVIEW_TEXT_DURATION_MS)
+                }
+            }
         }
     }
 

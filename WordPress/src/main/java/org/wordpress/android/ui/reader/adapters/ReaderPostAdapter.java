@@ -1,12 +1,7 @@
 package org.wordpress.android.ui.reader.adapters;
 
 import android.content.Context;
-import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -58,7 +53,6 @@ import org.wordpress.android.ui.reader.views.ReaderSiteHeaderView;
 import org.wordpress.android.ui.reader.views.ReaderTagHeaderView;
 import org.wordpress.android.ui.reader.views.ReaderThumbnailStrip;
 import org.wordpress.android.util.AppLog;
-import org.wordpress.android.util.ColorUtils;
 import org.wordpress.android.util.ContextExtensionsKt;
 import org.wordpress.android.util.DateTimeUtils;
 import org.wordpress.android.util.DisplayUtils;
@@ -127,21 +121,6 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     @Inject AccountStore mAccountStore;
     @Inject SiteStore mSiteStore;
 
-    private static class ReaderRemovedPostViewHolder extends RecyclerView.ViewHolder {
-        final CardView mCardView;
-
-        private final ViewGroup mRemovedPostContainer;
-        private final TextView mTxtRemovedPostTitle;
-        private final TextView mUndoRemoveAction;
-
-        ReaderRemovedPostViewHolder(View itemView) {
-            super(itemView);
-            mCardView = itemView.findViewById(R.id.card_view);
-            mTxtRemovedPostTitle = itemView.findViewById(R.id.removed_post_title);
-            mRemovedPostContainer = itemView.findViewById(R.id.removed_item_container);
-            mUndoRemoveAction = itemView.findViewById(R.id.undo_remove);
-        }
-    }
     /*
      * full post
      */
@@ -336,8 +315,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             case VIEW_TYPE_XPOST:
                 return new ReaderXPostViewHolder(parent, mImageManager, mAvatarSzSmall);
             case VIEW_TYPE_REMOVED_POST:
-                postView = LayoutInflater.from(context).inflate(R.layout.reader_cardview_removed_post, parent, false);
-                return new ReaderRemovedPostViewHolder(postView);
+                return new ReaderRemovedPostViewHolder(parent);
             default:
                 postView = LayoutInflater.from(context).inflate(R.layout.reader_cardview_post, parent, false);
                 return new ReaderPostViewHolder(postView);
@@ -382,17 +360,10 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     private void renderRemovedPost(final int position, final ReaderRemovedPostViewHolder holder) {
         final ReaderPost post = getItem(position);
-        final Context context = holder.mRemovedPostContainer.getContext();
-        holder.mTxtRemovedPostTitle.setText(createTextForRemovedPostContainer(post, context));
-        Drawable drawable =
-                ColorUtils.INSTANCE.applyTintToDrawable(context, R.drawable.ic_undo_white_24dp, R.color.primary_40);
-        holder.mUndoRemoveAction.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
-        holder.mCardView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                undoPostUnbookmarked(post, position);
-            }
-        });
+        if (post == null) {
+            return;
+        }
+        holder.bind(post, () -> undoPostUnbookmarked(post, position));
     }
 
     private void undoPostUnbookmarked(final ReaderPost post, final int position) {
@@ -923,19 +894,6 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             bookmarkButton.setSelected(false);
             bookmarkButton.setContentDescription(context.getString(R.string.reader_add_bookmark));
         }
-    }
-
-    /**
-     * Creates 'Removed [post title]' text, with the '[post title]' in bold.
-     */
-    @NonNull
-    private SpannableStringBuilder createTextForRemovedPostContainer(ReaderPost post, Context context) {
-        String removedString = context.getString(R.string.removed);
-        String removedPostTitle = removedString + " " + post.getTitle();
-        SpannableStringBuilder str = new SpannableStringBuilder(removedPostTitle);
-        str.setSpan(new StyleSpan(Typeface.BOLD), removedString.length(), removedPostTitle.length(),
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return str;
     }
 
     private void showComments(final ReaderPostViewHolder holder, final ReaderPost post) {

@@ -51,7 +51,6 @@ import org.wordpress.android.ui.reader.models.ReaderBlogIdPostId;
 import org.wordpress.android.ui.reader.utils.ReaderUtils;
 import org.wordpress.android.ui.reader.utils.ReaderVideoUtils;
 import org.wordpress.android.ui.reader.utils.ReaderVideoUtils.VideoThumbnailUrlListener;
-import org.wordpress.android.ui.reader.utils.ReaderXPostUtils;
 import org.wordpress.android.ui.reader.views.ReaderFollowButton;
 import org.wordpress.android.ui.reader.views.ReaderGapMarkerView;
 import org.wordpress.android.ui.reader.views.ReaderIconCountView;
@@ -128,38 +127,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     @Inject AccountStore mAccountStore;
     @Inject SiteStore mSiteStore;
 
-    /*
-     * cross-post
-     */
-    private class ReaderXPostViewHolder extends RecyclerView.ViewHolder {
-        private final CardView mCardView;
-        private final ImageView mImgAvatar;
-        private final ImageView mImgBlavatar;
-        private final TextView mTxtTitle;
-        private final TextView mTxtSubtitle;
-
-        ReaderXPostViewHolder(View itemView) {
-            super(itemView);
-            mCardView = itemView.findViewById(R.id.card_view);
-            mImgAvatar = itemView.findViewById(R.id.image_avatar);
-            mImgBlavatar = itemView.findViewById(R.id.image_blavatar);
-            mTxtTitle = itemView.findViewById(R.id.text_title);
-            mTxtSubtitle = itemView.findViewById(R.id.text_subtitle);
-
-            mCardView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    int position = getAdapterPosition();
-                    ReaderPost post = getItem(position);
-                    if (mPostSelectedListener != null && post != null) {
-                        mPostSelectedListener.onPostSelected(post);
-                    }
-                }
-            });
-        }
-    }
-
-    private class ReaderRemovedPostViewHolder extends RecyclerView.ViewHolder {
+    private static class ReaderRemovedPostViewHolder extends RecyclerView.ViewHolder {
         final CardView mCardView;
 
         private final ViewGroup mRemovedPostContainer;
@@ -295,7 +263,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
     }
 
-    private class SiteHeaderViewHolder extends RecyclerView.ViewHolder {
+    private static class SiteHeaderViewHolder extends RecyclerView.ViewHolder {
         private final ReaderSiteHeaderView mSiteHeaderView;
 
         SiteHeaderViewHolder(View itemView) {
@@ -304,7 +272,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
     }
 
-    private class TagHeaderViewHolder extends RecyclerView.ViewHolder {
+    private static class TagHeaderViewHolder extends RecyclerView.ViewHolder {
         private final ReaderTagHeaderView mTagHeaderView;
 
         TagHeaderViewHolder(View itemView) {
@@ -313,7 +281,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
     }
 
-    private class GapMarkerViewHolder extends RecyclerView.ViewHolder {
+    private static class GapMarkerViewHolder extends RecyclerView.ViewHolder {
         private final ReaderGapMarkerView mGapMarkerView;
 
         GapMarkerViewHolder(View itemView) {
@@ -366,8 +334,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 return new GapMarkerViewHolder(new ReaderGapMarkerView(context));
 
             case VIEW_TYPE_XPOST:
-                postView = LayoutInflater.from(context).inflate(R.layout.reader_cardview_xpost, parent, false);
-                return new ReaderXPostViewHolder(postView);
+                return new ReaderXPostViewHolder(parent, mImageManager, mAvatarSzSmall);
             case VIEW_TYPE_REMOVED_POST:
                 postView = LayoutInflater.from(context).inflate(R.layout.reader_cardview_removed_post, parent, false);
                 return new ReaderRemovedPostViewHolder(postView);
@@ -409,17 +376,7 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         if (post == null) {
             return;
         }
-
-        mImageManager
-                .loadIntoCircle(holder.mImgAvatar, ImageType.AVATAR,
-                        GravatarUtils.fixGravatarUrl(post.getPostAvatar(), mAvatarSzSmall));
-
-        mImageManager.load(holder.mImgBlavatar, ImageType.BLAVATAR,
-                GravatarUtils.fixGravatarUrl(post.getBlogImageUrl(), mAvatarSzSmall));
-
-        holder.mTxtTitle.setText(ReaderXPostUtils.getXPostTitle(post));
-        holder.mTxtSubtitle.setText(ReaderXPostUtils.getXPostSubtitleHtml(post));
-
+        holder.bind(post, mPostSelectedListener);
         checkLoadMore(position);
     }
 

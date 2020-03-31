@@ -81,7 +81,7 @@ public class GutenbergContainerFragment extends Fragment {
         Bundle translations = getArguments().getBundle(ARG_TRANSLATIONS);
 
         mWPAndroidGlueCode = new WPAndroidGlueCode();
-        mWPAndroidGlueCode.onCreate(getContext());
+        mWPAndroidGlueCode.onCreate(getActivity().getApplicationContext());
         mWPAndroidGlueCode.onCreateView(
                 getContext(),
                 mHtmlModeEnabled,

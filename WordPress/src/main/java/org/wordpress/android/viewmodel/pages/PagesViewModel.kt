@@ -16,6 +16,7 @@ import org.wordpress.android.analytics.AnalyticsTracker.Stat.PAGES_OPTIONS_PRESS
 import org.wordpress.android.analytics.AnalyticsTracker.Stat.PAGES_SEARCH_ACCESSED
 import org.wordpress.android.analytics.AnalyticsTracker.Stat.PAGES_TAB_PRESSED
 import org.wordpress.android.fluxc.Dispatcher
+import org.wordpress.android.fluxc.generated.PostActionBuilder
 import org.wordpress.android.fluxc.model.LocalOrRemoteId.LocalId
 import org.wordpress.android.fluxc.model.LocalOrRemoteId.RemoteId
 import org.wordpress.android.fluxc.model.PostModel
@@ -24,6 +25,7 @@ import org.wordpress.android.fluxc.model.page.PageModel
 import org.wordpress.android.fluxc.model.page.PageStatus
 import org.wordpress.android.fluxc.store.PageStore
 import org.wordpress.android.fluxc.store.PostStore
+import org.wordpress.android.fluxc.store.PostStore.FetchPostsPayload
 import org.wordpress.android.modules.BG_THREAD
 import org.wordpress.android.modules.UI_THREAD
 import org.wordpress.android.ui.pages.PageItem.Action
@@ -215,6 +217,91 @@ class PagesViewModel
                 handlePostUploadedStarted = this::postUploadStarted,
                 handlePostUploadFinished = this::postUploadedFinished
         )
+
+        val payload = FetchPostsPayload(site)
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
+        dispatcher.dispatch(PostActionBuilder.newFetchPagesAction(payload))
     }
 
     override fun onCleared() {

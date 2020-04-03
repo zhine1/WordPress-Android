@@ -61,7 +61,7 @@ class MainBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
-    override fun onAttach(context: Context?) {
+    override fun onAttach(context: Context) {
         super.onAttach(context)
         (requireActivity().applicationContext as WordPress).component().inject(this)
     }

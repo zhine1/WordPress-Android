@@ -46,7 +46,7 @@ class StatsWidgetConfigureFragment : DaggerFragment() {
     private lateinit var colorSelectionViewModel: StatsColorSelectionViewModel
     private lateinit var widgetType: WidgetType
 
-    override fun onInflate(context: Context?, attrs: AttributeSet?, savedInstanceState: Bundle?) {
+    override fun onInflate(context: Context, attrs: AttributeSet, savedInstanceState: Bundle?) {
         super.onInflate(context, attrs, savedInstanceState)
         activity?.let {
             val styledAttributes = it.obtainStyledAttributes(attrs, R.styleable.statsWidget)

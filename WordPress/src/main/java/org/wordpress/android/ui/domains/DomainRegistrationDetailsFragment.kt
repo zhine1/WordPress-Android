@@ -436,7 +436,7 @@ class DomainRegistrationDetailsFragment : Fragment() {
             return builder.create()
         }
 
-        override fun onAttach(context: Context?) {
+        override fun onAttach(context: Context) {
             super.onAttach(context)
             AndroidSupportInjection.inject(this)
         }
@@ -486,7 +486,7 @@ class DomainRegistrationDetailsFragment : Fragment() {
             return builder.create()
         }
 
-        override fun onAttach(context: Context?) {
+        override fun onAttach(context: Context) {
             super.onAttach(context)
             AndroidSupportInjection.inject(this)
         }

@@ -44,10 +44,10 @@ class MainBottomSheetFragment : BottomSheetDialogFragment() {
         viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory).get(WPMainActivityViewModel::class.java)
 
         viewModel.mainActions.observe(this, Observer {
-            (dialog.content_recycler_view.adapter as? AddContentAdapter)?.update(it ?: listOf())
+            (dialog?.content_recycler_view?.adapter as? AddContentAdapter)?.update(it ?: listOf())
         })
 
-        dialog.setOnShowListener { dialogInterface ->
+        dialog?.setOnShowListener { dialogInterface ->
             val sheetDialog = dialogInterface as? BottomSheetDialog
 
             val bottomSheet = sheetDialog?.findViewById<View>(

@@ -62,7 +62,7 @@ class SubfilterBottomSheetFragment : BottomSheetDialogFragment() {
             }
         })
 
-        dialog.setOnShowListener { dialogInterface ->
+        dialog?.setOnShowListener { dialogInterface ->
             val sheetDialog = dialogInterface as? BottomSheetDialog
 
             val bottomSheet = sheetDialog?.findViewById<View>(

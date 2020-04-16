@@ -148,7 +148,7 @@ class CropFragment : Fragment(), UCropFragmentCallback {
 
     private fun navigateBackWithCropResult(cropResult: CropResult) {
         if (navArgs.shouldReturnToPreviewScreen) {
-            // TODO: Pass crop result to preview screen
+            findNavController().popBackStack()
         } else {
             activity?.let {
                 it.setResult(cropResult.resultCode, cropResult.data)

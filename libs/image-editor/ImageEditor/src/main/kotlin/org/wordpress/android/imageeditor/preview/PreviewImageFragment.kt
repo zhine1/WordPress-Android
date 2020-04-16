@@ -3,6 +3,7 @@ package org.wordpress.android.imageeditor.preview
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -25,6 +26,7 @@ import kotlinx.android.synthetic.main.preview_image_fragment.*
 import org.wordpress.android.imageeditor.ImageEditor
 import org.wordpress.android.imageeditor.ImageEditor.RequestListener
 import org.wordpress.android.imageeditor.R
+import org.wordpress.android.imageeditor.crop.CropViewModel.CropResult
 import org.wordpress.android.imageeditor.preview.PreviewImageViewModel.ImageData
 import org.wordpress.android.imageeditor.preview.PreviewImageViewModel.ImageLoadToFileState.ImageStartLoadingToFileState
 import org.wordpress.android.imageeditor.utils.UiHelpers

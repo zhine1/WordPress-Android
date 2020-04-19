@@ -1,5 +1,6 @@
 package org.wordpress.android.imageeditor.preview
 
+import android.net.Uri
 import android.text.TextUtils
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -95,7 +96,7 @@ class PreviewImageViewModel : ViewModel() {
         updateUiState(currentUiState.copy(viewPagerItemsStates = newImageUiStates))
     }
 
-    fun onLoadIntoFileSuccess(inputFilePathAtPosition: String, position: Int) {
+    fun onLocalFileAvailable(inputFilePathAtPosition: String, position: Int) {
         val imageStateAtPosition = (uiState.value as UiState).viewPagerItemsStates[position]
         val outputFileExtension = imageStateAtPosition.data.outputFileExtension
 
@@ -118,12 +119,20 @@ class PreviewImageViewModel : ViewModel() {
 
     fun onCropMenuClicked(selectedPosition: Int) {
         val selectedImageState = (uiState.value as UiState).viewPagerItemsStates[selectedPosition]
-        updateLoadIntoFileState(
-            ImageStartLoadingToFileState(
-                imageUrlAtPosition = selectedImageState.data.highResImageUrl,
-                position = selectedPosition
+        val highResUriString = selectedImageState.data.highResImageUrl
+        // TODO rename high/resUrl to Uri
+        val uri = Uri.parse(highResUriString)
+        val isLocalFile = "content" == uri.scheme || "file" == uri.scheme
+        if (isLocalFile) {
+            onLocalFileAvailable(highResUriString, selectedPosition)
+        } else {
+            updateLoadIntoFileState(
+                    ImageStartLoadingToFileState(
+                            imageUrlAtPosition = highResUriString,
+                            position = selectedPosition
+                    )
             )
-        )
+        }
     }
 
     fun onPageSelected(selectedPosition: Int) {

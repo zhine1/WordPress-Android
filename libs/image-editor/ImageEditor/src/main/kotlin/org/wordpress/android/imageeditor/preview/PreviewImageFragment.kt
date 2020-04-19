@@ -233,7 +233,7 @@ class PreviewImageFragment : Fragment() {
             url,
             object : RequestListener<File> {
                 override fun onResourceReady(resource: File, url: String) {
-                    viewModel.onLoadIntoFileSuccess(resource.path, position)
+                    viewModel.onLocalFileAvailable(resource.path, position)
                 }
 
                 override fun onLoadFailed(e: Exception?, url: String) {

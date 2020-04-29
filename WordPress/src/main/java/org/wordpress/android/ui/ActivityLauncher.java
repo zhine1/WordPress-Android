@@ -90,6 +90,7 @@ import org.wordpress.android.util.analytics.AnalyticsUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.wordpress.android.analytics.AnalyticsTracker.ACTIVITY_LOG_ACTIVITY_ID_KEY;
@@ -946,6 +947,11 @@ public class ActivityLauncher {
     ) {
         Intent intent = new Intent(activity, EditImageActivity.class);
         intent.putParcelableArrayListExtra(ARG_EDIT_IMAGE_DATA, input);
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("number_of_images", input.size());
+        AnalyticsTracker.track(Stat.MEDIA_EDITOR_SHOWN, properties);
+
         activity.startActivityForResult(intent, RequestCodes.IMAGE_EDITOR_EDIT_IMAGE);
     }
 }

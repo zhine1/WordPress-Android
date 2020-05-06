@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    android:id="@+id/xyz"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:transitionName="test"
+    android:background="@color/red"
+    >
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/PostSettingsCardViewInnerLayout">
     <include layout="@layout/prepublishing_toolbar" />
@@ -45,4 +53,4 @@
             android:text="@string/post_settings_add_to_calendar" />
     </LinearLayout>
 </LinearLayout>
-
+</FrameLayout>

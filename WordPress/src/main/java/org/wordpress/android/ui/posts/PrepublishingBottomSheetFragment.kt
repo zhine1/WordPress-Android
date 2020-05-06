@@ -12,6 +12,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import androidx.transition.AutoTransition
+import androidx.transition.ChangeBounds
+import androidx.transition.Explode
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import org.wordpress.android.R
@@ -122,12 +125,24 @@ class PrepublishingBottomSheetFragment : WPBottomSheetDialogFragment(),
 
     private fun fadeInFragment(fragment: Fragment, tag: String) {
         childFragmentManager.let { fragmentManager ->
-            val fragmentTransaction = fragmentManager.beginTransaction()
+
+
+
+
+
+            var fragmentTransaction = fragmentManager.beginTransaction()
             fragmentManager.findFragmentById(R.id.prepublishing_content_fragment)?.run {
-                fragmentTransaction.addToBackStack(null).setCustomAnimations(
-                        R.anim.prepublishing_fragment_fade_in, R.anim.prepublishing_fragment_fade_out,
-                        R.anim.prepublishing_fragment_fade_in, R.anim.prepublishing_fragment_fade_out
-                )
+                (this as? PrepublishingHomeFragment)?.let {
+                    fragment.sharedElementEnterTransition = Explode()
+                    fragment.sharedElementReturnTransition = Explode()
+
+                    fragmentTransaction = fragmentTransaction
+                            .addSharedElement(this.view!!.findViewById<FrameLayout>(R.id.xyz), "test")
+//                        .setCustomAnimations(
+//                        R.anim.prepublishing_fragment_fade_in, R.anim.prepublishing_fragment_fade_out,
+//                        R.anim.prepublishing_fragment_fade_in, R.anim.prepublishing_fragment_fade_out
+//                )
+                }
             }
             fragmentTransaction.replace(R.id.prepublishing_content_fragment, fragment, tag)
             fragmentTransaction.commit()

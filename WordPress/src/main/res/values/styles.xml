@@ -916,10 +916,19 @@
 
     <style name="LoginTheme" parent="Base.LoginTheme">
         <item name="actionMenuTextColor">?attr/colorOnPrimarySurface</item>
+        <item name="toolbarStyle">@style/LoginTheme.ActionBar</item>
+        <item name="appBarLayoutStyle">@style/LoginTheme.ActionBar</item>
+        <item name="colorControlNormal">@color/black</item>
     </style>
 
-    <style name="LoginTheme.ActionBar" parent="WordPress.ActionBar">
+    <style name="LoginTheme.ActionBar" parent="@style/WordPress.ActionBar.LightDark">
         <item name="android:textColorSecondary">?attr/colorOnPrimarySurface</item>
+        <item name="titleTextColor">@color/material_on_surface_emphasis_high_type</item>
+        <item name="toolbarNavigationButtonStyle">@style/LoginTheme.ActionBar.Inverted</item>
+    </style>
+
+    <style name="LoginTheme.ActionBar.Inverted" parent="Widget.AppCompat.Toolbar.Button.Navigation">
+        <item name="tint">@color/material_on_surface_emphasis_high_type</item>
     </style>
 
     <style name="LoginTheme.Button.Primary" parent="WordPress.Button.Primary.Unelevated">
@@ -958,8 +967,10 @@
 
     <style name="LoginTheme.EditText" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
         <item name="startIconTint">?attr/colorPrimary</item>
+        <item name="android:textColor">@color/material_on_surface_emphasis_medium</item>
         <item name="endIconTint">?attr/colorPrimary</item>
         <item name="endIconDrawable">@drawable/ic_arrow_left_white_24dp</item>
+        <item name="android:textColorHint">@color/material_on_surface_emphasis_medium</item>
     </style>
 
     <style name="LoginTheme.PromoTitle" parent="TextAppearance.MaterialComponents.Headline4">

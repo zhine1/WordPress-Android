@@ -2302,11 +2302,13 @@
     <string name="login_promo_title_36_percent">36% of the web is built on WordPress.</string>
     <string name="login_promo_text_unlock_the_power">Unlock the power of the most flexible website builder.</string>
     <string name="invalid_verification_code">Invalid verification code</string>
-    <string name="send_link">Send link</string>
-    <string name="enter_your_password_instead">Enter your password instead</string>
+    <string name="send_link_by_email">Send link by email</string>
+    <string name="or_type_your_password">Or type your password</string>
     <string name="alternatively">Alternatively:</string>
     <string name="enter_email_wordpress_com">Log in to WordPress.com using an email address to manage all your WordPress sites.</string>
+    <string name="enter_email_to_continue_wordpress_com">Enter your email address to log in or create a WordPress.com account.</string>
     <string name="enter_email_for_site">Log in with WordPress.com to connect to %1$s</string>
+    <string name="get_started">Get Started</string>
     <string name="next">Next</string>
     <string name="open_mail">Open mail</string>
     <string name="enter_site_address_instead">Log in by entering your site address.</string>
@@ -2318,7 +2320,7 @@
     <string name="requesting_otp">Requesting a verification code via SMS.</string>
     <string name="email_not_registered_wpcom">Hmm, we can\'t find a WordPress.com account connected to this email address. Try the link below to log in using your site address.</string>
     <string name="password_incorrect">It looks like this password is incorrect. Please double check your information and try again.</string>
-    <string name="login_magic_links_label">We\'ll email you a magic link that\'ll log you in instantly, no password needed. Hunt and peck no more!</string>
+    <string name="login_magic_links_label">We\'ll email you a magic link that\'ll log you in instantly, no password needed.</string>
     <string name="login_magic_links_sent_label">Your magic link is on its way! Check your email on this device and tap the link in the email you received from WordPress.com.</string>
     <string name="login_magic_link_email_requesting">Requesting log-in email</string>
     <string name="enter_wpcom_password">Enter your WordPress.com password.</string>
@@ -2349,6 +2351,8 @@
     <string name="login_epilogue_mysites_one">My site</string>
     <string name="login_epilogue_mysites_other">My sites</string>
     <string name="login_google_button_suffix">Log in with Google.</string>
+    <string name="continue_google_button_suffix">Continue with Google</string>
+    <string name="login_or">or</string>
     <string name="login_error_button">Close</string>
     <string name="login_error_email_not_found_v2">There\'s no WordPress.com account matching this Google account.</string>
     <string name="login_error_generic">There was some trouble connecting with the Google account.</string>
@@ -2394,6 +2398,8 @@
     <string name="signup_magic_link_message">We sent you a magic signup link! Check your email on this device, and tap the link in the email to finish signing up.</string>
     <string name="signup_magic_link_progress">Sending email</string>
     <string name="signup_terms_of_service_text">By signing up, you agree to our %1$sTerms of Service%2$s.</string>
+    <string name="continue_terms_of_service_text">By continuing, you agree to our %1$sTerms of Service%2$s.</string>
+    <string name="continue_with_google_terms_of_service_text">If you continue with Google and don\'t already have a WordPress.com account, you are creating an account and you agree to our %1$sTerms of Service%2$s.</string>
     <string name="signup_updating_account">Updating account…</string>
     <string name="signup_user_exists">Email already exists on WordPress.com.\nProceeding with login.</string>
     <string name="signup_with_email_button">Sign Up with Email</string>

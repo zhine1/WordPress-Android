@@ -43,4 +43,5 @@
     <!-- signup -->
     <dimen name="bottom_sheet_dialog_width">0dp</dimen>
 
+    <dimen name="text_sz_extra_small">10sp</dimen>
 </resources>

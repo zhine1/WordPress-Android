@@ -3,6 +3,7 @@ package org.wordpress.android.login;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.Html;
@@ -21,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
@@ -151,6 +153,9 @@ public class LoginMagicLinkRequestFragment extends Fragment {
         mAvatarProgressBar = view.findViewById(R.id.avatar_progress);
         ImageView avatarView = view.findViewById(R.id.gravatar);
 
+        TextView emailView = view.findViewById(R.id.email);
+        emailView.setText(mEmail);
+
         // Design changes added to the Woo Magic link sign-in
         if (mVerifyMagicLinkEmail) {
             View avatarContainerView = view.findViewById(R.id.avatar_container);
@@ -205,7 +210,7 @@ public class LoginMagicLinkRequestFragment extends Fragment {
 
         ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setDisplayShowTitleEnabled(false);
+            actionBar.setTitle(R.string.log_in);
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
@@ -244,6 +249,18 @@ public class LoginMagicLinkRequestFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_login, menu);
+        Context context = getContext();
+        if (context != null) {
+            for (int i = 0; i < menu.size(); i++) {
+                Drawable drawable = menu.getItem(i).getIcon();
+                if (drawable != null) {
+                    drawable.mutate();
+                    drawable.setColorFilter(
+                            ContextCompat.getColor(context, R.color.material_on_surface_emphasis_high_type),
+                            PorterDuff.Mode.SRC_ATOP);
+                }
+            }
+        }
     }
 
     @Override

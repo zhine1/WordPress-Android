@@ -1800,10 +1800,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
                 // now set status to PUBLISHED - only do this AFTER we have run the isFirstTimePublish() check,
                 // otherwise we'd have an incorrect value
                 // also re-set the published date in case it was SCHEDULED and they want to publish NOW
-                if (postModel.getStatus().equals(PostStatus.SCHEDULED.toString())) {
-                    postModel.setDateCreated(mDateTimeUtils.currentTimeInIso8601());
-                }
-                postModel.setStatus(PostStatus.PUBLISHED.toString());
+                mPublishPostImmediatelyUseCase.updatePostToPublishImmediately(mEditPostRepository, publishPost);
                 mPostEditorAnalyticsSession.setOutcome(Outcome.PUBLISH);
             } else {
                 mPostEditorAnalyticsSession.setOutcome(Outcome.SAVE);

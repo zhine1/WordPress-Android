@@ -46,8 +46,11 @@ import org.wordpress.android.ui.pages.SnackbarMessageHolder
 import org.wordpress.android.ui.posts.BasicFragmentDialog.BasicDialogNegativeClickInterface
 import org.wordpress.android.ui.posts.BasicFragmentDialog.BasicDialogOnDismissByOutsideTouchInterface
 import org.wordpress.android.ui.posts.BasicFragmentDialog.BasicDialogPositiveClickInterface
+import org.wordpress.android.ui.posts.EditPostSettingsFragment.EditPostActivityHook
 import org.wordpress.android.ui.posts.PostListType.SEARCH
+import org.wordpress.android.ui.posts.PrepublishingBottomSheetFragment.Companion.newInstance
 import org.wordpress.android.ui.posts.adapters.AuthorSelectionAdapter
+import org.wordpress.android.ui.posts.prepublishing.PrepublishingBottomSheetListener
 import org.wordpress.android.ui.quickstart.QuickStartEvent
 import org.wordpress.android.ui.uploads.UploadActionUseCase
 import org.wordpress.android.ui.uploads.UploadUtilsWrapper
@@ -68,6 +71,8 @@ const val EXTRA_TARGET_POST_LOCAL_ID = "targetPostLocalId"
 const val STATE_KEY_PREVIEW_STATE = "stateKeyPreviewState"
 
 class PostsListActivity : LocaleAwareActivity(),
+        EditPostActivityHook,
+        PrepublishingBottomSheetListener,
         BasicDialogPositiveClickInterface,
         BasicDialogNegativeClickInterface,
         BasicDialogOnDismissByOutsideTouchInterface {
@@ -82,8 +87,13 @@ class PostsListActivity : LocaleAwareActivity(),
     @Inject internal lateinit var snackbarSequencer: SnackbarSequencer
     @Inject internal lateinit var uploadUtilsWrapper: UploadUtilsWrapper
     @Inject internal lateinit var quickStartStore: QuickStartStore
+    @Inject internal lateinit var editPostRepository: EditPostRepository
 
     private lateinit var site: SiteModel
+
+    override fun getSite() = site
+    override fun getEditPostRepository() = editPostRepository
+
     private lateinit var viewModel: PostListMainViewModel
 
     private lateinit var authorSelectionAdapter: AuthorSelectionAdapter
@@ -229,7 +239,7 @@ class PostsListActivity : LocaleAwareActivity(),
 
     private fun initViewModel(initPreviewState: PostListRemotePreviewState) {
         viewModel = ViewModelProviders.of(this, viewModelFactory).get(PostListMainViewModel::class.java)
-        viewModel.start(site, initPreviewState)
+        viewModel.start(site, initPreviewState, editPostRepository)
 
         viewModel.viewState.observe(this, Observer { state ->
             state?.let {
@@ -311,6 +321,15 @@ class PostsListActivity : LocaleAwareActivity(),
                         uploadActionUseCase,
                         uploadUtilsWrapper
                 )
+            }
+        })
+        viewModel.openPrepublishingBottomSheet.observe(this, Observer { event ->
+            event.applyIfNotHandled {
+                val fragment = supportFragmentManager.findFragmentByTag(PrepublishingBottomSheetFragment.TAG)
+                if (fragment == null) {
+                    val prepublishingFragment = newInstance(site, editPostRepository.isPage)
+                    prepublishingFragment.show(supportFragmentManager, PrepublishingBottomSheetFragment.TAG)
+                }
             }
         })
     }
@@ -548,5 +567,9 @@ class PostsListActivity : LocaleAwareActivity(),
     override fun onStop() {
         super.onStop()
         EventBus.getDefault().unregister(this)
+    }
+
+    override fun onSubmitButtonClicked(publishPost: PublishPost) {
+        viewModel.onBottomSheetPublishButtonClicked()
     }
 }

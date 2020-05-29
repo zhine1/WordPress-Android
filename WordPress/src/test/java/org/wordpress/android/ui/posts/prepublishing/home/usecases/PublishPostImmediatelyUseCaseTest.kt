@@ -72,7 +72,6 @@ class PublishPostImmediatelyUseCaseTest : BaseUnitTest() {
     fun `EditPostRepository's PostModel should have the same date if not SCHEDULED`() {
         // arrange
         val dateCreated = "2020-05-05T20:33:20+0200"
-        whenever(dateTimeUtilsWrapper.currentTimeInIso8601()).thenReturn(dateCreated)
         editPostRepository.set {
             PostModel().apply {
                 setDateCreated(dateCreated)

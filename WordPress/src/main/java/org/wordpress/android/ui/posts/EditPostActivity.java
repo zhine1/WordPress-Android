@@ -131,6 +131,7 @@ import org.wordpress.android.ui.posts.editor.media.EditorMedia;
 import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddExistingMediaSource;
 import org.wordpress.android.ui.posts.editor.media.EditorMediaListener;
 import org.wordpress.android.ui.posts.prepublishing.PrepublishingBottomSheetListener;
+import org.wordpress.android.ui.posts.prepublishing.home.usecases.PublishPostImmediatelyUseCase;
 import org.wordpress.android.ui.posts.reactnative.ReactNativeRequestHandler;
 import org.wordpress.android.ui.posts.services.AztecImageLoader;
 import org.wordpress.android.ui.posts.services.AztecVideoLoader;
@@ -331,6 +332,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
     @Inject ViewModelProvider.Factory mViewModelFactory;
     @Inject ReaderUtilsWrapper mReaderUtilsWrapper;
     @Inject AnalyticsTrackerWrapper mAnalyticsTrackerWrapper;
+    @Inject PublishPostImmediatelyUseCase mPublishPostImmediatelyUseCase;
 
     private StorePostViewModel mViewModel;
 
@@ -1246,6 +1248,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
                 return true;
             case PUBLISH_NOW:
                 mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_PUBLISH_TAPPED);
+                mPublishPostImmediatelyUseCase.updatePostToPublishImmediately(mEditPostRepository, !mIsNewPost);
                 showPrepublishingNudgeBottomSheet();
                 return true;
             case NONE:
@@ -1799,10 +1802,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
                 // now set status to PUBLISHED - only do this AFTER we have run the isFirstTimePublish() check,
                 // otherwise we'd have an incorrect value
                 // also re-set the published date in case it was SCHEDULED and they want to publish NOW
-                if (postModel.getStatus().equals(PostStatus.SCHEDULED.toString())) {
-                    postModel.setDateCreated(mDateTimeUtils.currentTimeInIso8601());
-                }
-                postModel.setStatus(PostStatus.PUBLISHED.toString());
+                mPublishPostImmediatelyUseCase.updatePostToPublishImmediately(mEditPostRepository, publishPost);
                 mPostEditorAnalyticsSession.setOutcome(Outcome.PUBLISH);
             } else {
                 mPostEditorAnalyticsSession.setOutcome(Outcome.SAVE);

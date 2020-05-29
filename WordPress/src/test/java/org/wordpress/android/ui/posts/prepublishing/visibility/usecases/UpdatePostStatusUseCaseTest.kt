@@ -1,10 +1,12 @@
 package org.wordpress.android.ui.posts.prepublishing.visibility.usecases
 
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.verify
 import kotlinx.coroutines.InternalCoroutinesApi
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mock
 import org.wordpress.android.BaseUnitTest
 import org.wordpress.android.TEST_DISPATCHER
 import org.wordpress.android.fluxc.model.PostModel
@@ -15,16 +17,19 @@ import org.wordpress.android.ui.posts.prepublishing.visibility.PrepublishingVisi
 import org.wordpress.android.ui.posts.prepublishing.visibility.PrepublishingVisibilityItemUiState.Visibility.PENDING_REVIEW
 import org.wordpress.android.ui.posts.prepublishing.visibility.PrepublishingVisibilityItemUiState.Visibility.PRIVATE
 import org.wordpress.android.ui.posts.prepublishing.visibility.PrepublishingVisibilityItemUiState.Visibility.PUBLISH
+import org.wordpress.android.util.DateTimeUtilsWrapper
 import java.lang.IllegalStateException
 
 class UpdatePostStatusUseCaseTest : BaseUnitTest() {
     private lateinit var editPostRepository: EditPostRepository
     private lateinit var updatePostStatusUseCase: UpdatePostStatusUseCase
 
+    @Mock lateinit var dateTimeUtilsWrapper: DateTimeUtilsWrapper
+
     @InternalCoroutinesApi
     @Before
     fun setup() {
-        updatePostStatusUseCase = UpdatePostStatusUseCase()
+        updatePostStatusUseCase = UpdatePostStatusUseCase(dateTimeUtilsWrapper)
         editPostRepository = EditPostRepository(mock(), mock(), mock(), TEST_DISPATCHER, TEST_DISPATCHER)
         editPostRepository.set { PostModel() }
     }
@@ -75,6 +80,18 @@ class UpdatePostStatusUseCaseTest : BaseUnitTest() {
 
         // assert
         assertThat(editPostRepository.getPost()?.status).isEqualTo(expectedPostStatus.toString())
+    }
+
+    @Test
+    fun `verify that when updatePostStatus is called with PRIVATE Visibility dateTimeUtilsWrapper is used`() {
+        // arrange
+        val expectedPostStatus = PostStatus.PRIVATE
+
+        // act
+        updatePostStatusUseCase.updatePostStatus(PRIVATE, editPostRepository) {}
+
+        // assert
+        verify(dateTimeUtilsWrapper).currentTimeInIso8601()
     }
 
     @Test(expected = IllegalStateException::class)

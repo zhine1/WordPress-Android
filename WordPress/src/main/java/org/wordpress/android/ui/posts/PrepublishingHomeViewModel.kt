@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import org.wordpress.android.R
 import org.wordpress.android.analytics.AnalyticsTracker.Stat
 import org.wordpress.android.fluxc.model.SiteModel
+import org.wordpress.android.fluxc.model.post.PostStatus
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.ActionType
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.ActionType.PUBLISH
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.ActionType.TAGS
@@ -13,6 +14,7 @@ import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.ActionType.VI
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.HeaderUiState
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.HomeUiState
 import org.wordpress.android.ui.posts.prepublishing.home.usecases.GetButtonUiStateUseCase
+import org.wordpress.android.ui.posts.prepublishing.home.usecases.GetPublishDateLabelUseCase
 import org.wordpress.android.ui.posts.prepublishing.visibility.usecases.GetPostVisibilityUseCase
 import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.ui.utils.UiString.UiStringText
@@ -24,7 +26,7 @@ import javax.inject.Inject
 class PrepublishingHomeViewModel @Inject constructor(
     private val getPostTagsUseCase: GetPostTagsUseCase,
     private val getPostVisibilityUseCase: GetPostVisibilityUseCase,
-    private val postSettingsUtils: PostSettingsUtils,
+    private val publishDateLabelUseCase: GetPublishDateLabelUseCase,
     private val getButtonUiStateUseCase: GetButtonUiStateUseCase,
     private val analyticsTrackerWrapper: AnalyticsTrackerWrapper
 ) : ViewModel() {
@@ -53,19 +55,14 @@ class PrepublishingHomeViewModel @Inject constructor(
             add(HomeUiState(
                     actionType = VISIBILITY,
                     actionResult = getPostVisibilityUseCase.getVisibility(editPostRepository).textRes,
+                    actionEnabled = true,
                     onActionClicked = ::onActionClicked
             ))
 
             add(HomeUiState(
                     actionType = PUBLISH,
-                    actionResult = editPostRepository.getPost()?.let { postImmutableModel ->
-                        val label = postSettingsUtils.getPublishDateLabel(postImmutableModel)
-                        if (label.isNotEmpty()) {
-                            UiStringText(label)
-                        } else {
-                            UiStringRes(R.string.immediately)
-                        }
-                    },
+                    actionResult = publishDateLabelUseCase.getLabel(editPostRepository),
+                    actionEnabled = editPostRepository.status != PostStatus.PRIVATE,
                     onActionClicked = ::onActionClicked
             ))
 
@@ -74,6 +71,7 @@ class PrepublishingHomeViewModel @Inject constructor(
                         actionType = TAGS,
                         actionResult = getPostTagsUseCase.getTags(editPostRepository)?.let { UiStringText(it) }
                                 ?: run { UiStringRes(R.string.prepublishing_nudges_home_tags_not_set) },
+                        actionEnabled = true,
                         onActionClicked = ::onActionClicked
                 ))
             }

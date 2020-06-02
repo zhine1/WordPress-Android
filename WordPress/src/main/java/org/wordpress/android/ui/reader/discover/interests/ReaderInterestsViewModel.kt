@@ -23,7 +23,7 @@ class ReaderInterestsViewModel @Inject constructor(
     }
 
     private fun loadInterests() {
-        viewModelScope.launch { // TODO: Might want to use ScopedViewModel with mainDispatcher for consistency
+        viewModelScope.launch {
             val tagList = readerTagRepository.getInterests()
             if (tagList.isNotEmpty()) {
                 updateUiState(UiState(transformToInterestsUiState(tagList), tagList))

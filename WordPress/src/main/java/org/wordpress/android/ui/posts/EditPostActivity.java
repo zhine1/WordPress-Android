@@ -1861,6 +1861,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
     }
 
     private void uploadPost(final boolean publishPost) {
+        mViewModel.performPendingSaves();
         AccountModel account = mAccountStore.getAccount();
         // prompt user to verify e-mail before publishing
         if (!account.getEmailVerified()) {
@@ -1935,6 +1936,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
             AppLog.e(AppLog.T.POSTS, "Fragment not initialized");
             return;
         }
+        mViewModel.performPendingSaves();
         // check if the opened post had some unsaved local changes
         boolean isFirstTimePublish = isFirstTimePublish(false);
 

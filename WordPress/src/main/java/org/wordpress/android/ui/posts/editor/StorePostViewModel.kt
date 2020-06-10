@@ -78,6 +78,16 @@ class StorePostViewModel
         }
     }
 
+    fun performPendingSaves() {
+        saveJob?.let {
+            if (!it.isCompleted) {
+                it.cancel()
+                saveJob = null
+                _onSavePostTriggered.value = Event(Unit)
+            }
+        }
+    }
+
     fun savePostToDb(
         context: Context,
         postRepository: EditPostRepository,

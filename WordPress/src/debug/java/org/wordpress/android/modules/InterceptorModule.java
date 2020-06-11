@@ -1,6 +1,9 @@
 package org.wordpress.android.modules;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
+import androidx.annotation.NonNull;
+
+import com.facebook.flipper.plugins.network.FlipperOkhttpInterceptor;
+import com.facebook.flipper.plugins.network.NetworkFlipperPlugin;
 
 import javax.inject.Named;
 
@@ -12,7 +15,7 @@ import okhttp3.Interceptor;
 @Module
 public class InterceptorModule {
     @Provides @IntoSet @Named("network-interceptors")
-    public Interceptor provideStethoInterceptor() {
-        return new StethoInterceptor();
+    public Interceptor provideFlipperInterceptor(@NonNull NetworkFlipperPlugin networkFlipperPlugin) {
+        return new FlipperOkhttpInterceptor(networkFlipperPlugin);
     }
 }

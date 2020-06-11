@@ -33,6 +33,8 @@ import androidx.multidex.MultiDexApplication;
 import androidx.work.WorkManager;
 
 import com.android.volley.RequestQueue;
+import com.facebook.flipper.plugins.network.NetworkFlipperPlugin;
+import com.facebook.soloader.SoLoader;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.iid.FirebaseInstanceId;
@@ -171,6 +173,8 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     public static FluxCImageLoader sImageLoader;
     @Inject OAuthAuthenticator mOAuthAuthenticator;
     public static OAuthAuthenticator sOAuthAuthenticator;
+
+    @Inject NetworkFlipperPlugin mNetworkFlipperPlugin;
 
     protected AppComponent mAppComponent;
 

@@ -315,8 +315,13 @@ dependencies {
     implementation "net.java.dev.jna:jna:4.5.1@aar"
 
     // Debug
-    debugImplementation 'com.facebook.stetho:stetho:1.5.1'
-    debugImplementation 'com.facebook.stetho:stetho-okhttp3:1.5.1'
+    debugImplementation 'com.facebook.soloader:soloader:0.9.0'
+    debugImplementation('com.facebook.flipper:flipper:0.45.0') {
+        exclude group:'com.facebook.fbjni'
+    }
+    debugImplementation('com.facebook.flipper:flipper-network-plugin:0.45.0') {
+        exclude group:'com.facebook.flipper'
+    }
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
 

@@ -6,7 +6,12 @@ import android.util.Log;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
 
-import com.facebook.stetho.Stetho;
+import com.facebook.flipper.android.AndroidFlipperClient;
+import com.facebook.flipper.android.utils.FlipperUtils;
+import com.facebook.flipper.core.FlipperClient;
+import com.facebook.flipper.plugins.inspector.DescriptorMapping;
+import com.facebook.flipper.plugins.inspector.InspectorFlipperPlugin;
+import com.facebook.soloader.SoLoader;
 import com.yarolegovich.wellsql.WellSql;
 
 import org.wordpress.android.modules.DaggerAppComponentDebug;
@@ -21,8 +26,16 @@ public class WordPressDebug extends WordPress {
 
         // enableStrictMode()
 
-        // Init Stetho
-        Stetho.initializeWithDefaults(this);
+        SoLoader.init(this, true);
+
+        // Init Flipper
+        if (FlipperUtils.shouldEnableFlipper(this)) {
+            FlipperClient client = AndroidFlipperClient.getInstance(this);
+            client.addPlugin(new InspectorFlipperPlugin(getApplicationContext(), DescriptorMapping.withDefaults()));
+            client.addPlugin(mNetworkFlipperPlugin);
+            client.addPlugin(new InspectorFlipperPlugin(this, DescriptorMapping.withDefaults()));
+            client.start();
+        }
     }
 
     @Override

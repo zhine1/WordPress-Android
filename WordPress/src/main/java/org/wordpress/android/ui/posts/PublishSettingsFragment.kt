@@ -29,6 +29,7 @@ import org.wordpress.android.util.AccessibilityUtils
 import org.wordpress.android.util.ToastUtils
 import org.wordpress.android.util.ToastUtils.Duration.SHORT
 import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
+import java.util.Date
 import javax.inject.Inject
 
 abstract class PublishSettingsFragment : Fragment() {
@@ -70,7 +71,7 @@ abstract class PublishSettingsFragment : Fragment() {
         viewModel.onPublishedDateChanged.observe(viewLifecycleOwner, Observer { event ->
             event.getContentIfNotHandled()?.let { date ->
                 viewModel.updatePost(date, getPostRepository())
-                trackPostScheduled()
+                trackPostScheduled(date.time)
             }
         })
         viewModel.onNotificationTime.observe(viewLifecycleOwner, Observer {
@@ -125,6 +126,7 @@ abstract class PublishSettingsFragment : Fragment() {
         })
         viewModel.onNotificationAdded.observe(viewLifecycleOwner, Observer { event ->
             event?.getContentIfNotHandled()?.let { notification ->
+                trackNotificationAdded()
                 activity?.let {
                     NotificationManagerCompat.from(it).cancel(notification.id)
                     val notificationIntent = Intent(it, PublishNotificationReceiver::class.java)
@@ -147,6 +149,7 @@ abstract class PublishSettingsFragment : Fragment() {
         })
         viewModel.onAddToCalendar.observe(viewLifecycleOwner, Observer {
             it?.getContentIfNotHandled()?.let { calendarEvent ->
+                trackAddToCalendar()
                 val calIntent = Intent(Intent.ACTION_INSERT)
                 calIntent.data = Events.CONTENT_URI
                 calIntent.type = "vnd.android.cursor.item/event"
@@ -160,13 +163,35 @@ abstract class PublishSettingsFragment : Fragment() {
         return rootView
     }
 
-    private fun trackPostScheduled() {
+    private fun trackPostScheduled(date: Date) {
         when (getPublishSettingsFragmentType()) {
             EDIT_POST -> {
-                analyticsTrackerWrapper.trackPostSettings(Stat.EDITOR_POST_SCHEDULE_CHANGED)
+                analyticsTrackerWrapper.trackPublishSchedule(POST_SETTINGS, date)
             }
             PublishSettingsFragmentType.PREPUBLISHING_NUDGES -> {
-                analyticsTrackerWrapper.trackPrepublishingNudges(Stat.EDITOR_POST_SCHEDULE_CHANGED)
+                analyticsTrackerWrapper.trackPublishSchedule(PREPUBLISHING_NUDGES, date)
+            }
+        }
+    }
+
+    private fun trackNotificationAdded() {
+        when (getPublishSettingsFragmentType()) {
+            EDIT_POST -> {
+                analyticsTrackerWrapper.trackPostSettings(Stat.EDITOR_POST_TAPPED_ADD_NOTIFICATION)
+            }
+            PublishSettingsFragmentType.PREPUBLISHING_NUDGES -> {
+                analyticsTrackerWrapper.trackPrepublishingNudges(Stat.EDITOR_POST_TAPPED_ADD_NOTIFICATION)
+            }
+        }
+    }
+
+    private fun trackAddToCalendar() {
+        when (getPublishSettingsFragmentType()) {
+            EDIT_POST -> {
+                analyticsTrackerWrapper.trackPostSettings(Stat.EDITOR_POST_TAPPED_ADD_TO_CALENDAR)
+            }
+            PublishSettingsFragmentType.PREPUBLISHING_NUDGES -> {
+                analyticsTrackerWrapper.trackPrepublishingNudges(Stat.EDITOR_POST_TAPPED_ADD_TO_CALENDAR)
             }
         }
     }

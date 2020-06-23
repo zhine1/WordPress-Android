@@ -612,7 +612,7 @@ public class EditPostSettingsFragment extends Fragment {
                 int index = fragment.getCheckedIndex();
                 PostStatus status = getPostStatusAtIndex(index);
                 updatePostStatus(status);
-                PostAnalyticsUtilsKt.trackPostSettings(mAnalyticsTrackerWrapper, Stat.EDITOR_POST_VISIBILITY_CHANGED);
+                PostAnalyticsUtilsKt.trackPrepublishingVisibility(mAnalyticsTrackerWrapper, status);
                 break;
             case POST_FORMAT:
                 String formatName = fragment.getSelectedItem();

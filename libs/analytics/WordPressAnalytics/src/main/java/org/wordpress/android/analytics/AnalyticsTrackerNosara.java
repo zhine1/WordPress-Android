@@ -831,6 +831,10 @@ public class AnalyticsTrackerNosara extends Tracker {
                 return "editor_post_excerpt_changed";
             case EDITOR_POST_LOCATION_CHANGED:
                 return "editor_post_location_changed";
+            case EDITOR_POST_TAPPED_ADD_NOTIFICATION:
+                return "editor_post_tapped_add_notification";
+            case EDITOR_POST_TAPPED_ADD_TO_CALENDAR:
+                return "editor_post_tapped_add_to_calendar";
             case EDITOR_TAPPED_BLOCKQUOTE:
                 return "editor_button_tapped";
             case EDITOR_TAPPED_BOLD:

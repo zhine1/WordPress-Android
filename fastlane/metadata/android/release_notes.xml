@@ -1,126 +1,103 @@
 <ar>
-14.5:
-محرِّر المكوِّنات: تمت إضافة مكوِّن أحدث المقالات، وتم إصلاح العطل الناتج عن لصق محتوى HTML مع الصور المضمَّنة
-قوالب الصفحة: تمت إضافة قوالب مستندة إلى المكوِّنات لإنشاء الصفحات بشكل أسرع.
-إنشاء موقع: تمت إزالة بعض الخطوات للإعداد بشكل أسرع — حدِّد نوع الموقع، وأدخل اسم النطاق، وهذا كل شيء.
-إصلاح الأخطاء: تم إصلاح المشكلة التي تتسبَّب في إعادة محاولة عمليات رفع المقالات الفاشلة إلى أجل غير مسمى.
+15.0:
+إضافات محرِّر المكوّن: مكوِّن الشِعر الجديد. ادعم ألوان التراكب في مكوِّن "الغلاف". يمكنك إدخال/إنهاء رسم متحرك في شريط الأدوات العائم. تلميح الأداة لأزرار تحديد قالب الصفحة.
+- تحديثات محرِّر المكوّن: "مكوِّن سلة المهملات" في قائمة يمكن الوصول إليها من شريط أدوات المكوِّن.
+إصلاحات محرِّر المكوِّن: مشكلة دمج مكوِّن النص، ومحاذاة الزر في قوالب الصفحات، وتناقضات السلسلة.
+تحديثات أخرى: تمت إضافة إعدادات الصفحة الرئيسية إلى قائمة الصفحات وإعدادات الموقع. تم تحسين واجهة مستخدم القارئ.
 </ar>
 <de-DE>
-14.5:
-Block-Editor: „Neueste Beiträge“-Block hinzugefügt
-Seiten-Templates: Block basierte Templates zur schnelleren Seitenerstellung hinzugefügt.
-Website-Erstellung: Einige Schritte wurden zugunsten einer schnelleren Einrichtung entfernt – Art der Website auswählen, Domainnamen eingeben, fertig.
-Fehlerbehebung: Ein Problem wurde behoben, das dazu führte, dass fehlgeschlagene Uploads von Beiträgen auf unbestimmte Zeit wiederholt wurden.
+15.0:
+Neu im Block-Editor: Neuer Versblock. Support für Overlay-Farben im Cover-Block. Starten/Verlassen der Animation in der unverankerten Toolbar. Tooltip für Auswahlbuttons für die Seitenvorlage.
+Updates im Block-Editor: „Trash block“ (Block in Papierkorb verschieben) in einem Menü ist nun über die Block-Toolbar erreichbar.
+Weitere Updates: Startseite-Einstellungen wurden zur Seitenliste und den Website-Einstellungen hinzugefügt.
 </de-DE>
 <en-US>
-14.5:
-Block editor: Added Latest Posts block, fixed crash caused by pasting HTML content with embedded images
-Page Templates: Added a block-based templates for quicker page creation.
-Site Creation: removed a few steps for faster setup — select the kind of site, enter the domain name, done.
-Bug fix: fixed an issue causing failed post uploads to be retried indefinitely.
+15.0:
+Block editor additions: New Verse block. Support for overlay colors in Cover block. Enter/exit animation for the Floating Toolbar. Tooltip for page template selection buttons.
+Block editor updates: “Trash block” in a menu reachable from the block toolbar.
+Block editor fixes: Text block merging issue, button alignment in page templates, string inconsistencies.
+Other updates: Added homepage settings to pages list and to site settings. Improved Reader UI.
 </en-US>
 <es-ES>
-14.5:
-Editor de bloques: Añadido el bloque «Últimas entradas»
-Plantillas de página: Añadidas plantillas basadas en bloques para una creación de páginas más rápida.
-Creación del sitio: Eliminados algunos pasos para una configuración más rápida — seleccionar el tipo de sitio, introducir el nombre de dominio y listo.
-Correción de fallos: Corregido un problema que causaba que las subidas de entradas fallidas se volvieran a intentar indefinidamente.
+15.0:
+Añadido en el editor de bloques: Nuevo bloque de verso. Compatibilidad para colores de superposición en el bloque de cubierta. Animación de entrada/salida para la barra de herramientas flotante. Información emergente para los botones de selección de la plantilla de página.
+Actualizaciones del editor de bloques: «Bloque de papelera» en un menú accesible desde la barra de herramientas de bloques.
+Otras actualizaciones: Añadidos ajustes de la página de inicio a la lista de páginas y a los ajustes del sitio.
 </es-ES>
 <fr-CA>
-14.5 :
-Éditeur de blocs : Ajout d’un bloc « Derniers articles »
-Modèles de pages :  Ajout de modèles basé sur les blocs pour une création de page plus rapide.
-Création de site : suppression de quelques étapes pour une configuration plus rapide. Sélectionnez le type de site, saisissez le domaine et voilà !
-Correction de bug : correction d’une problème qui causait un échec de téléversement d’article qui recommençait indéfiniment.
+15.0 :
+Ajouts de l’éditeur de blocs : Nouveau bloc Couplet. Prise en charge des couleurs de superposition dans le bloc de bannière. Animation d’ouverture/fermeture de la barre d’outils flottante. Info-bulle pour les boutons de sélection de modèle de page.
+Mises à jour de l’éditeur de blocs : « Bloc corbeille » dans un menu accessible depuis la barre d’outils du bloc.
+Autres mises à jour : Ajout de paramètres de page d’accueil dans la liste de pages et dans les réglages du site.
 </fr-CA>
 <fr-FR>
-14.5 :
-Éditeur de blocs : Ajout d’un bloc « Derniers articles »
-Modèles de pages :  Ajout de modèles basé sur les blocs pour une création de page plus rapide.
-Création de site : suppression de quelques étapes pour une configuration plus rapide. Sélectionnez le type de site, saisissez le domaine et voilà !
-Correction de bug : correction d’une problème qui causait un échec de téléversement d’article qui recommençait indéfiniment.
+15.0 :
+Ajouts de l’éditeur de blocs : Nouveau bloc Couplet. Prise en charge des couleurs de superposition dans le bloc de bannière. Animation d’ouverture/fermeture de la barre d’outils flottante. Info-bulle pour les boutons de sélection de modèle de page.
+Mises à jour de l’éditeur de blocs : « Bloc corbeille » dans un menu accessible depuis la barre d’outils du bloc.
+Autres mises à jour : Ajout de paramètres de page d’accueil dans la liste de pages et dans les réglages du site.
 </fr-FR>
 <iw-IL>
-14.5:
-עורך הבלוקים: הוספנו בלוק פוסטים אחרונים, תיקנו קריסה שהתרחשה בהדבקה של תוכן HTML בתמונות מוטבעות
-תבניות עמודים: הוספנו תבניות מבוססות-בלוק ליצירת עמודים מהירה יותר.
-יצירת אתר: הסרנו מספר שלבים להגדרה מהירה יותר – ניתן לבחור אתר מכל סוג, להזין את הדומיין וסיימת.
-תיקון באג: תיקנו בעיה שגרמה לניסיונות בלתי פוסקים בהעלאה חוזרת של פוסטים שנכשלו.
+15.0:
+תוספות לעורך הבלוקים: בלוק פסוק חדש. תמיכה בצבעים של שכבות בבלוק כיסוי. אפשרות להנפשה של כניסה/יציאה בסרגל הכלים הצף. תיאורי כלי בכפתורי בחירה של תבניות עמוד.
+עדכונים בעורך הבלוקים: ניתן להגיע אל הפעולה 'להעביר את הבלוק לפח' בתפריט מסרגל הכלים של הבלוק.
+תיקונים בעורך הבלוקים: בעיה עם שילוב של בלוק טקסט, יישור כפתורים בתבניות עמוד, חוסר עקביות במחרוזות.
+עדכונים אחרים: הוספנו הגדרות של עמוד הבית ברשימת עמודים ובהגדרות האתר. ממשק משתמש משופר ב-Reader.
 </iw-IL>
 <id>
-14.5:
-Penyunting blok: Menambahkan blok Pos Terbaru, memperbaiki crash yang disebabkan karena konten HTML yang ditempel dengan gambar tersemat
-Template Halaman: Menambahkan template berbasis blok agar proses pembuatan halaman lebih cepat.
-Pembuatan Situs: menghapus beberapa langkah agar proses penyiapan lebih cepat — pilih jenis situs, masukkan nama domain, selesai.
-Perbaikan bug: memperbaiki masalah penyebab unggahan pos yang gagal dicoba ulang tanpa batas.
+15.0:
+Tambahan pada penyunting blok: Blok Bait baru. Dukungan untuk warna pelapis (overlay) pada blok Sampul. Animasi masuk/keluar untuk Bilah Peralatan Mengambang. Tip alat untuk tombol pemilihan template halaman.
+Pembaruan pada penyunting blok: “Blok Tempat Sampah” dalam menu yang dapat diakses dari bilah peralatan blok.
+Pembaruan lainnya: Penambahan pengaturan beranda ke daftar halaman dan ke pengaturan situs.
 </id>
 <it-IT>
-14.5:
-Editor a blocchi: aggiunto il blocco Ultimi articoli
-Modelli di pagina: aggiunti modelli basati su un blocco per la creazione più rapida delle pagine.
-Creazione del sito: rimosse alcuni fasi per un'impostazione più veloce: selezione del tipo di sito, inserimento del nome di dominio, completamento dell'operazione.
-Correzione di bug: risolto un problema che impediva di ritentare indefinitamente i caricamenti non riusciti degli articoli.
+15.0:
+Aggiunte all'editor a blocchi: nuovo blocco Verso. Supporto per i colori di sovrapposizione nel blocco Copertina. Animazione di ingresso/uscita per la barra degli strumenti mobile. Tooltip per i pulsanti di selezione del modello di pagina.
+Aggiornamenti all'editor a blocchi: il "blocco Cestino" in un menu è raggiungibile dalla barra degli strumenti del blocco.
+Altri aggiornamenti: aggiunte impostazioni della homepage all'elenco di pagine e alle impostazioni del sito.
 </it-IT>
 <ja-JP>
-14.5:
-ブロックエディター :最新の投稿ブロックを追加し、画像が埋め込まれた HTML コンテンツを貼り付けることで発生するクラッシュを修正しました。
-ページテンプレート :ブロックベースのテンプレートを追加し、ページをすばやく作成できるようにしました。
-サイト作成 :いくつかの手順を削除し、すばやく設定できるようにしました。サイトの種類を選択し、ドメイン名を入力すると完了します。
-バグ修正 :失敗した投稿のアップロードが繰り返し再試行される問題を修正しました。
+15.0:
+ブロックエディター追加機能 :新しい詩ブロック。カバーブロックのオーバーレイの色をサポート。「フローティングツールバー」のアニメーションの開始 / 終了機能。ページテンプレートの選択ボタンのツールチップ。
+ブロックエディターの更新 :ブロックツールバーから選択できるメニューに「ブロック削除」を追加。
+ブロックエディターの修正 :テキストブロックのマージ問題、ページテンプレートのボタン配置、文字列の不一致。
+その他アップデート :ページリストとサイト設定にホームページ設定を追加。Reader の UI を改善。
 </ja-JP>
-<ko-KR>
-14.5:
-블록 편집기: 최신 글 블록이 추가되었습니다. 이미지가 포함된 HTML 콘텐츠를 붙여넣을 때 발생하는 충돌이 수정되었습니다.
-페이지 템플릿: 보다 빠른 페이지 생성을 위해 블록 기반 템플릿을 추가했습니다.
-사이트 생성: 빠른 설치를 위해 몇 단계를 없앴습니다. 사이트 종류를 선택하고 도메인 네임을 입력하기만 하면 됩니다.
-- 버그 수정: 글 업로드가 실패하여 무한대로 재시도해야 하는 문제를 수정했습니다.
-</ko-KR>
 <nl-NL>
-14.5:
-Blokeditor: Blok Nieuwste berichten toegevoegd, crash veroorzaakt door het plakken van HTML-content met ingesloten afbeeldingen opgelost
-Paginasjablonen: Op blokken gebaseerde sjablonen toegevoegd om pagina's sneller te kunnen aanmaken.
-Site-ontwerp: een aantal stappen verwijderd voor een snellere configuratie: selecteer het soort site, voer de domeinnaam in en klaar is Kees.
-Bugfix: een probleem verholpen dat zorgde dat de mislukte upload van berichten oneindig werd herhaald.
+15.0:
+Aanvullingen op de blokeditor: Nieuw Versblok. Ondersteuning voor overlaykleuren in het Omslagblok. Animatie starten/sluiten voor zwevende werkbalk. Tooltip voor selectieknoppen van paginasjabloon.
+Updates van de blokeditor: 'Blok naar prullenbak verplaatsen' in een menu dat via de blokwerkbalk geopend kan worden.
+Overige updates: Homepage-instellingen toegevoegd aan paginalijst en site-instellingen.
 </nl-NL>
-<pt-BR>
-14.5:
-Editor de blocos: Adição do bloco "Posts recentes" e correção de travamentos ao colar conteúdo HTML com imagens.
-Modelos de página: Adição de modelos baseados em blocos para agilizar a criação de páginas.
-Criação de site: Remoção de alguns passos para tornar o processo mais rápido. Selecione o tipo de site, adicione um nome de domínio e pronto.
-Correção de erros: Correção de um erro que tentava reenviar posts diversas vezes.
-</pt-BR>
 <ru-RU>
-14.5:
-Редактор блоков: добавлен блок последних записей, исправлено падение в обработке HTML с встроенными изображениями.
-Шаблоны страниц: добавлены шаблоны с блоками для быстрого создания.
-Создание сайта: убраны пара шагов, теперь надо просто выбрать тип сайта и ввести домен.
-Исправлена ошибка с загрузкой неудачных записей, больше не откладывается на неопределенное время.
+15.0:
+Редактор блоков, добавлено: Новый блок для стихов. Поддержка наложения цвета в блоке обложки. Анимация появления и скрытия для плавающей панели инструментов. Подсказки для кнопок выбора шаблонов.
+Обновлено: Удаление блока доступно в меню выбора блоков.
+Исправлено: Слияние текстовых блоков, выравнивание кнопок в шаблонах страниц, целостность строк.
+Другое: Добавлены настройки главной страницы в список страниц и настройки сайта. Улучшен интерфейс Чтива.
 </ru-RU>
 <sv-SE>
-14.5:
-Blockredigeraren: Nytt block för senaste inläggen, rättat krasch vid inklistring av HTML-innehåll med inbäddade bilder
-Sidmallar: Nya blockbaserade mallar för att kunna skapa sidor snabbare.
-Skapa webbplats: Tagit bort några steg för att snabbare process – Välj typ av webbplats, ange domännamnet, klart!.
-Felrättelse: Löst ett problem som kunde försöka göra om misslyckade uppladdningar av inlägg i evighet.
+15.0:
+Nytt i blockredigeraren: Diktblock. Överläggsfärger i omslagsblocket. Animering av flytande verktygsfält. Inforuta vid val av sidmall.
+Uppdaterat i blockredigeraren: ”Kasta block” nås via menyn från blockets verktygsfält.
+Andra uppdateringar: Inställningar för startsidan har lagts till i sidlista och webbplatsinställningar.
 </sv-SE>
 <tr-TR>
-14.5:
-Blok düzenleyici: Güncel yazılar bloğu eklendi, gömülü görsel içerek HTML içeriğin yapıştırılması sırasındaki çökme düzeltildi
-Sayfa şablonları: Hızlı sayfa oluşturma için blok-tabanlı şablonlar eklendi.
-Site oluşturma: Hızlı kurulum için bir kaç adım kaldırıldı — sitenin tipini seçin, alan adını girin, her şey tamam.
-Hata ayıklama: Başarısız olan yazı yüklemelerinin sonsuz döngüde tekrarlanması problemi giderildi.
+15.0:
+Blok düzenleyici eklemeleri: Yeni Dörtlük bloku. Kapak blokunda katman renklerine yönelik destek. Kayan Araç Çubuğu için giriş/çıkış animasyonu. Sayfa şablonu seçim düğmeleri için araç ipucu.
+Blok düzenleyici güncellemeleri: Blok araç çubuğundan ulaşılabilen bir menüde “Çöp Kutusu bloku”.
+Diğer güncellemeler: Sayfalar listesine ve site ayarlarına ana sayfa ayarları eklendi.
 </tr-TR>
 <zh-CN>
-14.5：
-区块编辑器：添加了“最新文章”区块，修正了粘贴包含嵌入图片的 HTML 内容时所导致的崩溃
-页面模板：添加了基于区块的模板，以提高页面创建速度。
-站点创建：删除了几个步骤，以提高创建速度。您只需选择站点类型，输入域名即可。
-错误修复：修正了导致上传失败，需要多次重试的问题。
+15.0：
+区块编辑器新增内容：新的“诗篇”区块。在“封面”区块中支持叠加颜色。在浮动工具栏中增加了进入/退出动画。为页面模板选择按钮增加了工具提示。
+区块编辑器更新：“回收站区块”现在位于可通过区块工具栏访问的菜单中。
+区块编辑器修复：文本区块合并问题、页面模板中的按钮对齐问题、字符串不一致问题。
+其他更新：在页面列表和站点设置中增加了主页设置。改进了阅读器 UI。
 </zh-CN>
 <zh-TW>
-14.5：
-區塊編輯器：新增「最新文章」區塊，修復複製包含內嵌圖片的 HTML 內容會導致當機的問題
-頁面範本︰新增區塊式範本，讓你更快建立頁面。
-網站建立︰移除幾個步驟以加快設定速度︰選取網站類型，輸入網域名稱，即可完成設定。
-錯誤修正：修正導致文章上傳失敗時無限重複的問題。
+15.0：
+區塊編輯器新增功能：全新詩句區塊。為封面區塊提供覆疊色彩支援。浮動工具列的進入/退出動畫。頁面範本選擇按鈕的工具提示。
+區塊編輯器更新：可從區塊工具列存取選單中的「垃圾區塊」。
+區塊編輯器修正：文字區塊合併問題、頁面範本中的按鈕對齊問題、字串不一致問題。
+其他更新：在頁面清單和網站設定中新增首頁設定。改善的閱讀器 UI。
 </zh-TW>

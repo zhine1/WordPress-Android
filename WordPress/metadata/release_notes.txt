@@ -1,5 +1,3 @@
-Block editor enhancements: Added Cover block. Enabled crop, zoom, and rotate for images in posts. Tweaked “Take a Video” icon to differentiate from “Take a Photo.” Removed dimming effect on unselected blocks. Added toolbar for alignment options in Paragraph, Image, and MediaText blocks.
+Block editor improvements: Scheduling, tag, and visibility settings pop up in the post editor and post list when you tap Publish — tweak them and tap “Publish Now” to complete publication. Pressing enter after adding a caption in Image, Video, Gallery, Quote, and Pullquote blocks automatically adds a new block.
 
-Fixes: Issue where “wordpress://” links in a browser didn’t open the app, issue where opening a page opened an empty editor.
-
-General improvements: Dark Theme support.
+Fixes: Video thumbnails, settings, and preview display properly in the Media section on private sites. Notifications and Install Jetpack tabs no longer display on top of one another.

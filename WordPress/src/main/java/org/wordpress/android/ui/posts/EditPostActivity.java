@@ -1330,9 +1330,11 @@ public class EditPostActivity extends LocaleAwareActivity implements
         switch (getSecondaryAction()) {
             case SAVE_AS_DRAFT:
                 // Force the new Draft status
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SAVE_TAPPED);
                 saveAsDraft();
                 return true;
             case SAVE:
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SAVE_TAPPED);
                 uploadPost(false);
                 return true;
             case PUBLISH_NOW:
@@ -1438,11 +1440,19 @@ public class EditPostActivity extends LocaleAwareActivity implements
                 showPrepublishingNudgeBottomSheet();
                 return;
             case UPDATE:
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_UPDATE_TAPPED);
+                showPrepublishingNudgeBottomSheet();
+                return;
             case SCHEDULE:
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SCHEDULE_TAPPED);
+                showPrepublishingNudgeBottomSheet();
+                return;
             case SUBMIT_FOR_REVIEW:
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SUBMIT_FOR_REVIEW_TAPPED);
                 showPrepublishingNudgeBottomSheet();
                 return;
             case SAVE:
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SAVE_TAPPED);
                 uploadPost(false);
                 break;
         }

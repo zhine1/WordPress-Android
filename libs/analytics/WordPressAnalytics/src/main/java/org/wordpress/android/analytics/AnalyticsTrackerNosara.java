@@ -807,6 +807,14 @@ public class AnalyticsTrackerNosara extends Tracker {
                 return "editor_post_published";
             case EDITOR_POST_PUBLISH_TAPPED:
                 return "editor_post_publish_tapped";
+            case EDITOR_POST_UPDATE_TAPPED:
+                return "editor_post_update_tapped";
+                case EDITOR_POST_SCHEDULE_TAPPED:
+                return "editor_post_schedule_tapped";
+            case EDITOR_POST_SUBMIT_FOR_REVIEW_TAPPED:
+                return "editor_post_submit_for_review_tapped";
+            case EDITOR_POST_SAVE_TAPPED:
+                return "editor_post_save_tapped";
             case EDITOR_POST_SCHEDULE_CHANGED:
                 return "editor_post_schedule_changed";
             case EDITOR_POST_VISIBILITY_CHANGED:

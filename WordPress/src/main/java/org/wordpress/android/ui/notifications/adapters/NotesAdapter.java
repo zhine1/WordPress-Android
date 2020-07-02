@@ -341,7 +341,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         mOnNoteClickListener = mNoteClickListener;
     }
 
-    public void cleanUp() {
+    public void cancelReloadNotesTask() {
         if (mReloadNotesFromDBTask != null && mReloadNotesFromDBTask.getStatus() != Status.FINISHED) {
             mReloadNotesFromDBTask.cancel(true);
             mReloadNotesFromDBTask = null;
@@ -349,6 +349,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
     }
 
     public void reloadNotesFromDBAsync() {
+        // if (mReloadNotesFromDBTask != null) cancelReloadNotesTask();
         mReloadNotesFromDBTask = new ReloadNotesFromDBTask();
         mReloadNotesFromDBTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
@@ -356,6 +357,11 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
     private class ReloadNotesFromDBTask extends AsyncTask<Void, Void, ArrayList<Note>> {
         @Override
         protected ArrayList<Note> doInBackground(Void... voids) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             return NotificationsTable.getLatestNotes();
         }
 

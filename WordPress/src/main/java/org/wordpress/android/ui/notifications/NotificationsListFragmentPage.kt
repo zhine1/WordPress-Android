@@ -125,7 +125,7 @@ class NotificationsListFragmentPage : Fragment(), OnScrollToTopListener, DataLoa
     }
 
     override fun onDestroyView() {
-        notesAdapter!!.cleanUp()
+        notesAdapter!!.cancelReloadNotesTask()
         swipeToRefreshHelper = null
         notifications_list.adapter = null
         notesAdapter = null

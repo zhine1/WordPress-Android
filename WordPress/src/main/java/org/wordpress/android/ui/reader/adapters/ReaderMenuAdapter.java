@@ -47,7 +47,7 @@ public class ReaderMenuAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return mMenuItems.get(position).getType().ordinal();
+        return mMenuItems.get(position).getType().getId();
     }
 
     @Override

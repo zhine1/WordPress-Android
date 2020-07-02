@@ -20,9 +20,6 @@ import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiSt
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState.GalleryThumbnailStripData
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState.PostHeaderClickData
 import org.wordpress.android.ui.reader.discover.ReaderPostCardAction.PrimaryAction
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.BOOKMARK
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.LIKE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.REBLOG
 import org.wordpress.android.ui.reader.utils.ReaderImageScannerProvider
 import org.wordpress.android.ui.reader.utils.ReaderUtilsWrapper
 import org.wordpress.android.ui.utils.UiDimen.UIDimenRes
@@ -198,10 +195,10 @@ class ReaderPostUiStateBuilder @Inject constructor(
                     isSelected = post.isBookmarked,
                     contentDescription = UiStringRes(contentDescription),
                     onClicked = onClicked,
-                    type = BOOKMARK
+                    type = PrimaryReaderPostCardActionType.Bookmark
             )
         } else {
-            PrimaryAction(isEnabled = false, type = BOOKMARK)
+            PrimaryAction(isEnabled = false, type = PrimaryReaderPostCardActionType.Bookmark)
         }
     }
 
@@ -228,10 +225,10 @@ class ReaderPostUiStateBuilder @Inject constructor(
                     ),
                     count = post.numLikes,
                     onClicked = if (accountStore.hasAccessToken()) onClicked else null,
-                    type = LIKE
+                    type = PrimaryReaderPostCardActionType.Like
             )
         } else {
-            PrimaryAction(isEnabled = false, type = LIKE)
+            PrimaryAction(isEnabled = false, type = PrimaryReaderPostCardActionType.Like)
         }
     }
 
@@ -242,9 +239,9 @@ class ReaderPostUiStateBuilder @Inject constructor(
         val canReblog = !post.isPrivate && accountStore.hasAccessToken()
         return if (canReblog) {
             // TODO Add content description
-            PrimaryAction(isEnabled = true, onClicked = onReblogClicked, type = REBLOG)
+            PrimaryAction(isEnabled = true, onClicked = onReblogClicked, type = PrimaryReaderPostCardActionType.Reblog)
         } else {
-            PrimaryAction(isEnabled = false, type = REBLOG)
+            PrimaryAction(isEnabled = false, type = PrimaryReaderPostCardActionType.Reblog)
         }
     }
 
@@ -268,12 +265,12 @@ class ReaderPostUiStateBuilder @Inject constructor(
                     isEnabled = true,
                     count = post.numReplies,
                     onClicked = onCommentsClicked,
-                    type = ReaderPostCardActionType.COMMENTS
+                    type = PrimaryReaderPostCardActionType.Comments
             )
         } else {
             PrimaryAction(
                     isEnabled = false,
-                    type = ReaderPostCardActionType.COMMENTS
+                    type = PrimaryReaderPostCardActionType.Comments
             )
         }
     }

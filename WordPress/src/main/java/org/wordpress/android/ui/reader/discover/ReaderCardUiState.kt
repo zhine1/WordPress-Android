@@ -73,7 +73,7 @@ sealed class ReaderPostCardAction {
         val contentDescription: UiString? = null,
         val count: Int = 0,
         override val isSelected: Boolean = false,
-        override val type: ReaderPostCardActionType,
+        override val type: PrimaryReaderPostCardActionType,
         override val onClicked: ((Long, Long, ReaderPostCardActionType) -> Unit)? = null
     ) : ReaderPostCardAction()
 
@@ -83,19 +83,26 @@ sealed class ReaderPostCardAction {
         @DrawableRes val iconRes: Int,
         @AttrRes val iconColor: Int = labelColor,
         override val isSelected: Boolean = false,
-        override val type: ReaderPostCardActionType,
+        override val type: SecondaryReaderPostCardActionType,
         override val onClicked: (Long, Long, ReaderPostCardActionType) -> Unit
     ) : ReaderPostCardAction()
 }
 
-enum class ReaderPostCardActionType {
-    FOLLOW,
-    SITE_NOTIFICATIONS,
-    SHARE,
-    VISIT_SITE,
-    BLOCK_SITE,
-    LIKE,
-    BOOKMARK,
-    REBLOG,
-    COMMENTS
+sealed class ReaderPostCardActionType {
+    abstract val id: Int
+}
+
+sealed class PrimaryReaderPostCardActionType(override val id: Int) : ReaderPostCardActionType() {
+    object Like : PrimaryReaderPostCardActionType(1)
+    object Bookmark : PrimaryReaderPostCardActionType(2)
+    object Reblog : PrimaryReaderPostCardActionType(3)
+    object Comments : PrimaryReaderPostCardActionType(4)
+}
+
+sealed class SecondaryReaderPostCardActionType(override val id: Int) : ReaderPostCardActionType() {
+    object Follow : SecondaryReaderPostCardActionType(5)
+    object SiteNotifications : SecondaryReaderPostCardActionType(6)
+    object Share : SecondaryReaderPostCardActionType(7)
+    object VisitSite : SecondaryReaderPostCardActionType(8)
+    object BlockSite : SecondaryReaderPostCardActionType(9)
 }

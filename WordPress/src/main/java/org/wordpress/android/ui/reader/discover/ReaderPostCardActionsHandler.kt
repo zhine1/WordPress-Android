@@ -6,18 +6,18 @@ import androidx.lifecycle.MutableLiveData
 import org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_ARTICLE_VISITED
 import org.wordpress.android.analytics.AnalyticsTracker.Stat.SHARED_ITEM_READER
 import org.wordpress.android.models.ReaderPost
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Bookmark
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Comments
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Like
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Reblog
 import org.wordpress.android.ui.reader.discover.ReaderNavigationEvents.OpenPost
 import org.wordpress.android.ui.reader.discover.ReaderNavigationEvents.SharePost
 import org.wordpress.android.ui.reader.discover.ReaderNavigationEvents.ShowReaderComments
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.BLOCK_SITE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.BOOKMARK
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.COMMENTS
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.FOLLOW
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.LIKE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.REBLOG
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SHARE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SITE_NOTIFICATIONS
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.VISIT_SITE
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.BlockSite
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Follow
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Share
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.SiteNotifications
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.VisitSite
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.viewmodel.Event
@@ -32,15 +32,15 @@ class ReaderPostCardActionsHandler @Inject constructor(
 
     fun onAction(post: ReaderPost, type: ReaderPostCardActionType) {
         when (type) {
-            FOLLOW -> handleFollowClicked(post)
-            SITE_NOTIFICATIONS -> handleSiteNotificationsClicked(post.postId, post.blogId)
-            SHARE -> handleShareClicked(post)
-            VISIT_SITE -> handleVisitSiteClicked(post)
-            BLOCK_SITE -> handleBlockSiteClicked(post.postId, post.blogId)
-            LIKE -> handleLikeClicked(post.postId, post.blogId)
-            BOOKMARK -> handleBookmarkClicked(post.postId, post.blogId)
-            REBLOG -> handleReblogClicked(post.postId, post.blogId)
-            COMMENTS -> handleCommentsClicked(post.postId, post.blogId)
+            Follow -> handleFollowClicked(post)
+            SiteNotifications -> handleSiteNotificationsClicked(post.postId, post.blogId)
+            Share -> handleShareClicked(post)
+            VisitSite -> handleVisitSiteClicked(post)
+            BlockSite -> handleBlockSiteClicked(post.postId, post.blogId)
+            Like -> handleLikeClicked(post.postId, post.blogId)
+            Bookmark -> handleBookmarkClicked(post.postId, post.blogId)
+            Reblog -> handleReblogClicked(post.postId, post.blogId)
+            Comments -> handleCommentsClicked(post.postId, post.blogId)
         }
     }
 

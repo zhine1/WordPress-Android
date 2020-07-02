@@ -40,9 +40,14 @@ import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType;
 import org.wordpress.android.ui.reader.actions.ReaderActions;
 import org.wordpress.android.ui.reader.actions.ReaderBlogActions;
 import org.wordpress.android.ui.reader.actions.ReaderPostActions;
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Bookmark;
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Comments;
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Like;
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Reblog;
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState;
 import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType;
 import org.wordpress.android.ui.reader.discover.ReaderPostUiStateBuilder;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType;
 import org.wordpress.android.ui.reader.discover.viewholders.ReaderPostViewHolder;
 import org.wordpress.android.ui.reader.models.ReaderBlogIdPostId;
 import org.wordpress.android.ui.reader.utils.ReaderXPostUtils;
@@ -334,28 +339,20 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         Function3<Long, Long, ReaderPostCardActionType, Unit> onButtonClicked =
                 (postId, blogId, type) -> {
                     //noinspection EnumSwitchStatementWhichMissesCases
-                    switch (type) {
-                        case BOOKMARK:
-                            toggleBookmark(post.blogId, post.postId);
-                            notifyItemChanged(position);
-                            break;
-                        case LIKE:
-                            toggleLike(ctx, post, position, holder);
-                            break;
-                        case REBLOG:
-                            mReblogActionListener.reblog(post);
-                            break;
-                        case COMMENTS:
-                            ReaderActivityLauncher.showReaderComments(ctx, post.blogId, post.postId);
-                            break;
-                        case FOLLOW:
-                        case SITE_NOTIFICATIONS:
-                        case SHARE:
-                        case VISIT_SITE:
-                        case BLOCK_SITE:
-                            mOnPostListItemButtonListener.onButtonClicked(post, type);
-                            renderPost(position, holder);
-                            break;
+                    if (Bookmark.INSTANCE.equals(type)) {
+                        toggleBookmark(post.blogId, post.postId);
+                        notifyItemChanged(position);
+                    } else if (Like.INSTANCE.equals(type)) {
+                        toggleLike(ctx, post, position, holder);
+                    } else if (Reblog.INSTANCE.equals(type)) {
+                        mReblogActionListener.reblog(post);
+                    } else if (Comments.INSTANCE.equals(type)) {
+                        ReaderActivityLauncher.showReaderComments(ctx, post.blogId, post.postId);
+                    } else if (type instanceof SecondaryReaderPostCardActionType) {
+                        mOnPostListItemButtonListener.onButtonClicked(post, (SecondaryReaderPostCardActionType) type);
+                        renderPost(position, holder);
+                    } else {
+                        throw new IllegalStateException("Missing for ReaderPostCardActionType: " + type);
                     }
                     return Unit.INSTANCE;
                 };

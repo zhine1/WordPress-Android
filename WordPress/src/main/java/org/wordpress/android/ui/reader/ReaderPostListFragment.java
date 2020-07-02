@@ -98,7 +98,12 @@ import org.wordpress.android.ui.reader.adapters.ReaderSearchSuggestionAdapter;
 import org.wordpress.android.ui.reader.adapters.ReaderSearchSuggestionRecyclerAdapter;
 import org.wordpress.android.ui.reader.adapters.ReaderSiteSearchAdapter;
 import org.wordpress.android.ui.reader.adapters.ReaderSiteSearchAdapter.SiteSearchAdapterListener;
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.BlockSite;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Follow;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Share;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.SiteNotifications;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.VisitSite;
 import org.wordpress.android.ui.reader.reblog.NoSite;
 import org.wordpress.android.ui.reader.reblog.PostEditor;
 import org.wordpress.android.ui.reader.reblog.SitePicker;
@@ -2573,43 +2578,34 @@ public class ReaderPostListFragment extends Fragment
     }
 
     @Override
-    public void onButtonClicked(ReaderPost post, ReaderPostCardActionType actionType) {
-        switch (actionType) {
-            case FOLLOW:
-                if (post.isFollowedByCurrentUser) {
-                    onFollowingTapped();
-                } else {
-                    onFollowTapped(getView(), post.getBlogName(), post.blogId);
-                }
-                toggleFollowStatusForPost(post);
-                break;
-            case SITE_NOTIFICATIONS:
-                if (ReaderBlogTable.isNotificationsEnabled(post.blogId)) {
-                    AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_OFF, post.blogId);
-                    ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, false);
-                    updateSubscription(SubscriptionAction.DELETE, post.blogId);
-                } else {
-                    AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_ON, post.blogId);
-                    ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, true);
-                    updateSubscription(SubscriptionAction.NEW, post.blogId);
-                }
-                break;
-            case SHARE:
-                AnalyticsUtils.trackWithSiteId(Stat.SHARED_ITEM_READER, post.blogId);
-                sharePost(post);
-                break;
-            case VISIT_SITE:
-                AnalyticsTracker.track(Stat.READER_ARTICLE_VISITED);
-                ReaderActivityLauncher.openPost(getContext(), post);
-                break;
-            case BLOCK_SITE:
-                blockBlogForPost(post);
-                break;
-            case BOOKMARK:
-            case LIKE:
-            case REBLOG:
-            case COMMENTS:
-                throw new IllegalStateException("These actoins should be handled in ReaderPostAdapter.");
+    public void onButtonClicked(ReaderPost post, SecondaryReaderPostCardActionType actionType) {
+        if (Follow.INSTANCE.equals(actionType)) {
+            if (post.isFollowedByCurrentUser) {
+                onFollowingTapped();
+            } else {
+                onFollowTapped(getView(), post.getBlogName(), post.blogId);
+            }
+            toggleFollowStatusForPost(post);
+        } else if (SiteNotifications.INSTANCE.equals(actionType)) {
+            if (ReaderBlogTable.isNotificationsEnabled(post.blogId)) {
+                AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_OFF, post.blogId);
+                ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, false);
+                updateSubscription(SubscriptionAction.DELETE, post.blogId);
+            } else {
+                AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_ON, post.blogId);
+                ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, true);
+                updateSubscription(SubscriptionAction.NEW, post.blogId);
+            }
+        } else if (Share.INSTANCE.equals(actionType)) {
+            AnalyticsUtils.trackWithSiteId(Stat.SHARED_ITEM_READER, post.blogId);
+            sharePost(post);
+        } else if (VisitSite.INSTANCE.equals(actionType)) {
+            AnalyticsTracker.track(Stat.READER_ARTICLE_VISITED);
+            ReaderActivityLauncher.openPost(getContext(), post);
+        } else if (BlockSite.INSTANCE.equals(actionType)) {
+            blockBlogForPost(post);
+        } else {
+            throw new IllegalStateException("Missing for SecondaryReaderPostCardActionType: " + actionType);
         }
     }
 

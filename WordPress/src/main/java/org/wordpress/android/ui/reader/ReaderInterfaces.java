@@ -3,7 +3,7 @@ package org.wordpress.android.ui.reader;
 import android.view.View;
 
 import org.wordpress.android.models.ReaderPost;
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType;
+import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType;
 
 public class ReaderInterfaces {
     private ReaderInterfaces() {
@@ -50,7 +50,7 @@ public class ReaderInterfaces {
      * refactoring everything was out of scope of the project.
      */
     public interface OnPostListItemButtonListener {
-        void onButtonClicked(ReaderPost post, ReaderPostCardActionType actionType);
+        void onButtonClicked(ReaderPost post, SecondaryReaderPostCardActionType actionType);
     }
 
     /*

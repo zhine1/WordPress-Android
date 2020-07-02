@@ -8,11 +8,6 @@ import org.wordpress.android.models.ReaderPost
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType.TAG_FOLLOWED
 import org.wordpress.android.ui.reader.discover.ReaderPostCardAction.SecondaryAction
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.BLOCK_SITE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.FOLLOW
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SHARE
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SITE_NOTIFICATIONS
-import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.VISIT_SITE
 import org.wordpress.android.ui.utils.UiString.UiStringRes
 import javax.inject.Inject
 
@@ -27,7 +22,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
         if (ReaderPostTable.isPostFollowed(post)) {
             menuItems.add(
                     SecondaryAction(
-                            type = FOLLOW,
+                            type = SecondaryReaderPostCardActionType.Follow,
                             label = UiStringRes(R.string.reader_btn_unfollow),
                             labelColor = R.attr.wpColorSuccess,
                             iconRes = R.drawable.ic_reader_following_white_24dp,
@@ -41,7 +36,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
                 if (ReaderBlogTable.isNotificationsEnabled(post.blogId)) {
                     menuItems.add(
                             SecondaryAction(
-                                    type = SITE_NOTIFICATIONS,
+                                    type = SecondaryReaderPostCardActionType.SiteNotifications,
                                     label = UiStringRes(R.string.reader_btn_notifications_off),
                                     labelColor = R.attr.wpColorSuccess,
                                     iconRes = R.drawable.ic_bell_white_24dp,
@@ -52,7 +47,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
                 } else {
                     menuItems.add(
                             SecondaryAction(
-                                    type = SITE_NOTIFICATIONS,
+                                    type = SecondaryReaderPostCardActionType.SiteNotifications,
                                     label = UiStringRes(R.string.reader_btn_notifications_on),
                                     labelColor = R.attr.colorOnSurface,
                                     iconRes = R.drawable.ic_bell_white_24dp,
@@ -66,7 +61,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
         } else {
             menuItems.add(
                     SecondaryAction(
-                            type = FOLLOW,
+                            type = SecondaryReaderPostCardActionType.Follow,
                             label = UiStringRes(R.string.reader_btn_follow),
                             labelColor = R.attr.colorPrimary,
                             iconRes = R.drawable.ic_reader_follow_white_24dp,
@@ -78,7 +73,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
 
         menuItems.add(
                 SecondaryAction(
-                        type = SHARE,
+                        type = SecondaryReaderPostCardActionType.Share,
                         label = UiStringRes(R.string.reader_btn_share),
                         labelColor = R.attr.colorOnSurface,
                         iconRes = R.drawable.ic_share_white_24dp,
@@ -88,7 +83,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
         )
         menuItems.add(
                 SecondaryAction(
-                        type = VISIT_SITE,
+                        type = SecondaryReaderPostCardActionType.VisitSite,
                         label = UiStringRes(R.string.reader_label_visit),
                         labelColor = R.attr.colorOnSurface,
                         iconRes = R.drawable.ic_external_white_24dp,
@@ -100,7 +95,7 @@ class ReaderPostMoreButtonUiStateBuilder @Inject constructor() {
         if (postListType == TAG_FOLLOWED) {
             menuItems.add(
                     SecondaryAction(
-                            type = BLOCK_SITE,
+                            type = SecondaryReaderPostCardActionType.BlockSite,
                             label = UiStringRes(R.string.reader_menu_block_blog),
                             labelColor = R.attr.colorOnSurface,
                             iconRes = R.drawable.ic_block_white_24dp,

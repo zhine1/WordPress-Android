@@ -99,11 +99,6 @@ import org.wordpress.android.ui.reader.adapters.ReaderSearchSuggestionRecyclerAd
 import org.wordpress.android.ui.reader.adapters.ReaderSiteSearchAdapter;
 import org.wordpress.android.ui.reader.adapters.ReaderSiteSearchAdapter.SiteSearchAdapterListener;
 import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType;
-import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.BlockSite;
-import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Follow;
-import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.Share;
-import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.SiteNotifications;
-import org.wordpress.android.ui.reader.discover.SecondaryReaderPostCardActionType.VisitSite;
 import org.wordpress.android.ui.reader.reblog.NoSite;
 import org.wordpress.android.ui.reader.reblog.PostEditor;
 import org.wordpress.android.ui.reader.reblog.SitePicker;
@@ -151,6 +146,11 @@ import javax.inject.Inject;
 
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.APP_REVIEWS_EVENT_INCREMENTED_BY_OPENING_READER_POST;
 import static org.wordpress.android.fluxc.generated.AccountActionBuilder.newUpdateSubscriptionNotificationPostAction;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.BLOCK_SITE_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.FOLLOW_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.SHARE_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.SITE_NOTIFICATIONS_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.VISIT_SITE_ACTION_ID;
 
 public class ReaderPostListFragment extends Fragment
         implements ReaderInterfaces.OnPostSelectedListener,
@@ -2579,33 +2579,39 @@ public class ReaderPostListFragment extends Fragment
 
     @Override
     public void onButtonClicked(ReaderPost post, SecondaryReaderPostCardActionType actionType) {
-        if (Follow.INSTANCE.equals(actionType)) {
-            if (post.isFollowedByCurrentUser) {
-                onFollowingTapped();
-            } else {
-                onFollowTapped(getView(), post.getBlogName(), post.blogId);
-            }
-            toggleFollowStatusForPost(post);
-        } else if (SiteNotifications.INSTANCE.equals(actionType)) {
-            if (ReaderBlogTable.isNotificationsEnabled(post.blogId)) {
-                AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_OFF, post.blogId);
-                ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, false);
-                updateSubscription(SubscriptionAction.DELETE, post.blogId);
-            } else {
-                AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_ON, post.blogId);
-                ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, true);
-                updateSubscription(SubscriptionAction.NEW, post.blogId);
-            }
-        } else if (Share.INSTANCE.equals(actionType)) {
-            AnalyticsUtils.trackWithSiteId(Stat.SHARED_ITEM_READER, post.blogId);
-            sharePost(post);
-        } else if (VisitSite.INSTANCE.equals(actionType)) {
-            AnalyticsTracker.track(Stat.READER_ARTICLE_VISITED);
-            ReaderActivityLauncher.openPost(getContext(), post);
-        } else if (BlockSite.INSTANCE.equals(actionType)) {
-            blockBlogForPost(post);
-        } else {
-            throw new IllegalStateException("Missing for SecondaryReaderPostCardActionType: " + actionType);
+        switch (actionType.getId()) {
+            case FOLLOW_ACTION_ID:
+                if (post.isFollowedByCurrentUser) {
+                    onFollowingTapped();
+                } else {
+                    onFollowTapped(getView(), post.getBlogName(), post.blogId);
+                }
+                toggleFollowStatusForPost(post);
+                break;
+            case SITE_NOTIFICATIONS_ACTION_ID:
+                if (ReaderBlogTable.isNotificationsEnabled(post.blogId)) {
+                    AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_OFF, post.blogId);
+                    ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, false);
+                    updateSubscription(SubscriptionAction.DELETE, post.blogId);
+                } else {
+                    AnalyticsUtils.trackWithSiteId(Stat.FOLLOWED_BLOG_NOTIFICATIONS_READER_MENU_ON, post.blogId);
+                    ReaderBlogTable.setNotificationsEnabledByBlogId(post.blogId, true);
+                    updateSubscription(SubscriptionAction.NEW, post.blogId);
+                }
+                break;
+            case SHARE_ACTION_ID:
+                AnalyticsUtils.trackWithSiteId(Stat.SHARED_ITEM_READER, post.blogId);
+                sharePost(post);
+                break;
+            case VISIT_SITE_ACTION_ID:
+                AnalyticsTracker.track(Stat.READER_ARTICLE_VISITED);
+                ReaderActivityLauncher.openPost(getContext(), post);
+                break;
+            case BLOCK_SITE_ACTION_ID:
+                blockBlogForPost(post);
+                break;
+            default:
+                throw new IllegalStateException("Missing case for ReaderPostCardActionType: " + actionType);
         }
     }
 

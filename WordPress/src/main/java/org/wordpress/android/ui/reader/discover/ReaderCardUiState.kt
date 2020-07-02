@@ -93,16 +93,25 @@ sealed class ReaderPostCardActionType {
 }
 
 sealed class PrimaryReaderPostCardActionType(override val id: Int) : ReaderPostCardActionType() {
-    object Like : PrimaryReaderPostCardActionType(1)
-    object Bookmark : PrimaryReaderPostCardActionType(2)
-    object Reblog : PrimaryReaderPostCardActionType(3)
-    object Comments : PrimaryReaderPostCardActionType(4)
+    object Like : PrimaryReaderPostCardActionType(LIKE_ACTION_ID)
+    object Bookmark : PrimaryReaderPostCardActionType(BOOKMARK_ACTION_ID)
+    object Reblog : PrimaryReaderPostCardActionType(REBLOG_ACTION_ID)
+    object Comments : PrimaryReaderPostCardActionType(COMMENTS_ACTION_ID)
 }
 
 sealed class SecondaryReaderPostCardActionType(override val id: Int) : ReaderPostCardActionType() {
-    object Follow : SecondaryReaderPostCardActionType(5)
-    object SiteNotifications : SecondaryReaderPostCardActionType(6)
-    object Share : SecondaryReaderPostCardActionType(7)
-    object VisitSite : SecondaryReaderPostCardActionType(8)
-    object BlockSite : SecondaryReaderPostCardActionType(9)
+    object Follow : SecondaryReaderPostCardActionType(FOLLOW_ACTION_ID)
+    object SiteNotifications : SecondaryReaderPostCardActionType(SITE_NOTIFICATIONS_ACTION_ID)
+    object Share : SecondaryReaderPostCardActionType(SHARE_ACTION_ID)
+    object VisitSite : SecondaryReaderPostCardActionType(VISIT_SITE_ACTION_ID)
+    object BlockSite : SecondaryReaderPostCardActionType(BLOCK_SITE_ACTION_ID)
 }
+const val LIKE_ACTION_ID = 1
+const val BOOKMARK_ACTION_ID = 2
+const val REBLOG_ACTION_ID = 3
+const val COMMENTS_ACTION_ID = 4
+const val FOLLOW_ACTION_ID = 5
+const val SITE_NOTIFICATIONS_ACTION_ID = 6
+const val SHARE_ACTION_ID = 7
+const val VISIT_SITE_ACTION_ID = 8
+const val BLOCK_SITE_ACTION_ID = 9

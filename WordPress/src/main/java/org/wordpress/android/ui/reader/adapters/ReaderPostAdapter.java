@@ -40,10 +40,7 @@ import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType;
 import org.wordpress.android.ui.reader.actions.ReaderActions;
 import org.wordpress.android.ui.reader.actions.ReaderBlogActions;
 import org.wordpress.android.ui.reader.actions.ReaderPostActions;
-import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Bookmark;
-import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Comments;
-import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Like;
-import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType.Reblog;
+import org.wordpress.android.ui.reader.discover.PrimaryReaderPostCardActionType;
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState;
 import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType;
 import org.wordpress.android.ui.reader.discover.ReaderPostUiStateBuilder;
@@ -70,6 +67,11 @@ import org.wordpress.android.util.image.ImageType;
 import java.util.HashSet;
 
 import javax.inject.Inject;
+
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.BOOKMARK_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.COMMENTS_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.LIKE_ACTION_ID;
+import static org.wordpress.android.ui.reader.discover.ReaderCardUiStateKt.REBLOG_ACTION_ID;
 
 import kotlin.Unit;
 import kotlin.jvm.functions.Function2;
@@ -339,20 +341,28 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         Function3<Long, Long, ReaderPostCardActionType, Unit> onButtonClicked =
                 (postId, blogId, type) -> {
                     //noinspection EnumSwitchStatementWhichMissesCases
-                    if (Bookmark.INSTANCE.equals(type)) {
-                        toggleBookmark(post.blogId, post.postId);
-                        notifyItemChanged(position);
-                    } else if (Like.INSTANCE.equals(type)) {
-                        toggleLike(ctx, post, position, holder);
-                    } else if (Reblog.INSTANCE.equals(type)) {
-                        mReblogActionListener.reblog(post);
-                    } else if (Comments.INSTANCE.equals(type)) {
-                        ReaderActivityLauncher.showReaderComments(ctx, post.blogId, post.postId);
+                    if (type instanceof PrimaryReaderPostCardActionType) {
+                        switch (type.getId()) {
+                            case BOOKMARK_ACTION_ID:
+                                toggleBookmark(post.blogId, post.postId);
+                                notifyItemChanged(position);
+                                break;
+                            case LIKE_ACTION_ID:
+                                toggleLike(ctx, post, position, holder);
+                                break;
+                            case REBLOG_ACTION_ID:
+                                mReblogActionListener.reblog(post);
+                                break;
+                            case COMMENTS_ACTION_ID:
+                                ReaderActivityLauncher.showReaderComments(ctx, post.blogId, post.postId);
+                                break;
+                            default:
+                                throw new IllegalStateException("Missing case for ReaderPostCardActionType: " + type);
+                        }
                     } else if (type instanceof SecondaryReaderPostCardActionType) {
-                        mOnPostListItemButtonListener.onButtonClicked(post, (SecondaryReaderPostCardActionType) type);
+                        mOnPostListItemButtonListener
+                                .onButtonClicked(post, (SecondaryReaderPostCardActionType) type);
                         renderPost(position, holder);
-                    } else {
-                        throw new IllegalStateException("Missing for ReaderPostCardActionType: " + type);
                     }
                     return Unit.INSTANCE;
                 };

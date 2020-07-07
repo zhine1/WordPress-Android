@@ -457,8 +457,9 @@ public class ReaderPostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
     private boolean hasTagHeader() {
-        return AppPrefs.isReaderImprovementsPhase2Enabled()
-               && ((getPostListType() == ReaderPostListType.TAG_PREVIEW) && !isEmpty());
+        // TODO - remove TagHeaderView
+        return false; /*AppPrefs.isReaderImprovementsPhase2Enabled()
+               && ((getPostListType() == ReaderPostListType.TAG_PREVIEW) && !isEmpty());*/
     }
 
     private boolean isDiscover() {

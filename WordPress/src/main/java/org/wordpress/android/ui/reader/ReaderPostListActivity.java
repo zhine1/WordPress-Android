@@ -37,6 +37,7 @@ import org.wordpress.android.ui.RequestCodes;
 import org.wordpress.android.ui.posts.EditPostActivity;
 import org.wordpress.android.ui.prefs.AppPrefs;
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType;
+import org.wordpress.android.ui.reader.views.ReaderTagHeaderView;
 import org.wordpress.android.ui.uploads.UploadActionUseCase;
 import org.wordpress.android.ui.uploads.UploadUtils;
 import org.wordpress.android.ui.uploads.UploadUtilsWrapper;
@@ -64,7 +65,10 @@ public class ReaderPostListActivity extends LocaleAwareActivity {
 
         setContentView(R.layout.reader_activity_post_list);
 
-        Toolbar toolbar = findViewById(R.id.toolbar_main);
+        AppBarLayout appBarLayout = findViewById(R.id.toolbar_collapsible_layout);
+        Toolbar toolbar = appBarLayout.findViewById(R.id.toolbar_main);
+        ReaderTagHeaderView readerTagHeaderView = appBarLayout.findViewById(R.id.tag_header_view);
+
         setSupportActionBar(toolbar);
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -113,6 +117,8 @@ public class ReaderPostListActivity extends LocaleAwareActivity {
             } else if (getPostListType() == ReaderPostListType.TAG_PREVIEW) {
                 setTitle(R.string.reader_title_tag_preview);
                 ReaderTag tag = (ReaderTag) getIntent().getSerializableExtra(ReaderConstants.ARG_TAG);
+                readerTagHeaderView.setCurrentTag(tag);
+                readerTagHeaderView.setVisibility(View.VISIBLE);
                 if (tag != null && savedInstanceState == null) {
                     showListFragmentForTag(tag, mPostListType);
                 }

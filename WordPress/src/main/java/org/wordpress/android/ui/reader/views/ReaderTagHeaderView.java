@@ -18,9 +18,6 @@ import org.wordpress.android.util.ToastUtils;
 
 import javax.inject.Inject;
 
-/**
- * topmost view in post adapter when showing tag preview - displays tag name and follow button
- */
 public class ReaderTagHeaderView extends RelativeLayout {
     private ReaderFollowButton mFollowButton;
     private ReaderTag mCurrentTag;

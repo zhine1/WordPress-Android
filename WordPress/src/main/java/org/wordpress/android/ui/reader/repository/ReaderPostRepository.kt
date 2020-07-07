@@ -3,13 +3,14 @@ package org.wordpress.android.ui.reader.repository
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import org.wordpress.android.datasets.ReaderPostTable
 import org.wordpress.android.models.ReaderPostList
+import org.wordpress.android.models.ReaderTag
 import org.wordpress.android.modules.BG_THREAD
 import org.wordpress.android.modules.IO_THREAD
-import java.util.concurrent.TimeUnit
+import org.wordpress.android.ui.reader.utils.ReaderUtils
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -440,8 +441,14 @@ class ReaderPostRepository @Inject constructor(
 
     suspend fun getDiscoveryFeed(): LiveData<ReaderPostList> =
             withContext(bgDispatcher) {
-                delay(TimeUnit.SECONDS.toMillis(5))
-                getMockDiscoverFeed()
+                mutableDiscoveryFeed.postValue(
+                        ReaderPostTable.getPostsWithTag(
+                                ReaderUtils.getTagFromEndpoint(ReaderTag.DISCOVER_PATH),
+                                20,
+                                false
+                        )
+                )
+                discoveryFeed
             }
 
     private suspend fun getMockDiscoverFeed(): LiveData<ReaderPostList> {

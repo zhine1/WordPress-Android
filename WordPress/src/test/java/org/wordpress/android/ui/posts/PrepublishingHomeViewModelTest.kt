@@ -369,7 +369,6 @@ class PrepublishingHomeViewModelTest : BaseUnitTest() {
         verify(updateStoryTitleUseCase).updateStoryTitle(eq(storyTitle), any())
     }
 
-
     private fun getHeaderUiState() = viewModel.uiState.value?.filterIsInstance(HeaderUiState::class.java)?.first()
     private fun getStoryTitleUiState() = getStoryTitleUiStateList()?.first()
     private fun getStoryTitleUiStateList() =

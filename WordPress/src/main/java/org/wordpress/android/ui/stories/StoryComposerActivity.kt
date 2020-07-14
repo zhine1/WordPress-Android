@@ -305,7 +305,7 @@ class StoryComposerActivity : ComposeLoopFrameActivity(),
 
     private fun updateStoryPostWithChanges() {
         editPostRepository.postChanged.observe(this, Observer {
-            savePostToDbUseCase.savePostToDb(this, editPostRepository, requireNotNull(site))
+            savePostToDbUseCase.savePostToDb(editPostRepository, requireNotNull(site))
         })
     }
 

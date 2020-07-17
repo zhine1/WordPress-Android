@@ -1,6 +1,7 @@
 package org.wordpress.android.ui.reader.discover.interests
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
@@ -9,15 +10,23 @@ import androidx.lifecycle.ViewModelProviders
 import com.google.android.material.chip.Chip
 import kotlinx.android.synthetic.main.fullscreen_error_with_retry.*
 import kotlinx.android.synthetic.main.reader_interests_fragment_layout.*
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode.MAIN
 import org.wordpress.android.R
 import org.wordpress.android.WordPress
+import org.wordpress.android.ui.reader.ReaderEvents.InterestTagsFetched
 import org.wordpress.android.ui.reader.discover.interests.ReaderInterestsViewModel.DoneButtonUiState
 import org.wordpress.android.ui.reader.discover.interests.ReaderInterestsViewModel.InterestUiState
 import org.wordpress.android.ui.reader.discover.interests.ReaderInterestsViewModel.UiState.ContentUiState
 import org.wordpress.android.ui.reader.discover.interests.ReaderInterestsViewModel.UiState.ErrorUiState
 import org.wordpress.android.ui.reader.discover.interests.ReaderInterestsViewModel.UiState.LoadingUiState
+import org.wordpress.android.ui.reader.services.update.ReaderUpdateLogic.UpdateTask.INTEREST_TAGS
+import org.wordpress.android.ui.reader.services.update.ReaderUpdateLogic.UpdateTask.TAGS
+import org.wordpress.android.ui.reader.services.update.ReaderUpdateServiceStarter
 import org.wordpress.android.ui.reader.viewmodels.ReaderViewModel
 import org.wordpress.android.ui.utils.UiHelpers
+import java.util.EnumSet
 import javax.inject.Inject
 
 class ReaderInterestsFragment : Fragment(R.layout.reader_interests_fragment_layout) {
@@ -33,9 +42,24 @@ class ReaderInterestsFragment : Fragment(R.layout.reader_interests_fragment_layo
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        EventBus.getDefault().register(this)
+
+        ReaderUpdateServiceStarter.startService(context, EnumSet.of(TAGS, INTEREST_TAGS))
+
         initDoneButton()
         initRetryButton()
         initViewModel()
+    }
+
+    @Subscribe(threadMode = MAIN) fun onEventMainThread(
+        event: InterestTagsFetched?
+    ) {
+        Log.d("test", "test" + event?.interestTags)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        EventBus.getDefault().unregister(this)
     }
 
     private fun initDoneButton() {
@@ -77,7 +101,7 @@ class ReaderInterestsFragment : Fragment(R.layout.reader_interests_fragment_layo
             }
         })
 
-        viewModel.start(parentViewModel)
+//        viewModel.start(parentViewModel)
     }
 
     private fun updateDoneButton(doneButtonUiState: DoneButtonUiState) {

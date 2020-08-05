@@ -13,7 +13,9 @@ import org.wordpress.android.models.ReaderPostDiscoverData
 import org.wordpress.android.models.ReaderPostDiscoverData.DiscoverType.EDITOR_PICK
 import org.wordpress.android.models.ReaderPostDiscoverData.DiscoverType.OTHER
 import org.wordpress.android.models.ReaderPostDiscoverData.DiscoverType.SITE_PICK
+import org.wordpress.android.models.ReaderTag
 import org.wordpress.android.models.ReaderTagList
+import org.wordpress.android.models.ReaderTagType
 import org.wordpress.android.ui.reader.ReaderConstants
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState
@@ -125,9 +127,21 @@ class ReaderPostUiStateBuilder @Inject constructor(
             post.takeIf { post.cardType == VIDEO }
                     ?.let { post.featuredVideo }
 
-    private fun buildExpandedTagsViewVisibility(post: ReaderPost) = post.isDiscoverPost
+    private fun buildExpandedTagsViewVisibility(post: ReaderPost) = true
 
-    private fun buildTags(post: ReaderPost) = ReaderTagList() // TODO: ashiagr - get tags from post
+    private fun buildTags(post: ReaderPost) =
+            ReaderTagList().apply {
+                for (c in listOf(
+                        "food",
+                        "aerial photography",
+                        "candy",
+                        "facetime",
+                        "entertainment",
+                        "politics",
+                        "race",
+                        "travel"
+                )) (add(ReaderTag(c, c, c, "", ReaderTagType.DEFAULT)))
+            }
 
     // TODO malinjir show overlay when buildFullVideoUrl != null
     private fun buildVideoOverlayVisibility(post: ReaderPost) = post.cardType == VIDEO

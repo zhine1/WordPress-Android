@@ -1,5 +1,6 @@
 package org.wordpress.android.ui.reader.repository.usecases.tags
 
+import androidx.work.Operation.State.SUCCESS
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.wordpress.android.ui.reader.ReaderEvents.FollowedTagsChanged
@@ -28,7 +29,8 @@ class FetchFollowedTagsUseCase @Inject constructor(
 
     suspend fun fetch(): ReaderRepositoryCommunication {
         if (continuation != null) {
-            throw IllegalStateException("Follow tags already in progress.")
+//            throw IllegalStateException("Follow tags already in progress.")
+            return NetworkUnavailable
         }
 
         if (!networkUtilsWrapper.isNetworkAvailable()) {

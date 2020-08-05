@@ -6,12 +6,14 @@ import kotlinx.coroutines.withContext
 import org.wordpress.android.datasets.ReaderDiscoverCardsTableWrapper
 import org.wordpress.android.datasets.wrappers.ReaderPostTableWrapper
 import org.wordpress.android.fluxc.utils.AppLogWrapper
+import org.wordpress.android.models.ReaderTagList
 import org.wordpress.android.models.discover.ReaderDiscoverCard
 import org.wordpress.android.models.discover.ReaderDiscoverCard.InterestsYouMayLikeCard
 import org.wordpress.android.models.discover.ReaderDiscoverCard.ReaderPostCard
 import org.wordpress.android.models.discover.ReaderDiscoverCards
 import org.wordpress.android.modules.IO_THREAD
 import org.wordpress.android.ui.reader.ReaderConstants
+import org.wordpress.android.ui.reader.repository.ReaderRepositoryCommunication.SuccessWithData
 import org.wordpress.android.ui.reader.repository.ReaderTagRepository
 import org.wordpress.android.util.AppLog.T.READER
 import javax.inject.Inject
@@ -32,10 +34,10 @@ class GetDiscoverCardsUseCase @Inject constructor(
                 val cards: ArrayList<ReaderDiscoverCard> = arrayListOf()
 
                 // TODO jd-alexander remove mocked interests when the real implementation below is working.
-                val mockedInterests = readerTagRepository.getUserTags(false)
-                if (mockedInterests != null) {
-                    cards.add(InterestsYouMayLikeCard(mockedInterests))
-                }
+//                val mockedInterests = readerTagRepository.getUserTags()
+//                if(mockedInterests is SuccessWithData<*> && cardJsonList.size < 21) {
+//                    cards.add(InterestsYouMayLikeCard(mockedInterests.data as ReaderTagList))
+//                }
 
                 if (cardJsonList.isNotEmpty()) {
                     val jsonObjects = parseDiscoverCardsJsonUseCase.convertListOfJsonArraysIntoSingleJsonArray(

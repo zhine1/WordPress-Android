@@ -31,7 +31,7 @@ import org.wordpress.android.viewmodel.ScopedViewModel
 import javax.inject.Inject
 import javax.inject.Named
 
-const val INITIATE_LOAD_MORE_OFFSET = 3
+const val INITIATE_LOAD_MORE_OFFSET = 2
 
 class ReaderDiscoverViewModel @Inject constructor(
     private val postUiStateBuilder: ReaderPostUiStateBuilder,

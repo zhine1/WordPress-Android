@@ -8,6 +8,8 @@ import kotlinx.coroutines.launch
 import org.wordpress.android.R
 import org.wordpress.android.datasets.ReaderPostTable
 import org.wordpress.android.models.ReaderPost
+import org.wordpress.android.models.ReaderTagType.INTERESTS
+import org.wordpress.android.models.discover.ReaderDiscoverCard.InterestsYouMayLikeCard
 import org.wordpress.android.models.discover.ReaderDiscoverCard.ReaderPostCard
 import org.wordpress.android.modules.BG_THREAD
 import org.wordpress.android.modules.UI_THREAD
@@ -16,10 +18,12 @@ import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType.TAG_FOLLOW
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState
 import org.wordpress.android.ui.reader.discover.ReaderDiscoverViewModel.DiscoverUiState.ContentUiState
 import org.wordpress.android.ui.reader.discover.ReaderDiscoverViewModel.DiscoverUiState.LoadingUiState
+import org.wordpress.android.ui.reader.discover.ReaderNavigationEvents.ShowPostsByTag
 import org.wordpress.android.ui.reader.discover.ReaderNavigationEvents.ShowSitePickerForResult
 import org.wordpress.android.ui.reader.reblog.ReblogUseCase
 import org.wordpress.android.ui.reader.repository.ReaderDiscoverDataProvider
 import org.wordpress.android.ui.reader.usecases.PreLoadPostContent
+import org.wordpress.android.ui.reader.utils.ReaderUtilsWrapper
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T
 import org.wordpress.android.viewmodel.Event
@@ -34,6 +38,7 @@ class ReaderDiscoverViewModel @Inject constructor(
     private val readerPostCardActionsHandler: ReaderPostCardActionsHandler,
     private val readerDiscoverDataProvider: ReaderDiscoverDataProvider,
     private val reblogUseCase: ReblogUseCase,
+    private val readerUtilsWrapper: ReaderUtilsWrapper,
     @Named(UI_THREAD) private val mainDispatcher: CoroutineDispatcher,
     @Named(BG_THREAD) private val bgDispatcher: CoroutineDispatcher
 ) : ScopedViewModel(mainDispatcher) {
@@ -78,22 +83,29 @@ class ReaderDiscoverViewModel @Inject constructor(
         // Listen to changes to the discover feed
         _uiState.addSource(readerDiscoverDataProvider.discoverFeed) { posts ->
             _uiState.value = ContentUiState(
-                    // TODO malinjir we currently ignore all other types but ReaderPostCards
-                    posts.cards.filterIsInstance<ReaderPostCard>().map {
-                        postUiStateBuilder.mapPostToUiState(
-                                post = it.post,
-                                photonWidth = photonWidth,
-                                photonHeight = photonHeight,
-                                isBookmarkList = false,
-                                onButtonClicked = this::onButtonClicked,
-                                onItemClicked = this::onItemClicked,
-                                onItemRendered = this::onItemRendered,
-                                onDiscoverSectionClicked = this::onDiscoverClicked,
-                                onMoreButtonClicked = this::onMoreButtonClicked,
-                                onVideoOverlayClicked = this::onVideoOverlayClicked,
-                                onPostHeaderViewClicked = this::onPostHeaderClicked,
-                                postListType = TAG_FOLLOWED
-                        )
+                    posts.cards.map {
+                        when (it) {
+                            is ReaderPostCard -> postUiStateBuilder.mapPostToUiState(
+                                    post = it.post,
+                                    photonWidth = photonWidth,
+                                    photonHeight = photonHeight,
+                                    isBookmarkList = false,
+                                    onButtonClicked = this::onButtonClicked,
+                                    onItemClicked = this::onItemClicked,
+                                    onItemRendered = this::onItemRendered,
+                                    onDiscoverSectionClicked = this::onDiscoverClicked,
+                                    onMoreButtonClicked = this::onMoreButtonClicked,
+                                    onVideoOverlayClicked = this::onVideoOverlayClicked,
+                                    onPostHeaderViewClicked = this::onPostHeaderClicked,
+                                    postListType = TAG_FOLLOWED
+                            )
+                            is InterestsYouMayLikeCard -> {
+                                postUiStateBuilder.mapTagListToReaderInterestUiState(
+                                        it.interests,
+                                        this::onReaderTagClicked
+                                )
+                            }
+                        }
                     },
                     swipeToRefreshIsRefreshing = false
             )
@@ -120,6 +132,11 @@ class ReaderDiscoverViewModel @Inject constructor(
         _preloadPostEvents.addSource(readerPostCardActionsHandler.preloadPostEvents) { event ->
             _preloadPostEvents.value = event
         }
+    }
+
+    private fun onReaderTagClicked(tag: String) {
+        val readerTag = readerUtilsWrapper.getTagFromTagName(tag, INTERESTS)
+        _navigationEvents.postValue(Event(ShowPostsByTag(readerTag)))
     }
 
     private fun onButtonClicked(postId: Long, blogId: Long, type: ReaderPostCardActionType) {

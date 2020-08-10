@@ -926,7 +926,7 @@ public class GutenbergEditorFragment extends EditorFragmentAbstract implements
             return false;
         }
 
-        if (!mHtmlModeEnabled) return false;
+//        if (!mHtmlModeEnabled) return false;
 
         if (mSavingContentProgressDialog != null && mSavingContentProgressDialog.isShowing()) {
             // Already on the screen? no need to show it again.

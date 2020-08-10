@@ -15,4 +15,5 @@ abstract class ReaderViewHolder(
 ) : RecyclerView.ViewHolder(containerView),
         LayoutContainer {
     abstract fun onBind(uiState: ReaderCardUiState)
+    abstract fun onUnBind()
 }

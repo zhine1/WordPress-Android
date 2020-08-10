@@ -33,6 +33,11 @@ class ReaderDiscoverAdapter(
         holder.onBind(items[position])
     }
 
+    override fun onViewRecycled(holder: ReaderViewHolder) {
+        super.onViewRecycled(holder)
+        holder.onUnBind()
+    }
+
     fun update(newItems: List<ReaderCardUiState>) {
         val diffResult = DiffUtil.calculateDiff(DiscoverDiffUtil(items, newItems))
         items.clear()

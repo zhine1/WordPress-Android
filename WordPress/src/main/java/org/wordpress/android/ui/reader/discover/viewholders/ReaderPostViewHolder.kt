@@ -43,7 +43,7 @@ class ReaderPostViewHolder(
 
         // Expandable tags section
         uiHelpers.updateVisibility(expandable_tags_view, state.expandableTagsViewVisibility)
-        expandable_tags_view.updateTagsUi(state.tagItems)
+        expandable_tags_view.onBind(state.tagItems)
 
         // Header section
         updateAvatarOrBlavatar(state)
@@ -91,6 +91,10 @@ class ReaderPostViewHolder(
         updateActionButton(uiState.postId, uiState.blogId, uiState.bookmarkAction, bookmark)
 
         state.onItemRendered.invoke(uiState.postId, uiState.blogId)
+    }
+
+    override fun onUnBind() {
+        expandable_tags_view.onUnBind()
     }
 
     private fun updateFeaturedImage(state: ReaderPostUiState) {

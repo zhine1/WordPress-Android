@@ -10,6 +10,8 @@ import com.google.android.material.chip.ChipGroup
 import org.wordpress.android.R
 import org.wordpress.android.WordPress
 import org.wordpress.android.ui.reader.discover.interests.TagUiState
+import org.wordpress.android.ui.reader.views.presenters.ExpandableTagsViewPresenter
+import org.wordpress.android.ui.reader.views.presenters.ExpandableTagsViewPresenter.IExpandableTagsView
 import org.wordpress.android.ui.utils.UiHelpers
 import javax.inject.Inject
 
@@ -17,43 +19,39 @@ class ReaderExpandableTagsView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ChipGroup(context, attrs, defStyleAttr) {
+) : ChipGroup(context, attrs, defStyleAttr), IExpandableTagsView {
     @Inject lateinit var uiHelpers: UiHelpers
+    @Inject lateinit var expandableTagsViewPresenterFactory: ExpandableTagsViewPresenter.Factory
+    private lateinit var expandableTagsViewPresenter: ExpandableTagsViewPresenter
 
     private val tagChips
-        get() = (0 until childCount - 1).map { getChildAt(it) as Chip }
-
-    private val overflowIndicatorChip
-        get() = getChildAt(childCount - 1) as Chip
-
-    private val lastVisibleTagChipIndex
-        get() = tagChips.filter { it.visibility == View.VISIBLE }.lastIndex
-
-    private val lastVisibleTagChip
-        get() = getChildAt(lastVisibleTagChipIndex)
-
-    private val hiddenTagChipsCount
-        get() = tagChips.size - (lastVisibleTagChipIndex + 1)
-
-    private val isOverflowIndicatorChipOutsideBounds
-        get() = !isChipWithinBounds(overflowIndicatorChip)
+        get() = (0 until expandableTagsViewPresenter.tagChipsCount).map { getChildAt(it) as Chip }
 
     init {
         (context.applicationContext as WordPress).component().inject(this)
         layoutDirection = View.LAYOUT_DIRECTION_LOCALE
     }
 
-    fun updateTagsUi(tags: List<TagUiState>) {
+    fun onBind(tags: List<TagUiState>) {
+        expandableTagsViewPresenter = expandableTagsViewPresenterFactory.create()
+        updateTagsUi(tags)
+        expandableTagsViewPresenter.onBind(tags, this)
+    }
+
+    fun onUnBind() {
+        expandableTagsViewPresenter.onUnbind()
+    }
+
+    private fun updateTagsUi(tags: List<TagUiState>) {
         removeAllViews()
         addOverflowIndicatorChip()
         addTagChips(tags)
-        expandLayout(false)
     }
 
     private fun addOverflowIndicatorChip() {
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val chip = inflater.inflate(R.layout.reader_expandable_tags_view_overflow_chip, this, false) as Chip
-        chip.setOnCheckedChangeListener { _, isChecked -> expandLayout(isChecked) }
+        chip.setOnCheckedChangeListener { _, isChecked -> expandableTagsViewPresenter.expandLayout(isChecked) }
         addView(chip)
     }
 
@@ -70,54 +68,39 @@ class ReaderExpandableTagsView @JvmOverloads constructor(
         }
     }
 
-    private fun expandLayout(isChecked: Boolean) {
-        isSingleLine = !isChecked
-        showAllTagChips()
-        preLayout {
-            hideTagChipsOutsideBounds()
-            updateLastVisibleTagChip()
-            updateOverflowIndicatorChip()
+    override fun updateTagsVisibility(tagUiStates: List<TagUiState>) {
+        tagChips.forEachIndexed { index, chip ->
+            uiHelpers.updateVisibility(chip, tagUiStates[index].visible)
         }
+    }
+
+    override fun updateOverflowIndicatorVisibility(isVisible: Boolean) {
+        val overflowIndicatorChip = getChildAt(expandableTagsViewPresenter.overflowChipIndex) as Chip
+        uiHelpers.updateVisibility(overflowIndicatorChip, isVisible)
+    }
+
+    override fun refreshLayout() {
         requestLayout()
     }
 
-    private fun showAllTagChips() { tagChips.forEach { uiHelpers.updateVisibility(it, true) } }
-
-    private fun hideTagChipsOutsideBounds() {
-        tagChips.forEach { uiHelpers.updateVisibility(it, isChipWithinBounds(it)) }
+    override fun collapseToSingleLine(singleLine: Boolean) {
+        isSingleLine = singleLine
     }
 
-    private fun isChipWithinBounds(chip: Chip) = if (isSingleLine) {
-        if (layoutDirection == View.LAYOUT_DIRECTION_LTR) {
-            chip.right <= right - (paddingEnd + chipSpacingHorizontal)
+    override fun isChipWithinBounds(chipIndex: Int): Boolean {
+        val chip = getChildAt(chipIndex) ?: return false
+        return if (isSingleLine) {
+            if (layoutDirection == View.LAYOUT_DIRECTION_LTR) {
+                chip.right <= right - (paddingEnd + chipSpacingHorizontal)
+            } else {
+                chip.left >= left + (paddingStart + chipSpacingHorizontal)
+            }
         } else {
-            chip.left >= left + (paddingStart + chipSpacingHorizontal)
-        }
-    } else {
-        chip.bottom <= bottom - (paddingBottom + chipSpacingVertical)
-    }
-
-    private fun updateLastVisibleTagChip() {
-        lastVisibleTagChip?.let {
-            uiHelpers.updateVisibility(it, !isOverflowIndicatorChipOutsideBounds)
+            chip.bottom <= bottom - (paddingBottom + chipSpacingVertical)
         }
     }
 
-    private fun updateOverflowIndicatorChip() {
-        val showOverflowIndicatorChip = hiddenTagChipsCount > 0 || !isSingleLine
-        uiHelpers.updateVisibility(overflowIndicatorChip, showOverflowIndicatorChip)
-
-        overflowIndicatorChip.text = if (isSingleLine) {
-            String.format(
-                resources.getString(R.string.reader_expandable_tags_view_overflow_indicator_expand_title),
-                hiddenTagChipsCount
-            )
-        } else {
-            resources.getString(R.string.reader_expandable_tags_view_overflow_indicator_collapse_title)
-        }
-    }
-
-    private fun View.preLayout(what: () -> Unit) {
+    override fun onPreLayout(what: () -> Unit) {
         viewTreeObserver.addOnPreDrawListener(object : OnPreDrawListener {
             override fun onPreDraw(): Boolean {
                 viewTreeObserver.removeOnPreDrawListener(this)

@@ -12,6 +12,8 @@ import org.wordpress.android.ui.LocaleAwareActivity
 import org.wordpress.android.ui.notifications.SystemNotificationsTracker
 import org.wordpress.android.ui.posts.BasicFragmentDialog.BasicDialogNegativeClickInterface
 import org.wordpress.android.ui.posts.BasicFragmentDialog.BasicDialogPositiveClickInterface
+import org.wordpress.android.util.EncryptedLogging
+import org.wordpress.android.util.helpers.logfile.LogFileProvider
 import javax.inject.Inject
 
 const val EXTRA_PAGE_REMOTE_ID_KEY = "extra_page_remote_id_key"
@@ -21,6 +23,7 @@ class PagesActivity : LocaleAwareActivity(),
         BasicDialogPositiveClickInterface,
         BasicDialogNegativeClickInterface {
     @Inject internal lateinit var systemNotificationTracker: SystemNotificationsTracker
+    @Inject internal lateinit var encryptedLogging: EncryptedLogging
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +35,15 @@ class PagesActivity : LocaleAwareActivity(),
         supportActionBar?.let {
             it.setHomeButtonEnabled(true)
             it.setDisplayHomeAsUpEnabled(true)
+        }
+
+        LogFileProvider.fromContext(this.applicationContext).getLogFiles().lastOrNull()?.let { logFile ->
+            if (logFile.exists()) {
+                encryptedLogging.encryptAndUploadLogFile(
+                        logFile = logFile,
+                        shouldStartUploadImmediately = true
+                )
+            }
         }
 
         handleIntent(intent)

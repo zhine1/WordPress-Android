@@ -200,7 +200,7 @@ class StoryComposerActivity : ComposeLoopFrameActivity(),
         // StoryComposer by using storyEditorMedia.onPhotoPickerMediaChosen().
 
         // 1. extract and remove EXTRA_MEDIA_URIS from the intent data
-        val uriList = extracttMediaUrisFromIntent(intent)
+        val uriList = extractMediaUrisFromIntent(intent)
 
         // 2. go ahead and let the superclass onLoadFromIntent() perform any initialization needed
         super.onLoadFromIntent(intent)
@@ -215,7 +215,7 @@ class StoryComposerActivity : ComposeLoopFrameActivity(),
         handleMediaPickerIntentData(intent)
     }
 
-    private fun extracttMediaUrisFromIntent(intent: Intent): List<Uri> {
+    private fun extractMediaUrisFromIntent(intent: Intent): List<Uri> {
         val uriList: List<Uri> = convertStringArrayIntoUrisList(
                 intent.getStringArrayExtra(PhotoPickerActivity.EXTRA_MEDIA_URIS)
         )

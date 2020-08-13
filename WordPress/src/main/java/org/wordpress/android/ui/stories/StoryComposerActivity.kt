@@ -191,9 +191,37 @@ class StoryComposerActivity : ComposeLoopFrameActivity(),
     }
 
     override fun onLoadFromIntent(intent: Intent) {
+        // sometimes we may get EXTRA_MEDIA_URIS with transient URIs from ContentProviders, which need be handled
+        // by the host app for example by the AddLocalMediaToPostUseCase, which knows when / if to optimize images,
+        // or fetch and download a copy while the URIs access lasts, before passing it to the composer or the Editor.
+        // As such, we first keep a copy of EXTRA_MEDIA_URIS value, remove it so it is *not* processed by the superclass
+        // onLoadFromIntent() in raw form (given the library doesn't perform any particular treatment on these URIs),
+        // and then finally process the passed EXTRA_MEDIA_URIS and load the newly permanent usable URIs on the
+        // StoryComposer by using storyEditorMedia.onPhotoPickerMediaChosen().
+
+        // 1. extract and remove EXTRA_MEDIA_URIS from the intent data
+        val uriList = extracttMediaUrisFromIntent(intent)
+
+        // 2. go ahead and let the superclass onLoadFromIntent() perform any initialization needed
         super.onLoadFromIntent(intent)
+
+        // 3. process any added media from intent now once the super class is done initializing
+        if (uriList.isNotEmpty()) {
+            storyEditorMedia.onPhotoPickerMediaChosen(uriList)
+        }
+
+        // 4. business as usual
         // now see if we need to handle information coming from the MediaPicker to populate
         handleMediaPickerIntentData(intent)
+    }
+
+    private fun extracttMediaUrisFromIntent(intent: Intent): List<Uri> {
+        val uriList: List<Uri> = convertStringArrayIntoUrisList(
+                intent.getStringArrayExtra(PhotoPickerActivity.EXTRA_MEDIA_URIS)
+        )
+        // now remove the extra to avoid processing it once again in super class' method onLoadFromIntent()
+        intent.removeExtra(PhotoPickerActivity.EXTRA_MEDIA_URIS)
+        return uriList
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -28,6 +28,7 @@ import org.wordpress.android.ui.reader.reblog.ReblogUseCase
 import org.wordpress.android.ui.reader.usecases.PreLoadPostContent
 import org.wordpress.android.ui.reader.usecases.ReaderPostBookmarkUseCase
 import org.wordpress.android.ui.reader.usecases.ReaderPostFollowUseCase
+import org.wordpress.android.ui.reader.usecases.ReaderPostFollowUseCase.ReaderPostData
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.viewmodel.Event
@@ -52,6 +53,9 @@ class ReaderPostCardActionsHandler @Inject constructor(
     private val _preloadPostEvents = MediatorLiveData<Event<PreLoadPostContent>>()
     val preloadPostEvents = _preloadPostEvents
 
+    private val _refreshPost = MediatorLiveData<ReaderPostData>()
+    val refreshPost = _refreshPost
+
     init {
         dispatcher.register(followUseCase)
 
@@ -69,6 +73,10 @@ class ReaderPostCardActionsHandler @Inject constructor(
 
         _preloadPostEvents.addSource(bookmarkUseCase.preloadPostEvents) { event ->
             _preloadPostEvents.value = event
+        }
+
+        _refreshPost.addSource(followUseCase.refreshPost) { event ->
+            _refreshPost.value = event
         }
     }
 

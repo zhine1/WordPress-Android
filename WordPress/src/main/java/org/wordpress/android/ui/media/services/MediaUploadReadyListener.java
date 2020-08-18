@@ -3,6 +3,7 @@ package org.wordpress.android.ui.media.services;
 import androidx.annotation.Nullable;
 
 import org.wordpress.android.fluxc.model.PostModel;
+import org.wordpress.android.fluxc.model.SiteModel;
 import org.wordpress.android.util.helpers.MediaFile;
 
 /**
@@ -12,6 +13,6 @@ import org.wordpress.android.util.helpers.MediaFile;
 public interface MediaUploadReadyListener {
     PostModel replaceMediaFileWithUrlInPost(@Nullable PostModel post, String localMediaId, MediaFile mediaFile,
                                             String siteUrl);
-    PostModel replaceMediaLocalIdWithRemoteMediaIdInPost(@Nullable PostModel post, MediaFile mediaFile);
+    PostModel replaceMediaLocalIdWithRemoteMediaIdInPost(SiteModel site, @Nullable PostModel post, MediaFile mediaFile);
     PostModel markMediaUploadFailedInPost(@Nullable PostModel post, String localMediaId, MediaFile mediaFile);
 }

@@ -452,7 +452,7 @@ public class UploadService extends Service {
         if (post != null && sInstance != null) {
             // now get the list of completed media for this post, so we can make post content
             // updates in one go and save only once
-            MediaUploadReadyListener processor = new MediaUploadReadyProcessor();
+            MediaUploadReadyListener processor = new MediaUploadReadyProcessor(sInstance);
             Set<MediaModel> completedMedia = sInstance.mUploadStore.getCompletedMediaForPost(post);
             for (MediaModel media : completedMedia) {
                 if (media.getMarkedLocallyAsFeatured()) {
@@ -475,7 +475,7 @@ public class UploadService extends Service {
         if (post != null && sInstance != null) {
             // now get the list of failed media for this post, so we can make post content
             // updates in one go and save only once
-            MediaUploadReadyListener processor = new MediaUploadReadyProcessor();
+            MediaUploadReadyListener processor = new MediaUploadReadyProcessor(sInstance);
             Set<MediaModel> failedMedia = sInstance.mUploadStore.getFailedMediaForPost(post);
             for (MediaModel media : failedMedia) {
                 post = updatePostWithFailedMedia(post, media, processor);
@@ -611,7 +611,7 @@ public class UploadService extends Service {
 
             if (POST_FORMAT_WP_STORY_KEY.compareTo(post.getPostFormat()) == 0) {
                 processor.replaceMediaLocalIdWithRemoteMediaIdInPost(
-                        post, FluxCUtils.mediaFileFromMediaModel(media));
+                        site, post, FluxCUtils.mediaFileFromMediaModel(media));
             } else {
                 // actually replace the media ID with the media uri
                 processor.replaceMediaFileWithUrlInPost(post, String.valueOf(media.getId()),

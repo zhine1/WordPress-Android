@@ -2,13 +2,17 @@ package org.wordpress.android.ui.stories
 
 import com.google.gson.Gson
 import org.wordpress.android.fluxc.model.PostModel
+import org.wordpress.android.fluxc.model.SiteModel
+import org.wordpress.android.fluxc.store.MediaStore
 import org.wordpress.android.ui.posts.EditPostRepository
 import org.wordpress.android.ui.posts.PostUtils
+import org.wordpress.android.util.ShortcodeUtils
 import org.wordpress.android.util.StringUtils
 import org.wordpress.android.util.helpers.MediaFile
 import javax.inject.Inject
 
-class SaveStoryGutenbergBlockUseCase @Inject constructor() {
+class SaveStoryGutenbergBlockUseCase @Inject constructor(val mediaStore: MediaStore){
+//    @Inject lateinit var mediaStore: MediaStore
     // TODO will be removed shortly, but keeping for sites that don't yet have support for the jetpack stories block.
     fun buildWPGalleryInPost(
         editPostRepository: EditPostRepository,
@@ -58,7 +62,17 @@ class SaveStoryGutenbergBlockUseCase @Inject constructor() {
         return mediaFileData
     }
 
-    fun replaceLocalMediaIdsWithRemoteMediaIdsInPost(post: PostModel, mediaFile: MediaFile) {
+    private fun getMediaFileUrl(site: SiteModel, mediaFile: MediaFile): String {
+        if (site.isVideoPressSupported && VIDEOPRESS_MIME_TYPE.equals(mediaFile.mimeType)) {
+            return mediaStore.getUrlForSiteVideoWithVideoPressGuid(
+                    site, ShortcodeUtils.getVideoPressIdFromShortCode(mediaFile.videoPressShortCode)
+            )
+        } else {
+            return StringUtils.notNullStr(mediaFile.fileURL)
+        }
+    }
+
+    fun replaceLocalMediaIdsWithRemoteMediaIdsInPost(site: SiteModel, post: PostModel, mediaFile: MediaFile) {
         // here we're going to first find the block header, obtain the JSON object, re-parse it, and re-build the block
         // WARNING note we're assuming to have only one Story block here so, beware of that!! this will find
         // the first match only, always. (shouldn't be a problem because we're always creating a new Post in the
@@ -85,10 +99,11 @@ class SaveStoryGutenbergBlockUseCase @Inject constructor() {
         }
 
         // now replace the same in the mediaFileObjects, obtain the URLs and replace
+        val mediaUrl = getMediaFileUrl(site, mediaFile)
         storyBlockData?.mediaFiles?.filter { it.id == localMediaId }?.get(0)?.apply {
             id = mediaFile.mediaId.toInt()
-            link = mediaFile.fileURL
-            url = mediaFile.fileURL
+            link = mediaUrl
+            url = mediaUrl
         }
         post.setContent(createGBStoryBlockStringFromJson(requireNotNull(storyBlockData)))
     }
@@ -119,5 +134,6 @@ class SaveStoryGutenbergBlockUseCase @Inject constructor() {
         const val headingEnd = " -->\n"
         const val divPart = "<div class=\"wp-story wp-block-jetpack-story\"></div>\n"
         const val closingtag = "<!-- /wp:jetpack/story -->"
+        const val VIDEOPRESS_MIME_TYPE =  "video/videopress"
     }
 }

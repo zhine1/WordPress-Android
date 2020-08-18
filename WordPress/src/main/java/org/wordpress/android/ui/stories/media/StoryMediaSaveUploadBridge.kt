@@ -66,7 +66,6 @@ class StoryMediaSaveUploadBridge @Inject constructor(
     @Inject lateinit var storiesTrackerHelper: StoriesTrackerHelper
     @Inject lateinit var saveStoryGutenbergBlockUseCase: SaveStoryGutenbergBlockUseCase
 
-    // TODO remove this variable. We only need to remember this so we can tell if this is the alpha test site
     private lateinit var currentSiteModel: SiteModel
 
     @Suppress("unused")

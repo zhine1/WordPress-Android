@@ -21,7 +21,7 @@ sealed class ReaderRepositoryCommunication {
     object Started : ReaderRepositoryCommunication()
     object Success : ReaderRepositoryCommunication()
     data class SuccessWithData<out T>(val data: T) : ReaderRepositoryCommunication()
-    class Failure(val event: ReaderRepositoryEvent) : ReaderRepositoryCommunication()
+    class Failure<out T>(val data: T) : ReaderRepositoryCommunication()
     sealed class Error : ReaderRepositoryCommunication() {
         object NetworkUnavailable : Error()
         object RemoteRequestFailure : Error()

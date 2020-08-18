@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.wordpress.android.R
 import org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_ARTICLE_VISITED
@@ -25,6 +26,8 @@ import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SHARE
 import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.SITE_NOTIFICATIONS
 import org.wordpress.android.ui.reader.discover.ReaderPostCardActionType.VISIT_SITE
 import org.wordpress.android.ui.reader.reblog.ReblogUseCase
+import org.wordpress.android.ui.reader.repository.ReaderRepositoryCommunication.Failure
+import org.wordpress.android.ui.reader.repository.ReaderRepositoryCommunication.SuccessWithData
 import org.wordpress.android.ui.reader.usecases.PreLoadPostContent
 import org.wordpress.android.ui.reader.usecases.ReaderPostBookmarkUseCase
 import org.wordpress.android.ui.reader.usecases.ReaderPostFollowUseCase
@@ -67,16 +70,8 @@ class ReaderPostCardActionsHandler @Inject constructor(
             _snackbarEvents.value = event
         }
 
-        _snackbarEvents.addSource(followUseCase.snackbarEvents) { event ->
-            _snackbarEvents.value = event
-        }
-
         _preloadPostEvents.addSource(bookmarkUseCase.preloadPostEvents) { event ->
             _preloadPostEvents.value = event
-        }
-
-        _refreshPost.addSource(followUseCase.refreshPost) { event ->
-            _refreshPost.value = event
         }
     }
 
@@ -96,7 +91,28 @@ class ReaderPostCardActionsHandler @Inject constructor(
 
     private fun handleFollowClicked(post: ReaderPost) {
         uiScope.launch {
-            followUseCase.toggleFollow(post)
+            followUseCase.toggleFollow(post).consumeEach { result ->
+                when (result) {
+                    is SuccessWithData<*> -> {
+                        when (result.data) {
+                            is SnackbarMessageHolder -> {
+                                _snackbarEvents.postValue(Event(result.data))
+                            }
+                            is ReaderPostData -> _refreshPost.postValue(result.data)
+                        }
+                    }
+                    is Failure<*> -> {
+                        when (result.data) {
+                            is SnackbarMessageHolder -> {
+                                _snackbarEvents.postValue(Event(result.data))
+                            }
+                            is ReaderPostData -> _refreshPost.postValue(result.data)
+                        }
+                    }
+                    else -> {
+                    }
+                }
+            }
         }
     }
 

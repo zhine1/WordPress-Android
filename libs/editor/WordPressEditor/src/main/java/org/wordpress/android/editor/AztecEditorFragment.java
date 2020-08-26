@@ -279,6 +279,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                                 && selectionRect.bottom > mLastPressedYCoord
                         ) {
                             view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
+                            return true;
                         }
                     }
                     return false;

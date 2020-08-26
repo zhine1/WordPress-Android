@@ -11,15 +11,18 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -37,6 +40,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
 import android.view.inputmethod.BaseInputConnection;
 import android.webkit.URLUtil;
@@ -46,6 +50,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatEditText;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LiveData;
 
@@ -199,6 +204,9 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     private int maxMediaSize;
     private int minMediaSize;
 
+    private int mLastPressedXCoord;
+    private int mLastPressedYCoord;
+
     private LiveTextWatcher mTextWatcher = new LiveTextWatcher();
 
     private View mFragmentView;
@@ -253,6 +261,24 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mTitle.setOnTouchListener(this);
         mContent.setOnTouchListener(this);
         mSource.setOnTouchListener(this);
+
+        mContent.setOnLongClickListener(new OnLongClickListener() {
+            @Override public boolean onLongClick(View view) {
+                // if we have a selection
+                if (mContent.getSelectionEnd() > mContent.getSelectionStart()) {
+                    // check if the user long-clicked on the selection to start a drag movement
+                    Rect selectionRect = getBoxContainingSelectionCoordinates(mContent);
+                    if (selectionRect.left < mLastPressedXCoord
+                            && selectionRect.top < mLastPressedYCoord
+                            && selectionRect.right > mLastPressedXCoord
+                            && selectionRect.bottom > mLastPressedYCoord
+                    ) {
+                        view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
+                    }
+                }
+                return false;
+            }
+        });
 
         mTitle.setOnImeBackListener(new org.wordpress.android.editor.OnImeBackListener() {
             public void onImeBack() {
@@ -378,6 +404,47 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mEditorFragmentListener.onEditorFragmentInitialized();
 
         return view;
+    }
+
+    private Rect getBoxContainingSelectionCoordinates(AppCompatEditText editText) {
+        int startCursorPos = editText.getSelectionStart();
+        int endCursorPos = editText.getSelectionEnd();
+
+        // obtain the location on the screen, we'll use it later to adjust x/y
+        int[] location = new int[2];
+        editText.getLocationOnScreen(location);
+
+        Layout layout = editText.getLayout();
+        int startLine = layout.getLineForOffset(startCursorPos);
+        int endLine = layout.getLineForOffset(endCursorPos);
+        Rect startLineBounds = new Rect();
+        editText.getLineBounds(startLine, startLineBounds);
+
+        Rect containingBoxBounds;
+        // if both lines aren't the same, the selection expands accross multiple lines
+        if (endLine != startLine) {
+            // in such case, let's simplify things and obtain the bigger box
+            // (first line top/left, last line bottom/right)
+            Rect lastLineBounds = new Rect();
+            editText.getLineBounds(endLine, lastLineBounds);
+            containingBoxBounds = new Rect(
+                    startLineBounds.left + location[0] - editText.getScrollX(),
+                    startLineBounds.top + location[1] - editText.getScrollY(),
+                    lastLineBounds.right + location[0] - editText.getScrollX(),
+                    lastLineBounds.bottom + location[1] - editText.getScrollY()
+            );
+        } else {
+            // if the selection doesn't go through lines, then make the containing box adjusted to actual
+            // selection start / end
+            // now I need the X to be the actual start cursor X
+            float left = layout.getPrimaryHorizontal(startCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
+            float right = layout.getPrimaryHorizontal(endCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
+            float top = startLineBounds.top + location[1] - editText.getScrollY();
+            float bottom = startLineBounds.bottom + location[1] - editText.getScrollY();
+            containingBoxBounds = new Rect((int) left, (int) top, (int) right, (int) bottom);
+        }
+
+        return containingBoxBounds;
     }
 
     @Override public void onDestroyView() {
@@ -1454,6 +1521,10 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mHideActionBarOnSoftKeyboardUp = true;
             hideActionBarIfNeeded();
+        } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            // we'll use these values in OnLongClickListener
+            mLastPressedXCoord = (int) event.getRawX();
+            mLastPressedYCoord = (int) event.getRawY();
         }
         return false;
     }

@@ -1528,7 +1528,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mHideActionBarOnSoftKeyboardUp = true;
             hideActionBarIfNeeded();
-        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P && event.getAction() == MotionEvent.ACTION_DOWN) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && event.getAction() == MotionEvent.ACTION_DOWN) {
             // we'll use these values in OnLongClickListener
             mLastPressedXCoord = (int) event.getRawX();
             mLastPressedYCoord = (int) event.getRawY();

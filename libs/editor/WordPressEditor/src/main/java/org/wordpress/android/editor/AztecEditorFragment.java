@@ -266,7 +266,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         // "IllegalStateException: Drag shadow dimensions must be positive"
         // - see https://issuetracker.google.com/issues/113347222
         // - also https://github.com/wordpress-mobile/WordPress-Android/issues/10492
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             mContent.setOnLongClickListener(new OnLongClickListener() {
                 @Override public boolean onLongClick(View view) {
                     // if we have a selection

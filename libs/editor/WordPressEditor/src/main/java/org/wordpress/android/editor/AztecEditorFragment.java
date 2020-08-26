@@ -262,23 +262,29 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mContent.setOnTouchListener(this);
         mSource.setOnTouchListener(this);
 
-        mContent.setOnLongClickListener(new OnLongClickListener() {
-            @Override public boolean onLongClick(View view) {
-                // if we have a selection
-                if (mContent.getSelectionEnd() > mContent.getSelectionStart()) {
-                    // check if the user long-clicked on the selection to start a drag movement
-                    Rect selectionRect = getBoxContainingSelectionCoordinates(mContent);
-                    if (selectionRect.left < mLastPressedXCoord
-                            && selectionRect.top < mLastPressedYCoord
-                            && selectionRect.right > mLastPressedXCoord
-                            && selectionRect.bottom > mLastPressedYCoord
-                    ) {
-                        view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
+        // only override startDrag for Android 9 to workaround the following issue:
+        // "IllegalStateException: Drag shadow dimensions must be positive"
+        // - see https://issuetracker.google.com/issues/113347222
+        // - also https://github.com/wordpress-mobile/WordPress-Android/issues/10492
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
+            mContent.setOnLongClickListener(new OnLongClickListener() {
+                @Override public boolean onLongClick(View view) {
+                    // if we have a selection
+                    if (mContent.getSelectionEnd() > mContent.getSelectionStart()) {
+                        // check if the user long-clicked on the selection to start a drag movement
+                        Rect selectionRect = getBoxContainingSelectionCoordinates(mContent);
+                        if (selectionRect.left < mLastPressedXCoord
+                                && selectionRect.top < mLastPressedYCoord
+                                && selectionRect.right > mLastPressedXCoord
+                                && selectionRect.bottom > mLastPressedYCoord
+                        ) {
+                            view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
+                        }
                     }
+                    return false;
                 }
-                return false;
-            }
-        });
+            });
+        }
 
         mTitle.setOnImeBackListener(new org.wordpress.android.editor.OnImeBackListener() {
             public void onImeBack() {
@@ -1521,7 +1527,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             && getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mHideActionBarOnSoftKeyboardUp = true;
             hideActionBarIfNeeded();
-        } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P && event.getAction() == MotionEvent.ACTION_DOWN) {
             // we'll use these values in OnLongClickListener
             mLastPressedXCoord = (int) event.getRawX();
             mLastPressedYCoord = (int) event.getRawY();

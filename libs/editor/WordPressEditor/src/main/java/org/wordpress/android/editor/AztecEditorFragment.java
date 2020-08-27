@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
@@ -40,10 +41,13 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.DragShadowBuilder;
 import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.view.inputmethod.BaseInputConnection;
 import android.webkit.URLUtil;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -108,6 +112,7 @@ import org.wordpress.aztec.util.AztecLog;
 import org.wordpress.aztec.watchers.EndOfBufferMarkerAdder;
 import org.xml.sax.Attributes;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -153,6 +158,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     private static final String ANIMATED_MEDIA = "animated-media";
     private static final String TEMP_VIDEO_UPLOADING_CLASS = "data-temp-aztec-video";
     private static final String GUTENBERG_BLOCK_START = "<!-- wp:";
+    private static final int DRAG_SHADOW_MAX_TEXT_LENGTH = 20;
 
     private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
 
@@ -270,7 +276,9 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             mContent.setOnLongClickListener(new OnLongClickListener() {
                 @Override public boolean onLongClick(View view) {
                     // if we have a selection
-                    if (mContent.getSelectionEnd() > mContent.getSelectionStart()) {
+                    final int start = mContent.getSelectionStart();
+                    final int end = mContent.getSelectionEnd();
+                    if (end > start) {
                         // check if the user long-clicked on the selection to start a drag movement
                         Rect selectionRect = getBoxContainingSelectionCoordinates(mContent);
                         if (selectionRect.left < mLastPressedXCoord
@@ -278,7 +286,12 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                                 && selectionRect.right > mLastPressedXCoord
                                 && selectionRect.bottom > mLastPressedYCoord
                         ) {
-                            view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
+                            // view.startDrag(null, new AndroidPDragShadowBuilder(), null, 0);
+                            // Start a drag
+                            CharSequence selectedText = mContent.getText().subSequence(start, end);
+                            ClipData data = ClipData.newPlainText(null, selectedText);
+                            DragLocalState localState = new DragLocalState(mContent, start, end);
+                            view.startDrag(data, getTextThumbnailBuilder(mContent, selectedText), localState, 0);
                             return true;
                         }
                     }
@@ -444,14 +457,85 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             // if the selection doesn't go through lines, then make the containing box adjusted to actual
             // selection start / end
             // now I need the X to be the actual start cursor X
-            float left = layout.getPrimaryHorizontal(startCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
-            float right = layout.getPrimaryHorizontal(endCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
+            float left = layout.getPrimaryHorizontal(startCursorPos) + location[0] - editText.getScrollX()
+                            + startLineBounds.left;
+            float right = layout.getPrimaryHorizontal(endCursorPos) + location[0] - editText.getScrollX()
+                            + startLineBounds.left;
             float top = startLineBounds.top + location[1] - editText.getScrollY();
             float bottom = startLineBounds.bottom + location[1] - editText.getScrollY();
             containingBoxBounds = new Rect((int) left, (int) top, (int) right, (int) bottom);
         }
 
         return containingBoxBounds;
+    }
+
+    // this DragShadowBuilder makes sure to always return shadow dimensions that are positive, even
+    // when the selected text is non-visible (for example containing a "/n" character only)
+    private class AndroidPDragShadowBuilder extends View.DragShadowBuilder {
+        private final WeakReference<View> mView;
+        AndroidPDragShadowBuilder(View view) {
+            super(view);
+            mView = new WeakReference<View>(view);
+        }
+
+        @Override
+        public void onProvideShadowMetrics(Point outShadowSize, Point outShadowTouchPoint) {
+            final View view = mView.get();
+            if (view != null) {
+                // set an empty drag shadow to keep going and avoid
+                // "java.lang.IllegalStateException: Drag shadow dimensions must be positive"
+                // (see https://github.com/wordpress-mobile/WordPress-Android/issues/10492)
+                if (view.getWidth() == 0 || view.getHeight() == 0) {
+                    provideEmptyShadow(outShadowSize, outShadowTouchPoint);
+                } else {
+                    outShadowSize.set(view.getWidth(), view.getHeight());
+                    outShadowTouchPoint.set(outShadowSize.x / 2, outShadowSize.y / 2);
+                }
+            } else {
+                AppLog.e(T.EDITOR, "Asked for drag thumb metrics but no view");
+                // set an empty drag shadow to keep going
+                provideEmptyShadow(outShadowSize, outShadowTouchPoint);
+            }
+        }
+
+        private void provideEmptyShadow(Point outShadowSize, Point outShadowTouchPoint) {
+            outShadowSize.set(1, 1);
+            outShadowTouchPoint.set(0, 0);
+        }
+    }
+
+    // see https://android.googlesource.com/platform/frameworks/base.git/+/jb-mr1-release/core/java/android/widget/
+    // Editor.java#1723
+    private DragShadowBuilder getTextThumbnailBuilder(TextView sourceTextView, CharSequence text) {
+        TextView shadowView = (TextView) View.inflate(sourceTextView.getContext(),
+                R.layout.aztec_text_drag_thumbnail, null);
+        if (shadowView == null) {
+            throw new IllegalArgumentException("Unable to inflate text drag thumbnail");
+        }
+        if (text.length() > DRAG_SHADOW_MAX_TEXT_LENGTH) {
+            text = text.subSequence(0, DRAG_SHADOW_MAX_TEXT_LENGTH);
+        }
+        shadowView.setText(text);
+        shadowView.setTextColor(sourceTextView.getTextColors());
+        shadowView.setTextAppearance(sourceTextView.getContext(), android.R.style.TextAppearance_Large);
+        shadowView.setGravity(Gravity.CENTER);
+        shadowView.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        final int size = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        shadowView.measure(size, size);
+        shadowView.layout(0, 0, shadowView.getMeasuredWidth(), shadowView.getMeasuredHeight());
+        shadowView.invalidate();
+        return new AndroidPDragShadowBuilder(shadowView);
+    }
+
+    private static class DragLocalState {
+        public AztecText sourceTextView;
+        public int start, end;
+        DragLocalState(AztecText sourceTextView, int start, int end) {
+            this.sourceTextView = sourceTextView;
+            this.start = start;
+            this.end = end;
+        }
     }
 
     @Override public void onDestroyView() {

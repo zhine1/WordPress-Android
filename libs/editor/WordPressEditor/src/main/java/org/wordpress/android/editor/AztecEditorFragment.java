@@ -296,7 +296,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                             );
                             if (spans.length == 1) {
                                 // signal this event as handled so dragging does not go forward
-                                return false;
+                                return true;
                             }
                         }
                     }

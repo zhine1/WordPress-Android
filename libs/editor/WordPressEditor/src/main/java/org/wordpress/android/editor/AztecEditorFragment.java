@@ -101,6 +101,7 @@ import org.wordpress.aztec.plugins.wpcomments.toolbar.MoreToolbarButton;
 import org.wordpress.aztec.source.Format;
 import org.wordpress.aztec.source.SourceViewEditText;
 import org.wordpress.aztec.spans.AztecMediaSpan;
+import org.wordpress.aztec.spans.EndOfParagraphMarker;
 import org.wordpress.aztec.spans.IAztecAttributedSpan;
 import org.wordpress.aztec.toolbar.AztecToolbar;
 import org.wordpress.aztec.toolbar.IAztecToolbarClickListener;
@@ -278,7 +279,9 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             mContent.setOnLongClickListener(new OnLongClickListener() {
                 @Override public boolean onLongClick(View view) {
                     // if we have a selection
-                    if (mContent.getSelectionEnd() > mContent.getSelectionStart()) {
+                    final int start = mContent.getSelectionStart();
+                    final int end = mContent.getSelectionEnd();
+                    if ((end - start) == 1) {
                         // check if the user long-clicked on the selection to start a drag movement
                         Rect selectionRect = getBoxContainingSelectionCoordinates(mContent);
                         if (selectionRect.left < mLastPressedXCoord
@@ -286,8 +289,14 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                                 && selectionRect.right > mLastPressedXCoord
                                 && selectionRect.bottom > mLastPressedYCoord
                         ) {
-                            if (mContent.getSelectedText().compareTo("\n") == 0) {
-                                return true;
+                            EndOfParagraphMarker[] spans = mContent.getEditableText().getSpans(
+                                    start,
+                                    end,
+                                    EndOfParagraphMarker.class
+                            );
+                            if (spans.length == 1) {
+                                // signal this event as handled so dragging does not go forward
+                                return false;
                             }
                         }
                     }

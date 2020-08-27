@@ -266,6 +266,14 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         // "IllegalStateException: Drag shadow dimensions must be positive"
         // - see https://issuetracker.google.com/issues/113347222
         // - also https://github.com/wordpress-mobile/WordPress-Android/issues/10492
+        // rationale: the LongClick gesture takes precedence over the startDrag operation
+        // so, listening to it first gives us the possibility to discard processing the event
+        // when the crash conditions would be otherwise met.
+        // In the case of a newline character being the sole selection, the shadow image dimensions
+        // would be zero, incurring in the actual crash. Given it doesn't really make sense to
+        // select a newline and try dragging it around, we're just completely capturing the event
+        // and signaling the OS that it was handled, so it doesn't propagate to the TextView's
+        // longClickListener implementing dragging.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             mContent.setOnLongClickListener(new OnLongClickListener() {
                 @Override public boolean onLongClick(View view) {

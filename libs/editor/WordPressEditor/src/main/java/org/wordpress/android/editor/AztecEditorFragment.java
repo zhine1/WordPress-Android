@@ -278,8 +278,9 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                                 && selectionRect.right > mLastPressedXCoord
                                 && selectionRect.bottom > mLastPressedYCoord
                         ) {
-                            view.startDrag(null, new View.DragShadowBuilder(view), null, 0);
-                            return true;
+                            if (mContent.getSelectedText().compareTo("\n") == 0) {
+                                return true;
+                            }
                         }
                     }
                     return false;

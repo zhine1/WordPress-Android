@@ -445,8 +445,10 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
             // if the selection doesn't go through lines, then make the containing box adjusted to actual
             // selection start / end
             // now I need the X to be the actual start cursor X
-            float left = layout.getPrimaryHorizontal(startCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
-            float right = layout.getPrimaryHorizontal(endCursorPos) + location[0] - editText.getScrollX() + startLineBounds.left;
+            float left = layout.getPrimaryHorizontal(startCursorPos) + location[0] - editText.getScrollX()
+                         + startLineBounds.left;
+            float right = layout.getPrimaryHorizontal(endCursorPos) + location[0] - editText.getScrollX()
+                          + startLineBounds.left;
             float top = startLineBounds.top + location[1] - editText.getScrollY();
             float bottom = startLineBounds.bottom + location[1] - editText.getScrollY();
             containingBoxBounds = new Rect((int) left, (int) top, (int) right, (int) bottom);

@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 Translation-Revision-Date: 2015-01-28 14:24:38+0000
-Plural-Forms: nplurals=2; plural=n==1 || n%10==1 ? 0 : 1;
-Generator: GlotPress/2.4.0-alpha
+Plural-Forms: nplurals=2; plural=n % 10 != 1 || n % 100 == 11;
+Generator: GlotPress/3.0.0-alpha.2
 Language: mk
 -->
 <resources>
-    <string name="error_copy_to_clipboard">Се случи грешка при копирање на текстот во клипбордот</string>
-    <string name="reader_label_new_posts">Нови написи</string>
     <string name="logs_copied_to_clipboard">Логовите на апликацијата се копирани во клипбордот</string>
-    <string name="stats_timeframe_years">Години</string>
-    <string name="stats_followers_days">%1$d денови</string>
-    <string name="stats_followers_a_day">Ден</string>
-    <string name="stats_views">Гледања</string>
-    <string name="stats_followers_a_month">Месец</string>
-    <string name="stats_visitors">Посетители</string>
-    <string name="stats_followers_months">%1$d месеци</string>
-    <string name="stats_view_top_posts_and_pages">Написи и страници</string>
-    <string name="stats_view_publicize">Објавување</string>
-    <string name="stats_likes">Допаѓања</string>
-    <string name="stats_view_videos">Видеа</string>
-    <string name="stats_followers_a_minute_ago">пред една минута</string>
-    <string name="stats_followers_hours">%1$d часови</string>
-    <string name="stats_followers_minutes">%1$d минути</string>
-    <string name="stats_followers_an_hour_ago">пред еден час</string>
-    <string name="stats_followers_years">%1$d години</string>
-    <string name="stats_view_countries">Земји</string>
-    <string name="stats_view_followers">Следбеници</string>
-    <string name="stats_followers_seconds_ago">пред секунди</string>
-    <string name="stats_followers_a_year">Година</string>
+    <string name="reader_label_new_posts">Нови написи</string>
+    <string name="error_copy_to_clipboard">Се случи грешка при копирање на текстот во клипбордот</string>
     <string name="themes_fetching">Примање теми…</string>
+    <string name="stats_followers_a_year">Година</string>
+    <string name="stats_followers_seconds_ago">пред секунди</string>
+    <string name="stats_view_followers">Следбеници</string>
+    <string name="stats_view_countries">Земји</string>
+    <string name="stats_followers_years">%1$d години</string>
+    <string name="stats_followers_an_hour_ago">пред еден час</string>
+    <string name="stats_followers_minutes">%1$d минути</string>
+    <string name="stats_followers_hours">%1$d часови</string>
+    <string name="stats_followers_a_minute_ago">пред една минута</string>
+    <string name="stats_view_videos">Видеа</string>
+    <string name="stats_likes">Допаѓања</string>
+    <string name="stats_view_publicize">Објавување</string>
+    <string name="stats_view_top_posts_and_pages">Написи и страници</string>
+    <string name="stats_followers_months">%1$d месеци</string>
+    <string name="stats_visitors">Посетители</string>
+    <string name="stats_followers_a_month">Месец</string>
+    <string name="stats_views">Гледања</string>
+    <string name="stats_followers_a_day">Ден</string>
+    <string name="stats_followers_days">%1$d денови</string>
+    <string name="stats_timeframe_years">Години</string>
     <string name="ssl_certificate_details">Детали</string>
     <string name="cab_selected">%d слекетирано</string>
     <string name="browse_our_faq_button">Разгледи наши ЧПП</string>
@@ -53,7 +53,6 @@ Language: mk
     <string name="comment_reply_to_user">Одговори на %s</string>
     <string name="comment_trashed">Комента исфрлен</string>
     <string name="reader_toast_err_generic">Неможе да се изврши ова дејство</string>
-    <string name="contact_us">Контактирај нè</string>
     <string name="update_verb">Ажурирај</string>
     <string name="schedule_verb">Закажи</string>
     <string name="reader_page_followed_tags">Проследени ознаки</string>
@@ -93,7 +92,6 @@ Language: mk
     <string name="post_settings">Подесувања на напис</string>
     <string name="comment_status_approved">Одобрено</string>
     <string name="comment_status_unapproved">Чекање</string>
-    <string name="hint_comment_content">Коментар</string>
     <string name="saving_changes">Зачувување на подесувањата</string>
     <string name="sure_to_cancel_edit_comment">Откажи измените на коментарот?</string>
     <string name="content_required">Коментарот е задолжителен</string>
@@ -112,8 +110,6 @@ Language: mk
     <string name="dlg_approving_comments">Одобрување</string>
     <string name="dlg_spamming_comments">Обележување како спам</string>
     <string name="dlg_trashing_comments">Испраќање во отпадок</string>
-    <string name="trash_yes">Отпадок</string>
-    <string name="trash_no">Не исфрлај</string>
     <string name="trash">Отпадок</string>
     <string name="view_in_browser">Види во прелистувач</string>
     <string name="local_changes">Локални промени</string>
@@ -186,7 +182,6 @@ Language: mk
     <string name="httpuser">HTTP корисничко име</string>
     <string name="httppassword">HTTP лозинка</string>
     <string name="error_media_upload">Настана грешка при качување на медиа</string>
-    <string name="publish_date">Објави</string>
     <string name="incorrect_credentials">Невалидно корисничко име или лозинка.</string>
     <string name="password">Лозинка</string>
     <string name="username">Корисничко име</string>
@@ -196,7 +191,6 @@ Language: mk
     <string name="pages">Страници</string>
     <string name="no_network_title">Не е достапна мрежа</string>
     <string name="ok">Добро</string>
-    <string name="blogusername">блогкорисник</string>
     <string name="link_enter_url">URL</string>
     <string name="tos">Услови за користење</string>
     <string name="version">Верзија</string>
@@ -209,7 +203,6 @@ Language: mk
     <string name="quickpress_add_alert_title">Постави име на кратенка</string>
     <string name="settings">Поставувања</string>
     <string name="quickpress_add_error">Името на кратенката не смее да биде празно</string>
-    <string name="quickpress_window_title">Изберете блог за QuickPress кратенка</string>
     <string name="title">Наслов</string>
     <string name="categories">Категории</string>
     <string name="sdcard_title">Потребна е SD картичка</string>

@@ -2,7 +2,6 @@ package org.wordpress.android.ui.stats.refresh.lists.sections.insights.usecases
 
 import android.view.View
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import org.wordpress.android.R
 import org.wordpress.android.fluxc.model.stats.LimitMode
@@ -24,7 +23,7 @@ import org.wordpress.android.ui.stats.refresh.lists.sections.insights.usecases.F
 import org.wordpress.android.ui.stats.refresh.utils.ContentDescriptionHelper
 import org.wordpress.android.ui.stats.refresh.utils.ItemPopupMenuHandler
 import org.wordpress.android.ui.stats.refresh.utils.StatsSiteProvider
-import org.wordpress.android.ui.stats.refresh.utils.toFormattedString
+import org.wordpress.android.ui.stats.refresh.utils.StatsUtils
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -36,6 +35,7 @@ class FollowerTotalsUseCase
     private val publicizeStore: PublicizeStore,
     private val statsSiteProvider: StatsSiteProvider,
     private val contentDescriptionHelper: ContentDescriptionHelper,
+    private val statsUtils: StatsUtils,
     private val popupMenuHandler: ItemPopupMenuHandler
 ) : StatelessUseCase<Map<FollowerType, Int>>(FOLLOWER_TOTALS, mainDispatcher, bgDispatcher) {
     override fun buildLoadingItem(): List<BlockListItem> = listOf(Title(R.string.stats_view_follower_totals))
@@ -85,21 +85,21 @@ class FollowerTotalsUseCase
         forced: Boolean,
         fetchMode: PagedMode
     ): State<Map<FollowerType, Int>> {
-        val deferredWpComResponse = GlobalScope.async(bgDispatcher) {
+        val deferredWpComResponse = async(bgDispatcher) {
             followersStore.fetchWpComFollowers(
                     statsSiteProvider.siteModel,
                     fetchMode,
                     forced
             )
         }
-        val deferredEmailResponse = GlobalScope.async(bgDispatcher) {
+        val deferredEmailResponse = async(bgDispatcher) {
             followersStore.fetchEmailFollowers(
                     statsSiteProvider.siteModel,
                     fetchMode,
                     forced
             )
         }
-        val deferredPublicizeResponse = GlobalScope.async(bgDispatcher) {
+        val deferredPublicizeResponse = async(bgDispatcher) {
             publicizeStore.fetchPublicizeData(
                     statsSiteProvider.siteModel,
                     LimitMode.All,
@@ -151,7 +151,7 @@ class FollowerTotalsUseCase
                         ListItemWithIcon(
                                 icon = getIcon(it.key),
                                 textResource = title,
-                                value = it.value.toFormattedString(),
+                                value = statsUtils.toFormattedString(it.value),
                                 showDivider = domainModel.entries.indexOf(it) < domainModel.size - 1,
                                 contentDescription = contentDescriptionHelper.buildContentDescription(
                                         title,

@@ -4,14 +4,16 @@ import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ImageView.ScaleType
 import android.widget.PopupMenu
+import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.TextView
 import androidx.annotation.LayoutRes
-import androidx.core.widget.CompoundButtonCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import org.wordpress.android.R
 import org.wordpress.android.ui.ActionableEmptyView
@@ -20,15 +22,20 @@ import org.wordpress.android.ui.pages.PageItem.Empty
 import org.wordpress.android.ui.pages.PageItem.Page
 import org.wordpress.android.ui.pages.PageItem.ParentPage
 import org.wordpress.android.ui.reader.utils.ReaderUtils
-import org.wordpress.android.util.currentLocale
+import org.wordpress.android.ui.utils.UiHelpers
 import org.wordpress.android.util.DateTimeUtils
 import org.wordpress.android.util.DisplayUtils
 import org.wordpress.android.util.ImageUtils
 import org.wordpress.android.util.capitalizeWithLocaleWithoutLint
+import org.wordpress.android.util.currentLocale
 import org.wordpress.android.util.getDrawableFromAttribute
 import org.wordpress.android.util.image.ImageManager
 import org.wordpress.android.util.image.ImageType
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState.Determinate
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState.Indeterminate
 import java.util.Date
+import java.util.Locale
 
 sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layout: Int) :
         RecyclerView.ViewHolder(LayoutInflater.from(parent.context).inflate(layout, parent, false)) {
@@ -39,13 +46,17 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
         private val onMenuAction: (PageItem.Action, Page) -> Boolean,
         private val onItemTapped: (Page) -> Unit,
         private val imageManager: ImageManager? = null,
-        private val isSitePhotonCapable: Boolean = false
+        private val isSitePhotonCapable: Boolean = false,
+        private val isPrivateAtSite: Boolean = false,
+        private val uiHelper: UiHelpers
     ) : PageItemViewHolder(parentView, R.layout.page_list_item) {
         private val pageTitle = itemView.findViewById<TextView>(R.id.page_title)
         private val pageMore = itemView.findViewById<ImageButton>(R.id.page_more)
-        private val time = itemView.findViewById<TextView>(R.id.time_posted)
+        private val pageSubtitle = itemView.findViewById<TextView>(R.id.page_subtitle)
         private val labels = itemView.findViewById<TextView>(R.id.labels)
         private val featuredImage = itemView.findViewById<ImageView>(R.id.featured_image)
+        private val uploadProgressBar: ProgressBar = itemView.findViewById(R.id.upload_progress)
+        private val disabledOverlay: FrameLayout = itemView.findViewById(R.id.disabled_overlay)
         private val pageItemContainer = itemView.findViewById<ViewGroup>(R.id.page_item)
         private val pageLayout = itemView.findViewById<ViewGroup>(R.id.page_layout)
         private val selectableBackground: Drawable? = parent.context.getDrawableFromAttribute(
@@ -69,14 +80,20 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
                 else
                     page.title
 
-                val date = if (page.date == Date(0)) Date() else page.date
-                time.text = DateTimeUtils.javaDateToTimeSpan(date, parent.context)
-                        .capitalizeWithLocaleWithoutLint(parent.context.currentLocale)
+                showSubtitle(page.date, page.author, page.subtitle)
 
-                if (page.labels.isNotEmpty()) {
-                    labels.text = page.labels.map { parent.context.getString(it) }.sorted()
-                            .joinToString(prefix = " · ", separator = " · ")
+                labels.text = page.labels.map { uiHelper.getTextOfUiString(parent.context, it).toString() }.sorted()
+                        .joinToString(separator = " · ")
+                page.labelsColor?.let { labelsColor ->
+                    labels.setTextColor(
+                            ContextCompat.getColor(
+                                    itemView.context,
+                                    labelsColor
+                            )
+                    )
                 }
+
+                uiHelper.updateVisibility(labels, page.labels.isNotEmpty())
 
                 itemView.setOnClickListener { onItemTapped(page) }
 
@@ -86,6 +103,20 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
 
                 setBackground(page.tapActionEnabled)
                 showFeaturedImage(page.imageUrl)
+
+                uiHelper.updateVisibility(disabledOverlay, page.showOverlay)
+                updateProgressBarState(page.progressBarUiState)
+            }
+        }
+
+        private fun updateProgressBarState(progressBarUiState: ProgressBarUiState) {
+            uiHelper.updateVisibility(uploadProgressBar, progressBarUiState.visibility)
+            when (progressBarUiState) {
+                Indeterminate -> uploadProgressBar.isIndeterminate = true
+                is Determinate -> {
+                    uploadProgressBar.isIndeterminate = false
+                    uploadProgressBar.progress = progressBarUiState.progress
+                }
             }
         }
 
@@ -117,7 +148,9 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
                 imageManager?.cancelRequestAndClearImageView(featuredImage)
             } else if (imageUrl.startsWith("http")) {
                 featuredImage.visibility = View.VISIBLE
-                val photonUrl = ReaderUtils.getResizedImageUrl(imageUrl, imageSize, imageSize, !isSitePhotonCapable)
+                val photonUrl = ReaderUtils.getResizedImageUrl(
+                        imageUrl, imageSize, imageSize, !isSitePhotonCapable, isPrivateAtSite
+                )
                 imageManager?.load(featuredImage, ImageType.PHOTO, photonUrl, ScaleType.CENTER_CROP)
             } else {
                 val bmp = ImageUtils.getWPImageSpanThumbnailFromFilePath(featuredImage.context, imageUrl, imageSize)
@@ -127,6 +160,44 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
                 } else {
                     featuredImage.visibility = View.GONE
                     imageManager?.cancelRequestAndClearImageView(featuredImage)
+                }
+            }
+        }
+
+        @ExperimentalStdlibApi
+        private fun showSubtitle(inputDate: Date, author: String?, subtitle: Int?) {
+            val date = if (inputDate == Date(0)) Date() else inputDate
+            val stringDate = DateTimeUtils.javaDateToTimeSpan(date, parent.context)
+                    .capitalizeWithLocaleWithoutLint(parent.context.currentLocale)
+
+            /** The subtitle can use 2 or 3 placeholders
+            * Date - Only (author & subtitle are null)
+            * Date - Author (author != null && subtitle == null)
+            * Date - subtitle (author == null && subtitle != null)
+            * Date - Author - subtitle (all have values)
+            */
+            pageSubtitle.text = if (author == null && subtitle == null) {
+                stringDate
+            } else if (author != null && subtitle == null) {
+                String.format(
+                        Locale.getDefault(),
+                        parent.context.getString(R.string.pages_item_subtitle),
+                        stringDate,
+                        author)
+            } else if (author == null && subtitle != null) {
+                String.format(
+                        Locale.getDefault(),
+                        parent.context.getString(R.string.pages_item_subtitle),
+                        stringDate,
+                        parent.context.getString(subtitle))
+            } else {
+                subtitle?.let {
+                    String.format(
+                            Locale.getDefault(),
+                            parent.context.getString(R.string.pages_item_subtitle_date_author),
+                            stringDate,
+                            author,
+                            parent.context.getString(it))
                 }
             }
         }
@@ -163,10 +234,6 @@ sealed class PageItemViewHolder(internal val parent: ViewGroup, @LayoutRes layou
                 radioButton.setOnClickListener {
                     onParentSelected(pageItem)
                 }
-
-                @Suppress("DEPRECATION")
-                CompoundButtonCompat.setButtonTintList(radioButton,
-                        radioButton.resources.getColorStateList(R.color.primary_40_gray_20_gray_40_selector))
             }
         }
     }

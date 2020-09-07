@@ -19,16 +19,19 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.MenuRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.elevation.ElevationOverlayProvider;
 
 import org.wordpress.android.R;
 import org.wordpress.android.models.FilterCriteria;
 import org.wordpress.android.util.AppLog;
+import org.wordpress.android.util.ContextExtensionsKt;
 import org.wordpress.android.util.DisplayUtils;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.helpers.SwipeToRefreshHelper;
@@ -47,11 +50,13 @@ public class FilteredRecyclerView extends RelativeLayout {
     private Spinner mSpinner;
     private boolean mSelectingRememberedFilterOnCreate = false;
 
+    private boolean mHideAppBarLayout = false;
+
     private RecyclerView mRecyclerView;
     private TextView mEmptyView;
-    private View mCustomEmptyView;
     private Toolbar mToolbar;
     private AppBarLayout mAppBarLayout;
+    private RecyclerView mSearchSuggestionsRecyclerView;
 
     private List<FilterCriteria> mFilterCriteriaOptions;
     private FilterCriteria mCurrentFilter;
@@ -62,6 +67,7 @@ public class FilteredRecyclerView extends RelativeLayout {
     private int mSpinnerDrawableRight;
     private AppLog.T mTAG;
 
+    private boolean mShowEmptyView;
     private boolean mToolbarDisableScrollGestures = false;
     @LayoutRes private int mSpinnerItemView = 0;
     @LayoutRes private int mSpinnerDropDownItemView = 0;
@@ -89,14 +95,24 @@ public class FilteredRecyclerView extends RelativeLayout {
 
     public void setCurrentFilter(FilterCriteria filter) {
         mCurrentFilter = filter;
-        int position = mSpinnerAdapter.getIndexOfCriteria(filter);
-        if (position > -1 && position != mSpinner.getSelectedItemPosition()) {
-            mSpinner.setSelection(position);
+
+        if (!mHideAppBarLayout) {
+            int position = mSpinnerAdapter.getIndexOfCriteria(filter);
+            if (position > -1 && position != mSpinner.getSelectedItemPosition()) {
+                mSpinner.setSelection(position);
+            }
         }
     }
 
     public FilterCriteria getCurrentFilter() {
         return mCurrentFilter;
+    }
+
+    public boolean isValidFilter(FilterCriteria filter) {
+        return filter != null
+               && mFilterCriteriaOptions != null
+               && !mFilterCriteriaOptions.isEmpty()
+               && mFilterCriteriaOptions.contains(filter);
     }
 
     public void setFilterListener(FilterListener filterListener) {
@@ -121,8 +137,8 @@ public class FilteredRecyclerView extends RelativeLayout {
         mTAG = tag;
     }
 
-    public void setCustomEmptyView(View v) {
-        mCustomEmptyView = v;
+    public void setCustomEmptyView() {
+        mShowEmptyView = true;
     }
 
     private void init(@NonNull Context context, @Nullable AttributeSet attrs) {
@@ -139,6 +155,9 @@ public class FilteredRecyclerView extends RelativeLayout {
                 mSpinnerItemView = a.getResourceId(R.styleable.FilteredRecyclerView_wpSpinnerItemView, 0);
                 mSpinnerDropDownItemView = a.getResourceId(
                         R.styleable.FilteredRecyclerView_wpSpinnerDropDownItemView, 0);
+
+                mHideAppBarLayout = a.getBoolean(
+                        R.styleable.FilteredRecyclerView_wpHideAppBarLayout, false);
             } finally {
                 a.recycle();
             }
@@ -153,6 +172,15 @@ public class FilteredRecyclerView extends RelativeLayout {
         mToolbar = findViewById(R.id.toolbar_with_spinner);
         mAppBarLayout = findViewById(R.id.app_bar_layout);
 
+        ElevationOverlayProvider elevationOverlayProvider = new ElevationOverlayProvider(getContext());
+        float cardElevation = getResources().getDimension(R.dimen.card_elevation);
+        int appBarColor =
+                elevationOverlayProvider
+                        .compositeOverlay(ContextExtensionsKt.getColorFromAttribute(getContext(), R.attr.wpColorAppBar),
+                                cardElevation);
+
+        mToolbar.setBackgroundColor(appBarColor);
+
         AppBarLayout.LayoutParams params = (AppBarLayout.LayoutParams) mToolbar.getLayoutParams();
         if (mToolbarDisableScrollGestures) {
             params.setScrollFlags(0);
@@ -160,6 +188,8 @@ public class FilteredRecyclerView extends RelativeLayout {
             params.setScrollFlags(AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
                                   | AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS);
         }
+
+        mSearchSuggestionsRecyclerView = findViewById(R.id.suggestions_recycler_view);
 
         mEmptyView = findViewById(R.id.empty_view);
 
@@ -192,6 +222,8 @@ public class FilteredRecyclerView extends RelativeLayout {
         if (mSpinner == null) {
             mSpinner = findViewById(R.id.filter_spinner);
         }
+
+        mAppBarLayout.setVisibility(mHideAppBarLayout ? View.GONE : View.VISIBLE);
     }
 
     private void setup(boolean refresh) {
@@ -206,47 +238,54 @@ public class FilteredRecyclerView extends RelativeLayout {
                     if (criteriaList != null) {
                         mFilterCriteriaOptions = new ArrayList<>();
                         mFilterCriteriaOptions.addAll(criteriaList);
-                        initSpinnerAdapter();
+                        initFilterAdapter();
                         setCurrentFilter(mFilterListener.onRecallSelection());
                     }
                 }
             }, refresh);
         } else {
-            initSpinnerAdapter();
+            initFilterAdapter();
             setCurrentFilter(mFilterListener.onRecallSelection());
         }
     }
 
-    private void initSpinnerAdapter() {
+    private void onSpinnerItemSelected(int position) {
+        if (mHideAppBarLayout) {
+            throw new IllegalStateException("Developer error: Spinner shouldn't be visible when the appbar is hidden.");
+        }
+        if (mSelectingRememberedFilterOnCreate) {
+            mSelectingRememberedFilterOnCreate = false;
+            return;
+        }
+
+        FilterCriteria selectedCriteria = (FilterCriteria) mSpinnerAdapter.getItem(position);
+
+        if (mCurrentFilter == selectedCriteria) {
+            AppLog.d(mTAG, "The selected STATUS is already active: "
+                           + selectedCriteria.getLabel());
+            return;
+        }
+
+        AppLog.d(mTAG, "NEW STATUS : " + selectedCriteria.getLabel());
+        setCurrentFilter(selectedCriteria);
+        if (mFilterListener != null) {
+            mFilterListener.onFilterSelected(position, selectedCriteria);
+            setRefreshing(true);
+            mFilterListener.onLoadData(false);
+        }
+    }
+
+    private void initFilterAdapter() {
+        mSelectingRememberedFilterOnCreate = true;
+
         mSpinnerAdapter = new SpinnerAdapter(getContext(),
                 mFilterCriteriaOptions, mSpinnerItemView, mSpinnerDropDownItemView);
 
-        mSelectingRememberedFilterOnCreate = true;
         mSpinner.setAdapter(mSpinnerAdapter);
         mSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (mSelectingRememberedFilterOnCreate) {
-                    mSelectingRememberedFilterOnCreate = false;
-                    return;
-                }
-
-                FilterCriteria selectedCriteria =
-                        (FilterCriteria) mSpinnerAdapter.getItem(position);
-
-                if (mCurrentFilter == selectedCriteria) {
-                    AppLog.d(mTAG, "The selected STATUS is already active: "
-                            + selectedCriteria.getLabel());
-                    return;
-                }
-
-                AppLog.d(mTAG, "NEW STATUS : " + selectedCriteria.getLabel());
-                setCurrentFilter(selectedCriteria);
-                if (mFilterListener != null) {
-                    mFilterListener.onFilterSelected(position, selectedCriteria);
-                    setRefreshing(true);
-                    mFilterListener.onLoadData(false);
-                }
+                onSpinnerItemSelected(position);
             }
 
             @Override
@@ -260,10 +299,6 @@ public class FilteredRecyclerView extends RelativeLayout {
         return (mAdapter != null);
     }
 
-    public boolean emptyViewIsVisible() {
-        return (mEmptyView != null && mEmptyView.getVisibility() == View.VISIBLE);
-    }
-
     public void hideEmptyView() {
         if (mEmptyView != null) {
             mEmptyView.setVisibility(View.GONE);
@@ -275,7 +310,7 @@ public class FilteredRecyclerView extends RelativeLayout {
 
         if (!hasAdapter() || mAdapter.getItemCount() == 0) {
             if (mFilterListener != null) {
-                if (mCustomEmptyView == null) {
+                if (mShowEmptyView) {
                     String msg = mFilterListener.onShowEmptyViewMessage(emptyViewMessageType);
                     if (msg == null) {
                         msg = getContext().getString(R.string.empty_list_default);
@@ -330,17 +365,22 @@ public class FilteredRecyclerView extends RelativeLayout {
 
     public void setToolbarLeftPadding(int paddingLeft) {
         ViewCompat.setPaddingRelative(mToolbar, paddingLeft, mToolbar.getPaddingTop(),
-                                      ViewCompat.getPaddingEnd(mToolbar), mToolbar.getPaddingBottom());
+                ViewCompat.getPaddingEnd(mToolbar), mToolbar.getPaddingBottom());
     }
 
     public void setToolbarRightPadding(int paddingRight) {
         ViewCompat.setPaddingRelative(mToolbar, ViewCompat.getPaddingStart(mToolbar), mToolbar.getPaddingTop(),
-                                      paddingRight, mToolbar.getPaddingBottom());
+                paddingRight, mToolbar.getPaddingBottom());
     }
 
     public void setToolbarLeftAndRightPadding(int paddingLeft, int paddingRight) {
         ViewCompat.setPaddingRelative(mToolbar, paddingLeft, mToolbar.getPaddingTop(), paddingRight,
-                                      mToolbar.getPaddingBottom());
+                mToolbar.getPaddingBottom());
+    }
+
+    public void setToolbarTitle(@StringRes int title, int startMargin) {
+        mToolbar.setTitle(title);
+        mToolbar.setTitleMarginStart(startMargin);
     }
 
     public void setToolbarScrollFlags(int flags) {
@@ -394,15 +434,31 @@ public class FilteredRecyclerView extends RelativeLayout {
     }
 
     /*
-    * use this if you need to reload the criterias for this FilteredRecyclerView. The actual data loading goes
-    * through the FilteredRecyclerView lifecycle using its listeners:
-    *
-    * - FilterCriteriaAsyncLoaderListener
-    * and
-    * - FilterListener.onLoadFilterCriteriaOptions
-    * */
+     * use this if you need to reload the criterias for this FilteredRecyclerView. The actual data loading goes
+     * through the FilteredRecyclerView lifecycle using its listeners:
+     *
+     * - FilterCriteriaAsyncLoaderListener
+     * and
+     * - FilterListener.onLoadFilterCriteriaOptions
+     * */
     public void refreshFilterCriteriaOptions() {
         setup(true);
+    }
+
+    public void showSearchSuggestions() {
+        mSearchSuggestionsRecyclerView.setVisibility(View.VISIBLE);
+    }
+
+    public void hideSearchSuggestions() {
+        mSearchSuggestionsRecyclerView.setVisibility(View.GONE);
+    }
+
+    public void setSearchSuggestionAdapter(RecyclerView.Adapter searchSuggestionAdapter) {
+        mSearchSuggestionsRecyclerView.setAdapter(searchSuggestionAdapter);
+    }
+
+    public void showAppBarLayout() {
+        mAppBarLayout.setVisibility(VISIBLE);
     }
 
     /*
@@ -518,14 +574,13 @@ public class FilteredRecyclerView extends RelativeLayout {
      */
     public boolean isFirstItemVisible() {
         if (mRecyclerView == null
-                || mRecyclerView.getLayoutManager() == null) {
+            || mRecyclerView.getLayoutManager() == null) {
             return false;
         }
 
         View child = mRecyclerView.getLayoutManager().getChildAt(0);
         return (child != null && mRecyclerView.getLayoutManager().getPosition(child) == 0);
     }
-
 
     /**
      * implement this interface to use FilterRecyclerView
@@ -547,7 +602,7 @@ public class FilteredRecyclerView extends RelativeLayout {
          * The Spinner is then loaded with such array of FilterCriterias, through which the main data can be filtered.
          *
          * @param listener to be called to pass the FilterCriteria array when done
-         * @param refresh "true"if the criterias need be refreshed
+         * @param refresh  "true"if the criterias need be refreshed
          */
         void onLoadFilterCriteriaOptionsAsync(FilterCriteriaAsyncLoaderListener listener, boolean refresh);
 
@@ -585,7 +640,7 @@ public class FilteredRecyclerView extends RelativeLayout {
          * Called when there's no data to show.
          *
          * @param emptyViewMsgType this will hint you on the reason why no data is being shown, so you can return
-         * a proper message to be displayed to the user
+         *                         a proper message to be displayed to the user
          * @return the message to be displayed to the user, or null if using a Custom Empty View (see below)
          */
         String onShowEmptyViewMessage(EmptyViewMessageType emptyViewMsgType);
@@ -595,7 +650,7 @@ public class FilteredRecyclerView extends RelativeLayout {
          * be called otherwise).
          *
          * @param emptyViewMsgType this will hint you on the reason why no data is being shown, and
-         * also here you should perform any actions on your custom empty view
+         *                         also here you should perform any actions on your custom empty view
          * @return nothing
          */
         void onShowCustomEmptyView(EmptyViewMessageType emptyViewMsgType);

@@ -5,7 +5,7 @@ import com.nhaarman.mockitokotlin2.isNull
 import com.nhaarman.mockitokotlin2.whenever
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.InternalCoroutinesApi
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
@@ -15,6 +15,8 @@ import org.wordpress.android.TEST_DISPATCHER
 import org.wordpress.android.fluxc.model.SiteModel
 import org.wordpress.android.fluxc.model.stats.PostDetailStatsModel
 import org.wordpress.android.fluxc.model.stats.PostDetailStatsModel.Day
+import org.wordpress.android.fluxc.model.stats.PostDetailStatsModel.Week
+import org.wordpress.android.fluxc.model.stats.PostDetailStatsModel.Year
 import org.wordpress.android.fluxc.store.StatsStore.OnStatsFetched
 import org.wordpress.android.fluxc.store.StatsStore.PostDetailType
 import org.wordpress.android.fluxc.store.StatsStore.StatsError
@@ -22,6 +24,7 @@ import org.wordpress.android.fluxc.store.StatsStore.StatsErrorType.GENERIC_ERROR
 import org.wordpress.android.fluxc.store.stats.PostDetailStore
 import org.wordpress.android.test
 import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseModel
+import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseModel.UseCaseState.EMPTY
 import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseModel.UseCaseState.ERROR
 import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseModel.UseCaseState.SUCCESS
 import org.wordpress.android.ui.stats.refresh.lists.sections.BlockListItem.BarChartItem
@@ -43,6 +46,7 @@ class PostDayViewsUseCaseTest : BaseUnitTest() {
     @Mock lateinit var site: SiteModel
     @Mock lateinit var title: ValueItem
     @Mock lateinit var barChartItem: BarChartItem
+    @Mock lateinit var emptyModel: PostDetailStatsModel
     @Mock lateinit var model: PostDetailStatsModel
     private lateinit var useCase: PostDayViewsUseCase
     private val postId = 1L
@@ -81,11 +85,11 @@ class PostDayViewsUseCaseTest : BaseUnitTest() {
 
         val result = loadData(true, forced)
 
-        Assertions.assertThat(result.type).isEqualTo(PostDetailType.POST_OVERVIEW)
-        Assertions.assertThat(result.state).isEqualTo(SUCCESS)
+        assertThat(result.type).isEqualTo(PostDetailType.POST_OVERVIEW)
+        assertThat(result.state).isEqualTo(SUCCESS)
         result.data!!.apply {
-            Assertions.assertThat(this[0]).isEqualTo(title)
-            Assertions.assertThat(this[1]).isEqualTo(barChartItem)
+            assertThat(this[0]).isEqualTo(title)
+            assertThat(this[1]).isEqualTo(barChartItem)
         }
     }
 
@@ -101,7 +105,52 @@ class PostDayViewsUseCaseTest : BaseUnitTest() {
 
         val result = loadData(true, forced)
 
-        Assertions.assertThat(result.state).isEqualTo(ERROR)
+        assertThat(result.state).isEqualTo(ERROR)
+    }
+
+    /**
+     * Note that this test covers an edge condition tracked in GitHub issue
+     * https://github.com/wordpress-mobile/WordPress-Android/issues/10830
+     * For some context see
+     * See https://github.com/wordpress-mobile/WordPress-Android/pull/10850#issuecomment-559555035
+     */
+    @Test
+    fun `manage edge condition with data available but empty list`() = test {
+        val forced = false
+
+        whenever(emptyModel.dayViews).thenReturn(listOf())
+        whenever(model.dayViews).thenReturn(listOf(Day("2019-10-10", 50)))
+        whenever(store.getPostDetail(site, postId)).thenReturn(emptyModel)
+        whenever(store.fetchPostDetail(site, postId, forced)).thenReturn(
+                OnStatsFetched(
+                        model
+                )
+        )
+
+        val result = loadData(true, forced)
+
+        assertThat(result.state).isEqualTo(SUCCESS)
+        assertThat(result.data).isEmpty()
+    }
+
+    @Test
+    fun `maps list of empty items to empty UI model`() = test {
+        val forced = false
+        whenever(store.fetchPostDetail(site, postId, forced)).thenReturn(
+                OnStatsFetched(
+                        model = PostDetailStatsModel(
+                                0,
+                                listOf(Day("1970", 0), Day("1975", 0)),
+                                listOf(Week(listOf(), 10, 10)),
+                                listOf(Year(2020, listOf(), 100)),
+                                listOf(Year(2020, listOf(), 100))
+                        )
+                )
+        )
+
+        val result = loadData(true, forced)
+
+        assertThat(result.state).isEqualTo(EMPTY)
     }
 
     private suspend fun loadData(refresh: Boolean, forced: Boolean): UseCaseModel {

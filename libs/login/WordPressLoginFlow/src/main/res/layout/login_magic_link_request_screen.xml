@@ -1,85 +1,59 @@
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <include
-        android:id="@+id/toolbar"
-        layout="@layout/toolbar_login"/>
+    <include layout="@layout/toolbar_login" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/toolbar"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:overScrollMode="never">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingEnd="@dimen/margin_extra_large"
+            android:paddingStart="@dimen/margin_extra_large">
 
-            <FrameLayout
-                android:id="@+id/avatar_container"
-                android:layout_width="@dimen/avatar_sz_login"
-                android:layout_height="@dimen/avatar_sz_login"
-                android:layout_centerHorizontal="true"
-                android:layout_marginBottom="@dimen/margin_extra_large"
-                android:layout_marginTop="@dimen/margin_extra_extra_large">
-
-                <ImageView
-                    android:id="@+id/gravatar"
-                    android:importantForAccessibility="no"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-
-                <ProgressBar
-                    android:id="@+id/avatar_progress"
-                    style="@style/Widget.AppCompat.ProgressBar"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/shape_oval_translucent"
-                    android:indeterminate="true"
-                    android:padding="@dimen/margin_large"/>
-            </FrameLayout>
-
-            <TextView
-                android:id="@+id/label"
-                style="@style/Base.TextAppearance.AppCompat.Body1"
+            <include
+                layout="@layout/login_include_email_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/avatar_container"
-                android:gravity="center"
-                android:padding="@dimen/margin_extra_large"
-                android:text="@string/login_magic_links_label"/>
+                android:layout_marginTop="@dimen/margin_extra_large" />
 
-            <Button
-                android:id="@+id/login_request_magic_link"
-                style="@style/Widget.AppCompat.Button.Colored"
-                android:layout_width="wrap_content"
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/label"
+                style="@style/Widget.LoginFlow.TextView.Label"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/label"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="@dimen/margin_extra_large"
-                android:text="@string/send_link"
-                android:theme="@style/LoginTheme.Button"/>
+                android:layout_marginTop="@dimen/margin_extra_medium_large"
+                android:text="@string/login_magic_links_label" />
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/login_enter_password"
-                style="@style/LoginTheme.Button.Secondary"
+                style="@style/Widget.LoginFlow.Button.Tertiary"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_below="@+id/login_request_magic_link"
-                android:layout_centerHorizontal="true"
-                android:layout_marginEnd="@dimen/margin_extra_large"
-                android:gravity="center"
-                android:paddingEnd="@dimen/margin_medium_large"
-                android:paddingLeft="@dimen/margin_medium_large"
-                android:paddingRight="@dimen/margin_medium_large"
-                android:paddingStart="@dimen/margin_medium_large"
-                android:text="@string/enter_your_password_instead"/>
+                android:paddingEnd="@dimen/margin_none"
+                android:paddingStart="@dimen/margin_none"
+                android:text="@string/or_type_your_password" />
 
-        </RelativeLayout>
+        </LinearLayout>
 
     </ScrollView>
 
-</RelativeLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/login_request_magic_link"
+        style="@style/Widget.LoginFlow.Button.Primary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/margin_medium_large"
+        android:layout_marginEnd="@dimen/margin_extra_large"
+        android:layout_marginStart="@dimen/margin_extra_large"
+        android:layout_marginTop="@dimen/margin_medium_large"
+        android:text="@string/send_link_by_email" />
+
+</LinearLayout>

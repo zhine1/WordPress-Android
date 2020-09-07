@@ -9,8 +9,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import org.wordpress.android.R;
+import org.wordpress.android.ui.reader.discover.ReaderPostCardAction.SecondaryAction;
+import org.wordpress.android.ui.utils.UiHelpers;
 import org.wordpress.android.util.ColorUtils;
 import org.wordpress.android.util.ContextExtensionsKt;
 
@@ -22,19 +25,14 @@ import java.util.List;
  */
 public class ReaderMenuAdapter extends BaseAdapter {
     private final LayoutInflater mInflater;
-    private final List<Integer> mMenuItems = new ArrayList<>();
+    private final List<SecondaryAction> mMenuItems = new ArrayList<>();
+    private final UiHelpers mUiHelpers;
 
-    public static final int ITEM_FOLLOW = 0;
-    public static final int ITEM_UNFOLLOW = 1;
-    public static final int ITEM_BLOCK = 2;
-    public static final int ITEM_NOTIFICATIONS_OFF = 3;
-    public static final int ITEM_NOTIFICATIONS_ON = 4;
-    public static final int ITEM_SHARE = 5;
-
-    public ReaderMenuAdapter(Context context, @NonNull List<Integer> menuItems) {
+    public ReaderMenuAdapter(Context context, @NonNull UiHelpers uiHelpers, @NonNull List<SecondaryAction> menuItems) {
         super();
         mInflater = LayoutInflater.from(context);
         mMenuItems.addAll(menuItems);
+        mUiHelpers = uiHelpers;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class ReaderMenuAdapter extends BaseAdapter {
 
     @Override
     public long getItemId(int position) {
-        return mMenuItems.get(position);
+        return mMenuItems.get(position).getType().ordinal();
     }
 
     @Override
@@ -63,47 +61,17 @@ public class ReaderMenuAdapter extends BaseAdapter {
             holder = (ReaderMenuHolder) convertView.getTag();
         }
 
-        int textRes;
-        int colorRes;
-        int iconRes;
-        switch (mMenuItems.get(position)) {
-            case ITEM_FOLLOW:
-                textRes = R.string.reader_btn_follow;
-                colorRes = R.color.primary;
-                iconRes = R.drawable.ic_reader_follow_white_24dp;
-                break;
-            case ITEM_UNFOLLOW:
-                textRes = R.string.reader_btn_unfollow;
-                colorRes = R.color.success;
-                iconRes = R.drawable.ic_reader_following_white_24dp;
-                break;
-            case ITEM_BLOCK:
-                textRes = R.string.reader_menu_block_blog;
-                colorRes = ContextExtensionsKt.getColorResIdFromAttribute(convertView.getContext(), R.attr.wpColorText);
-                iconRes = R.drawable.ic_block_white_24dp;
-                break;
-            case ITEM_NOTIFICATIONS_OFF:
-                textRes = R.string.reader_btn_notifications_off;
-                colorRes = R.color.success;
-                iconRes = R.drawable.ic_bell_white_24dp;
-                break;
-            case ITEM_NOTIFICATIONS_ON:
-                textRes = R.string.reader_btn_notifications_on;
-                colorRes = R.color.neutral_80;
-                iconRes = R.drawable.ic_bell_white_24dp;
-                break;
-            case ITEM_SHARE:
-                textRes = R.string.reader_btn_share;
-                colorRes = ContextExtensionsKt.getColorResIdFromAttribute(convertView.getContext(), R.attr.wpColorText);
-                iconRes = R.drawable.ic_share_white_24dp;
-                break;
-            default:
-                return convertView;
-        }
+        SecondaryAction item = mMenuItems.get(position);
+        CharSequence textRes = mUiHelpers.getTextOfUiString(convertView.getContext(), item.getLabel());
+        int textColorRes =
+                ContextExtensionsKt.getColorResIdFromAttribute(convertView.getContext(), item.getLabelColor());
+        int iconColorRes =
+                ContextExtensionsKt.getColorResIdFromAttribute(convertView.getContext(), item.getIconColor());
+        int iconRes = item.getIconRes();
 
         holder.mText.setText(textRes);
-        holder.mText.setTextColor(convertView.getContext().getResources().getColor(colorRes));
-        ColorUtils.INSTANCE.setImageResourceWithTint(holder.mIcon, iconRes, colorRes);
+        holder.mText.setTextColor(AppCompatResources.getColorStateList(convertView.getContext(), textColorRes));
+        ColorUtils.INSTANCE.setImageResourceWithTint(holder.mIcon, iconRes, iconColorRes);
 
         return convertView;
     }

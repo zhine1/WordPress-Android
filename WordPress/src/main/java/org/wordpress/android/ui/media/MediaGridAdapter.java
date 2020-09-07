@@ -23,12 +23,15 @@ import org.wordpress.android.WordPress;
 import org.wordpress.android.fluxc.model.MediaModel;
 import org.wordpress.android.fluxc.model.MediaModel.MediaUploadState;
 import org.wordpress.android.fluxc.model.SiteModel;
+import org.wordpress.android.ui.utils.AuthenticationUtils;
+import org.wordpress.android.util.AccessibilityUtils;
 import org.wordpress.android.util.AniUtils;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.ColorUtils;
 import org.wordpress.android.util.DisplayUtils;
 import org.wordpress.android.util.ImageUtils;
 import org.wordpress.android.util.MediaUtils;
+import org.wordpress.android.util.PhotoPickerUtils;
 import org.wordpress.android.util.PhotonUtils;
 import org.wordpress.android.util.SiteUtils;
 import org.wordpress.android.util.StringUtils;
@@ -73,6 +76,7 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
     private static final float SCALE_SELECTED = .8f;
 
     @Inject ImageManager mImageManager;
+    @Inject AuthenticationUtils mAuthenticationUtils;
 
     public interface MediaGridAdapterCallback {
         void onAdapterFetchMoreData();
@@ -130,7 +134,8 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
         // return photon-ized url if the site allows it since this gives us the image at the
         // exact size we need here
         if (SiteUtils.isPhotonCapable(mSite)) {
-            return PhotonUtils.getPhotonImageUrl(media.getUrl(), mThumbWidth, mThumbHeight);
+            return PhotonUtils.getPhotonImageUrl(media.getUrl(), mThumbWidth, mThumbHeight,
+                    mSite.isPrivateWPComAtomic());
         }
 
         // can't use photon, so try the various image sizes - note we favor medium-large and
@@ -304,14 +309,6 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
             // make the progress bar white
             mProgressUpload.getIndeterminateDrawable().setColorFilter(Color.WHITE, PorterDuff.Mode.MULTIPLY);
 
-            // set size of image and container views
-            mImageView.getLayoutParams().width = mThumbWidth;
-            mImageView.getLayoutParams().height = mThumbHeight;
-            mStateContainer.getLayoutParams().width = mThumbWidth;
-            mStateContainer.getLayoutParams().height = mThumbHeight;
-            mFileContainer.getLayoutParams().width = mThumbWidth;
-            mFileContainer.getLayoutParams().height = mThumbHeight;
-
             mRetryDeleteContainer = view.findViewById(R.id.container_retry_delete);
             mImgRetry = view.findViewById(R.id.image_retry);
             mImgTrash = view.findViewById(R.id.image_trash);
@@ -366,6 +363,24 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
             });
 
             ViewUtils.addCircularShadowOutline(mSelectionCountTextView);
+            addImageSelectedToAccessibilityFocusedEvent(mImageView);
+        }
+
+        private void addImageSelectedToAccessibilityFocusedEvent(ImageView imageView) {
+            AccessibilityUtils.addPopulateAccessibilityEventFocusedListener(imageView, event -> {
+                int position = getAdapterPosition();
+                if (isValidPosition(position)) {
+                    if (isItemSelectedByPosition(position)) {
+                        final String imageSelectedText = imageView.getContext().getString(
+                                R.string.photo_picker_image_selected);
+                        if (!imageView.getContentDescription().toString().contains(imageSelectedText)) {
+                            imageView.setContentDescription(
+                                    imageView.getContentDescription() + " "
+                                    + imageSelectedText);
+                        }
+                    }
+                }
+            });
         }
 
         private void doAdapterItemClicked(int position, boolean isLongClick) {
@@ -466,7 +481,11 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
         new Thread() {
             @Override
             public void run() {
-                final Bitmap thumb = ImageUtils.getVideoFrameFromVideo(filePath, mThumbWidth);
+                final Bitmap thumb =
+                        ImageUtils.getVideoFrameFromVideo(filePath,
+                                mThumbWidth,
+                                mAuthenticationUtils.getAuthHeaders(filePath)
+                        );
                 if (thumb != null) {
                     mHandler.post(new Runnable() {
                         @Override
@@ -577,15 +596,21 @@ public class MediaGridAdapter extends RecyclerView.Adapter<MediaGridAdapter.Grid
         if (mCallback != null) {
             mCallback.onAdapterSelectionCountChanged(mSelectedItems.size());
         }
+
+        PhotoPickerUtils.announceSelectedImageForAccessibility(holder.mImageView, selected);
     }
 
     private void toggleItemSelected(GridViewHolder holder, int position) {
         if (!isValidPosition(position)) {
             return;
         }
-        int localMediaId = mMediaList.get(position).getId();
-        boolean isSelected = mSelectedItems.contains(localMediaId);
+        boolean isSelected = isItemSelectedByPosition(position);
         setItemSelectedByPosition(holder, position, !isSelected);
+    }
+
+    private boolean isItemSelectedByPosition(int position) {
+        int localMediaId = mMediaList.get(position).getId();
+        return mSelectedItems.contains(localMediaId);
     }
 
     public void setSelectedItems(ArrayList<Integer> selectedItems) {

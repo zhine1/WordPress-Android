@@ -44,7 +44,9 @@ class ManagementNewsCardUseCaseTest : BaseUnitTest() {
     fun `builds a card`() = test {
         val editTextButton = "Edit"
         val newsCardMessage = "You can $editTextButton your insights"
-        whenever(resourceProvider.getString(R.string.stats_management_edit)).thenReturn(editTextButton)
+        whenever(resourceProvider.getString(R.string.stats_management_add_new_stats_card)).thenReturn(
+                editTextButton
+        )
         whenever(
                 resourceProvider.getString(
                         R.string.stats_management_news_card_message,
@@ -56,7 +58,7 @@ class ManagementNewsCardUseCaseTest : BaseUnitTest() {
         val data = result.data!!
         assertThat(data).hasSize(5)
 
-        assertThat((data[0] as ImageItem).imageResource).isEqualTo(R.drawable.insights_management_feature_resource)
+        assertThat((data[0] as ImageItem).imageResource).isEqualTo(R.drawable.insights_management_feature_image)
         assertThat((data[1] as Tag).textResource).isEqualTo(R.string.stats_management_new)
         assertThat((data[2] as BigTitle).textResource).isEqualTo(R.string.stats_manage_your_stats)
         val messageItem = data[3] as Text

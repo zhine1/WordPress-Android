@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!--
+       native reader dimens
+   -->
+    <dimen name="reader_card_elevation">1dp</dimen>
+    <item name="expandable_chips_view_chip_alpha" format="float" type="dimen">
+        @dimen/disabled_alpha
+    </item>
+</resources>

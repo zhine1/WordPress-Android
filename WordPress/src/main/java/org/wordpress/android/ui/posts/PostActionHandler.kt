@@ -28,6 +28,7 @@ import org.wordpress.android.ui.posts.PostUploadAction.PublishPost
 import org.wordpress.android.ui.posts.RemotePreviewLogicHelper.RemotePreviewType
 import org.wordpress.android.ui.uploads.UploadService
 import org.wordpress.android.ui.uploads.UploadUtils
+import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.util.ToastUtils
 import org.wordpress.android.util.ToastUtils.Duration
 import org.wordpress.android.viewmodel.helpers.ToastMessageHolder
@@ -41,6 +42,7 @@ import org.wordpress.android.widgets.PostListButtonType.BUTTON_MOVE_TO_DRAFT
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_PREVIEW
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_PUBLISH
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_RETRY
+import org.wordpress.android.widgets.PostListButtonType.BUTTON_SHOW_MOVE_TRASHED_POST_TO_DRAFT_DIALOG
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_STATS
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_SUBMIT
 import org.wordpress.android.widgets.PostListButtonType.BUTTON_SYNC
@@ -60,6 +62,7 @@ class PostActionHandler(
     private val hasUnhandledAutoSave: (PostModel) -> Boolean,
     private val triggerPostListAction: (PostListAction) -> Unit,
     private val triggerPostUploadAction: (PostUploadAction) -> Unit,
+    private val triggerPublishAction: (PostModel) -> Unit,
     private val invalidateList: () -> Unit,
     private val checkNetworkConnection: () -> Boolean,
     private val showSnackbar: (SnackbarMessageHolder) -> Unit,
@@ -70,15 +73,18 @@ class PostActionHandler(
         invalidateList.invoke()
     })
 
-    fun handlePostButton(buttonType: PostListButtonType, post: PostModel) {
+    fun handlePostButton(buttonType: PostListButtonType, post: PostModel, hasAutoSave: Boolean) {
         when (buttonType) {
             BUTTON_EDIT -> editPostButtonAction(site, post)
             BUTTON_RETRY -> triggerPostListAction.invoke(RetryUpload(post))
             BUTTON_MOVE_TO_DRAFT -> {
                 moveTrashedPostToDraft(post)
             }
-            BUTTON_SYNC, BUTTON_PUBLISH -> {
-                postListDialogHelper.showPublishConfirmationDialog(post)
+            BUTTON_PUBLISH -> {
+                triggerPublishAction.invoke(post)
+            }
+            BUTTON_SYNC -> {
+                postListDialogHelper.showSyncScheduledPostConfirmationDialog(post)
             }
             BUTTON_SUBMIT -> publishPost(post.id)
             BUTTON_VIEW -> triggerPostListAction.invoke(ViewPost(site, post))
@@ -96,10 +102,14 @@ class PostActionHandler(
             )
             BUTTON_STATS -> triggerPostListAction.invoke(ViewStats(site, post))
             BUTTON_TRASH -> {
-                if (post.isLocallyChanged) {
-                    postListDialogHelper.showTrashPostWithLocalChangesConfirmationDialog(post)
-                } else {
-                    trashPost(post)
+                when {
+                    post.isLocallyChanged -> {
+                        postListDialogHelper.showTrashPostWithLocalChangesConfirmationDialog(post)
+                    }
+                    hasAutoSave -> {
+                        postListDialogHelper.showTrashPostWithUnsavedChangesConfirmationDialog(post)
+                    }
+                    else -> trashPost(post)
                 }
             }
             BUTTON_DELETE, BUTTON_DELETE_PERMANENTLY -> {
@@ -108,6 +118,9 @@ class PostActionHandler(
             BUTTON_CANCEL_PENDING_AUTO_UPLOAD -> {
                 cancelPendingAutoUpload(post)
             }
+            BUTTON_SHOW_MOVE_TRASHED_POST_TO_DRAFT_DIALOG -> {
+                postListDialogHelper.showMoveTrashedPostToDraftDialog(post)
+            }
             BUTTON_MORE -> {
             } // do nothing - ui will show a popup window
         }
@@ -115,11 +128,15 @@ class PostActionHandler(
 
     private fun cancelPendingAutoUpload(post: PostModel) {
         val msgRes = UploadUtils.cancelPendingAutoUpload(post, dispatcher)
-        showSnackbar.invoke(SnackbarMessageHolder(msgRes))
+        showSnackbar.invoke(SnackbarMessageHolder(UiStringRes(msgRes)))
     }
 
     fun newPost() {
         triggerPostListAction(PostListAction.NewPost(site))
+    }
+
+    fun newStoryPost() {
+        triggerPostListAction(PostListAction.NewStoryPost(site))
     }
 
     fun handleEditPostResult(data: Intent?) {
@@ -147,6 +164,17 @@ class PostActionHandler(
         }
     }
 
+    fun publishPost(post: PostModel) {
+        triggerPostUploadAction.invoke(PublishPost(dispatcher, site, post))
+    }
+
+    fun moveTrashedPostToDraft(localPostId: Int) {
+        val post = postStore.getPostByLocalPostId(localPostId)
+        if (post != null) {
+            moveTrashedPostToDraft(post)
+        }
+    }
+
     private fun moveTrashedPostToDraft(post: PostModel) {
         /*
          * We need network connection to move a post to remote draft. We can technically move it to the local drafts
@@ -162,7 +190,7 @@ class PostActionHandler(
         criticalPostActionTracker.add(localPostId, MOVING_POST_TO_DRAFT)
 
         val snackBarHolder = SnackbarMessageHolder(
-                messageRes = R.string.post_moving_to_draft,
+                message = UiStringRes(R.string.post_moving_to_draft),
                 onDismissAction = {
                     criticalPostActionTracker.remove(localPostId, MOVING_POST_TO_DRAFT)
                 }
@@ -242,6 +270,11 @@ class PostActionHandler(
         trashPost(post, true)
     }
 
+    fun trashPostWithUnsavedChanges(localPostId: Int) {
+        val post = postStore.getPostByLocalPostId(localPostId) ?: return
+        trashPost(post)
+    }
+
     private fun trashPost(post: PostModel, hasLocalChanges: Boolean = false) {
         // We need network connection to trash a post
         if (!checkNetworkConnection()) {
@@ -253,7 +286,7 @@ class PostActionHandler(
             TRASHING_POST
         }
 
-        showSnackbar.invoke(SnackbarMessageHolder(R.string.post_trashing))
+        showSnackbar.invoke(SnackbarMessageHolder(UiStringRes(R.string.post_trashing)))
         criticalPostActionTracker.add(localPostId = LocalId(post.id), criticalPostAction = criticalPostAction)
 
         triggerPostUploadAction.invoke(CancelPostAndMediaUpload(post))
@@ -275,8 +308,8 @@ class PostActionHandler(
         } else {
             val snackBarHolder = when (criticalAction) {
                 TRASHING_POST -> SnackbarMessageHolder(
-                        messageRes = R.string.post_trashed,
-                        buttonTitleRes = R.string.undo,
+                        message = UiStringRes(R.string.post_trashed),
+                        buttonTitle = UiStringRes(R.string.undo),
                         buttonAction = {
                             val post = postStore.getPostByLocalPostId(localPostId.value)
                             if (post != null) {
@@ -284,7 +317,7 @@ class PostActionHandler(
                             }
                         }
                 )
-                TRASHING_POST_WITH_LOCAL_CHANGES -> SnackbarMessageHolder(messageRes = R.string.post_trashed)
+                TRASHING_POST_WITH_LOCAL_CHANGES -> SnackbarMessageHolder(message = UiStringRes(R.string.post_trashed))
                 else -> throw IllegalStateException("Unexpected action in handlePostTrashed(): $criticalAction")
             }
             showSnackbar.invoke(snackBarHolder)
@@ -296,7 +329,7 @@ class PostActionHandler(
         if (!checkNetworkConnection.invoke()) {
             return
         }
-        showSnackbar.invoke(SnackbarMessageHolder(messageRes = R.string.post_restoring))
+        showSnackbar.invoke(SnackbarMessageHolder(message = UiStringRes(R.string.post_restoring)))
         criticalPostActionTracker.add(localPostId = LocalId(post.id), criticalPostAction = RESTORING_POST)
         dispatcher.dispatch(PostActionBuilder.newRestorePostAction(RemotePostPayload(post, site)))
     }
@@ -313,7 +346,7 @@ class PostActionHandler(
         if (isError) {
             showToast.invoke(ToastMessageHolder(R.string.error_restoring_post, Duration.SHORT))
         } else {
-            showSnackbar.invoke(SnackbarMessageHolder(messageRes = R.string.post_restored))
+            showSnackbar.invoke(SnackbarMessageHolder(message = UiStringRes(R.string.post_restored)))
         }
     }
 

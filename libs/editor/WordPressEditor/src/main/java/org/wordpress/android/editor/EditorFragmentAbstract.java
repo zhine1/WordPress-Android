@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.view.DragEvent;
 
+import androidx.annotation.NonNull;
 import androidx.core.util.Consumer;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
@@ -24,10 +25,12 @@ public abstract class EditorFragmentAbstract extends Fragment {
     public class EditorFragmentNotAddedException extends Exception {
     }
 
+    public abstract @NonNull String getEditorName();
     public abstract void setTitle(CharSequence text);
     public abstract void setContent(CharSequence text);
     public abstract CharSequence getTitle() throws EditorFragmentNotAddedException;
     public abstract CharSequence getContent(CharSequence originalContent) throws EditorFragmentNotAddedException;
+    public abstract void showContentInfo() throws EditorFragmentNotAddedException;
     public abstract LiveData<Editable> getTitleOrContentChanged();
     public abstract void appendMediaFile(MediaFile mediaFile, String imageUrl, ImageLoader imageLoader);
     public abstract void appendMediaFiles(Map<String, MediaFile> mediaList);
@@ -42,6 +45,8 @@ public abstract class EditorFragmentAbstract extends Fragment {
     public abstract void removeMedia(String mediaId);
     public abstract boolean showSavingProgressDialogIfNeeded();
     public abstract boolean hideSavingProgressDialog();
+    // Called from EditPostActivity to let the block editor know when a media selection is cancelled
+    public abstract void mediaSelectionCancelled();
 
 
     public enum MediaType {
@@ -86,6 +91,7 @@ public abstract class EditorFragmentAbstract extends Fragment {
     protected EditorFragmentListener mEditorFragmentListener;
     protected EditorDragAndDropListener mEditorDragAndDropListener;
     protected EditorImagePreviewListener mEditorImagePreviewListener;
+    protected EditorEditMediaListener mEditorEditMediaListener;
     protected boolean mFeaturedImageSupported;
     protected long mFeaturedImageId;
     protected String mBlogSettingMaxImageWidth;
@@ -187,11 +193,19 @@ public abstract class EditorFragmentAbstract extends Fragment {
         void onMediaDeleted(String mediaId);
         void onUndoMediaCheck(String undoedContent);
         void onVideoPressInfoRequested(String videoId);
-        String onAuthHeaderRequested(String url);
+        Map<String, String> onAuthHeaderRequested(String url);
         void onTrackableEvent(TrackableEvent event);
+        void onTrackableEvent(TrackableEvent event, Map<String, String> properties);
         void onHtmlModeToggledInToolbar();
         void onAddStockMediaClicked(boolean allowMultipleSelection);
-        void onPerformFetch(String path, Consumer<String> onResult, Consumer<String> onError);
+        void onAddGifClicked(boolean allowMultipleSelection);
+        void onPerformFetch(String path, Consumer<String> onResult, Consumer<Bundle> onError);
+        void onGutenbergEditorSessionTemplateApplyTracked(String template);
+        void onGutenbergEditorSessionTemplatePreviewTracked(String template);
+        void getMention(Consumer<String> onResult);
+        void onGutenbergEditorSetStarterPageTemplatesTooltipShown(boolean tooltipShown);
+        boolean onGutenbergEditorRequestStarterPageTemplatesTooltipShown();
+        String getErrorMessageFromMedia(int mediaId);
     }
 
     /**
@@ -233,6 +247,8 @@ public abstract class EditorFragmentAbstract extends Fragment {
         STRIKETHROUGH_BUTTON_TAPPED,
         UNDERLINE_BUTTON_TAPPED,
         REDO_TAPPED,
-        UNDO_TAPPED
+        UNDO_TAPPED,
+        EDITOR_GUTENBERG_UNSUPPORTED_BLOCK_WEBVIEW_SHOWN,
+        EDITOR_GUTENBERG_UNSUPPORTED_BLOCK_WEBVIEW_CLOSED,
     }
 }

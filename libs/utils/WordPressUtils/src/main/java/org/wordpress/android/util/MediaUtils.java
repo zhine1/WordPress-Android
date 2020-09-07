@@ -170,7 +170,8 @@ public class MediaUtils {
     }
 
     public static @Nullable String getFilenameFromURI(Context context, Uri uri) {
-        Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+        Cursor cursor = context.getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME},
+                null, null, null);
         try {
             String result = null;
             if (cursor != null && cursor.moveToFirst()) {
@@ -188,6 +189,11 @@ public class MediaUtils {
         }
     }
 
+    /*
+     * Some media providers (eg. Google Photos) give us a limited access to media files just so we can copy them and
+     * then they revoke the access. Copying these files must be performed on the UI thread, otherwise the access might
+     * be revoked before the action completes. See https://github.com/wordpress-mobile/WordPress-Android/issues/5818
+     */
     public static Uri downloadExternalMedia(Context context, Uri imageUri) {
         if (context == null || imageUri == null) {
             return null;
@@ -437,10 +443,15 @@ public class MediaUtils {
 
                 // TODO handle non-primary volumes
             } else if (isDownloadsDocument(uri)) {
-                final String id = DocumentsContract.getDocumentId(uri);
+                String id = DocumentsContract.getDocumentId(uri);
 
                 if (id != null && id.startsWith("raw:")) {
                     return id.substring(4);
+                }
+
+                // https://github.com/Javernaut/WhatTheCodec/issues/2
+                if (id != null && id.startsWith("msf:")) {
+                    id = id.substring(4);
                 }
 
                 String[] contentUriPrefixesToTry = new String[]{

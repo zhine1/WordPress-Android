@@ -6,21 +6,25 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.Checkable;
 
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.test.espresso.AmbiguousViewMatcherException;
 import androidx.test.espresso.Espresso;
+import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.action.GeneralClickAction;
 import androidx.test.espresso.action.GeneralLocation;
 import androidx.test.espresso.action.Press;
 import androidx.test.espresso.action.Tap;
+import androidx.test.espresso.action.ViewActions;
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObjectNotFoundException;
 import androidx.test.uiautomator.UiSelector;
 
+import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -36,9 +40,12 @@ import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
 import static androidx.test.espresso.action.ViewActions.longClick;
 import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
+import static androidx.test.espresso.action.ViewActions.swipeLeft;
+import static androidx.test.espresso.action.ViewActions.swipeRight;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.core.internal.deps.guava.base.Preconditions.checkNotNull;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
@@ -50,6 +57,7 @@ import static androidx.test.runner.lifecycle.Stage.RESUMED;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 
 
 public class WPSupportUtils {
@@ -125,6 +133,38 @@ public class WPSupportUtils {
                 rollbackAction);
     }
 
+    /** Ensures that a SwitchPreference isChecked is true or false regardless of the current value. This is useful to
+     * guarantee a particular resulting state where a previously toggled state may not be known.
+     * @param isChecked the value to set the preference to
+     * @return the ViewAction
+     */
+    public static ViewAction ensureSwitchPreferenceIsChecked(final boolean isChecked) {
+        return new ViewAction() {
+            @Override public BaseMatcher<View> getConstraints() {
+                return new BaseMatcher<View>() {
+                    @Override public boolean matches(Object item) {
+                        return isA(Checkable.class).matches(((View) item).findViewById(android.R.id.switch_widget));
+                    }
+
+                    @Override public void describeTo(Description description) {
+                        description.appendText("checkable");
+                    }
+                };
+            }
+
+            @Override public String getDescription() {
+                return "setChecked(" + isChecked + ")";
+            }
+
+            @Override public void perform(UiController uiController, View view) {
+                // perform click only if necessary
+                if (((Checkable) view.findViewById(android.R.id.switch_widget)).isChecked() != isChecked) {
+                    ViewActions.click().perform(uiController, view);
+                }
+            }
+        };
+    }
+
 
 
     private static boolean isResourceId(String text) {
@@ -188,6 +228,17 @@ public class WPSupportUtils {
                 .perform(closeSoftKeyboard());
     }
 
+    public static void populateTextFieldWithin(Integer elementID, String text) {
+        waitForElementToBeDisplayed(elementID);
+
+        onView(allOf(
+                isDescendantOfA(withId(elementID)),
+                withId(R.id.input)
+        ))
+        .perform(replaceText(text))
+        .perform(closeSoftKeyboard());
+    }
+
     public static void populateTextField(ViewInteraction element, String text) {
         waitForElementToBeDisplayed(element);
         element.perform(replaceText(text))
@@ -208,6 +259,22 @@ public class WPSupportUtils {
                                           );
         scrollToThenClickOn(postTitle);
         moveCaretToEndAndDisplayIn(postTitle);
+    }
+
+    public static Boolean dialogExistsWithTitle(String title) {
+        ViewInteraction view = onView(withText(title));
+
+        if (!isElementDisplayed(view)) {
+            return false;
+        }
+
+        ViewInteraction dialog = view.inRoot(isDialog());
+        return isElementDisplayed(dialog);
+    }
+
+    public static void tapButtonInDialogWithTitle(String title) {
+        ViewInteraction dialogButton = onView(withText(title)).inRoot(isDialog());
+        clickOn(dialogButton);
     }
 
     private static void moveCaretToEndAndDisplayIn(ViewInteraction element) {
@@ -244,6 +311,28 @@ public class WPSupportUtils {
         clickOn(view);
     }
 
+    public static void scrollToTopOfRecyclerView(final RecyclerView recyclerView) {
+        // Prevent java.lang.IllegalStateException:
+        // Cannot call this method while RecyclerView is computing a layout or scrolling
+        waitForConditionToBeTrue(new Supplier<Boolean>() {
+            @Override public Boolean get() {
+                return !recyclerView.isComputingLayout();
+            }
+        });
+
+        // Let the layout settle down before attempting to scroll
+        idleFor(100);
+
+        getCurrentActivity().runOnUiThread(new Runnable() {
+            @Override public void run() {
+                recyclerView.scrollToPosition(0);
+            }
+        });
+
+        // Let the layout settle down after scrolling
+        idleFor(100);
+    }
+
     public static void selectItemAtIndexInSpinner(Integer index, Integer spinnerElementID) {
         clickOn(spinnerElementID);
         clickOnSpinnerItemAtIndex(index);
@@ -255,12 +344,32 @@ public class WPSupportUtils {
     }
 
     public static void selectItemWithTitleInTabLayout(String string, Integer elementID) {
-        clickOn(onView(
+        Integer tries = 0;
+        Integer maxTries = 10;
+
+        for (Integer i = 0; i < 10; i++) {
+            onView(withId(elementID)).perform(swipeRight());
+        }
+
+        while (!tabLayoutHasTextDisplayed(elementID, string) && tries < maxTries) {
+            onView(withId(elementID)).perform(swipeLeft());
+            tries++;
+        }
+
+        clickOn(tabItemInTabLayoutWithTitle(elementID, string));
+    }
+
+    private static Boolean tabLayoutHasTextDisplayed(Integer elementID, String text) {
+        return isElementCompletelyDisplayed(tabItemInTabLayoutWithTitle(elementID, text));
+    }
+
+    private static ViewInteraction tabItemInTabLayoutWithTitle(Integer tabLayoutElement, String title) {
+        return onView(
                 allOf(
-                        withText(string),
-                        isDescendantOfA(withId(R.id.tabLayout))
-                     )
-              ));
+                   withText(title),
+                   isDescendantOfA(withId(tabLayoutElement))
+                )
+        );
     }
 
     // WAITERS
@@ -565,5 +674,9 @@ public class WPSupportUtils {
         });
 
         return mCurrentActivity;
+    }
+
+    public static String getTranslatedString(Integer resourceID) {
+        return getCurrentActivity().getResources().getString(resourceID);
     }
 }

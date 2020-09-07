@@ -17,12 +17,18 @@
     <color name="bullet">@color/wp_grey_darken_30</color>
     <color name="code">@color/text</color>
     <color name="code_background">@color/wp_grey_light</color>
-    <color name="hint_text">@color/wp_grey</color>
+    <color name="hint_text">@color/wp_grey_darken_10</color>
     <color name="link">@color/wp_blue_medium</color>
     <color name="quote">@color/wp_grey</color>
     <color name="quote_background">@color/wp_grey_lighten_30</color>
     <color name="text">@color/wp_grey_darken_30</color>
 
+    <color name="title_color">@color/grey_dark</color>
+
     <color name="black_translucent_50">#80000000</color>
     <color name="media_shade_overlay_color">@color/black_translucent_50</color>
+
+    <!-- Gutenberg -->
+    <color name="background_color">#f6f7f7</color>
+
 </resources>

@@ -26,6 +26,8 @@ public class PostEditorAnalyticsSession implements Serializable {
     private static final String KEY_POST_TYPE = "post_type";
     private static final String KEY_OUTCOME = "outcome";
     private static final String KEY_SESSION_ID = "session_id";
+    private static final String KEY_STARTUP_TIME = "startup_time_ms";
+    private static final String KEY_TEMPLATE = "template";
 
     private String mSessionId = UUID.randomUUID().toString();
     private String mPostType;
@@ -35,15 +37,18 @@ public class PostEditorAnalyticsSession implements Serializable {
     private Editor mCurrentEditor;
     private boolean mHasUnsupportedBlocks = false;
     private Outcome mOutcome = null;
+    private String mTemplate;
     private boolean mHWAccOff = false;
+    private long mStartTime = System.currentTimeMillis();
 
-    enum Editor {
+    public enum Editor {
         GUTENBERG,
         CLASSIC,
-        HTML
+        HTML,
+        WP_STORIES_CREATOR
     }
 
-    enum Outcome {
+    public enum Outcome {
         CANCEL,
         DISCARD,    // not used in WPAndroid, but kept for parity with iOS
                     // see https://github.com/wordpress-mobile/gutenberg-mobile/issues/556#issuecomment-462678807
@@ -84,12 +89,25 @@ public class PostEditorAnalyticsSession implements Serializable {
         mHWAccOff = AppPrefs.isPostWithHWAccelerationOff(site.getId(), post.getId());
     }
 
+    public static PostEditorAnalyticsSession getNewPostEditorAnalyticsSession(
+            Editor editor, PostImmutableModel post, SiteModel site, boolean isNewPost) {
+        return new PostEditorAnalyticsSession(editor, post, site, isNewPost);
+    }
+
     public void start(ArrayList<Object> unsupportedBlocksList) {
         if (!mStarted) {
             mHasUnsupportedBlocks = unsupportedBlocksList != null && unsupportedBlocksList.size() > 0;
             Map<String, Object> properties = getCommonProperties();
             properties.put(KEY_UNSUPPORTED_BLOCKS,
                     unsupportedBlocksList != null ? unsupportedBlocksList : new ArrayList<>());
+            // Note that start time only counts when the analytics session was created and not when the editor
+            // activity started. We are mostly interested in measuring the loading times for the block editor,
+            // where the main bottleneck seems to be initializing React Native and doing the initial load of Gutenberg.
+            //
+            // Measuring the full editor activity initialization would be more accurate, but we don't expect the
+            // difference to be significant enough, and doing that would add more complexity to how we are initializing
+            // the session.
+            properties.put(KEY_STARTUP_TIME, System.currentTimeMillis() - mStartTime);
             AnalyticsTracker.track(Stat.EDITOR_SESSION_START, properties);
             mStarted = true;
         } else {
@@ -111,6 +129,19 @@ public class PostEditorAnalyticsSession implements Serializable {
         // or is going to happen.
         // Session ending will only properly end the session with the outcome already being set.
         mOutcome = newOutcome;
+    }
+
+    public void previewTemplate(String template) {
+        final Map<String, Object> properties = getCommonProperties();
+        properties.put(KEY_TEMPLATE, template);
+        AnalyticsTracker.track(Stat.EDITOR_SESSION_TEMPLATE_PREVIEW, properties);
+    }
+
+    public void applyTemplate(String template) {
+        mTemplate = template;
+        final Map<String, Object> properties = getCommonProperties();
+        properties.put(KEY_TEMPLATE, template);
+        AnalyticsTracker.track(Stat.EDITOR_SESSION_TEMPLATE_APPLY, properties);
     }
 
     public void end() {
@@ -138,6 +169,10 @@ public class PostEditorAnalyticsSession implements Serializable {
         properties.put(KEY_SESSION_ID, mSessionId);
         properties.put(KEY_HAS_UNSUPPORTED_BLOCKS, mHasUnsupportedBlocks ? "1" : "0");
         properties.put(AnalyticsUtils.EDITOR_HAS_HW_ACCELERATION_DISABLED_KEY, mHWAccOff ? "1" : "0");
+
+        if (mTemplate != null) {
+            properties.put(KEY_TEMPLATE, mTemplate);
+        }
 
         return properties;
     }

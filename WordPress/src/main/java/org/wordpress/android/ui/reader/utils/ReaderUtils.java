@@ -8,35 +8,50 @@ import android.view.View;
 import androidx.annotation.NonNull;
 
 import org.apache.commons.text.StringEscapeUtils;
+import org.jetbrains.annotations.NotNull;
 import org.wordpress.android.R;
 import org.wordpress.android.datasets.ReaderCommentTable;
 import org.wordpress.android.datasets.ReaderPostTable;
 import org.wordpress.android.datasets.ReaderTagTable;
 import org.wordpress.android.models.ReaderTag;
+import org.wordpress.android.models.ReaderTagList;
 import org.wordpress.android.models.ReaderTagType;
+import org.wordpress.android.ui.FilteredRecyclerView;
+import org.wordpress.android.ui.reader.ReaderConstants;
+import org.wordpress.android.ui.reader.services.update.TagUpdateClientUtilsProvider;
 import org.wordpress.android.util.FormatUtils;
 import org.wordpress.android.util.LocaleManager;
 import org.wordpress.android.util.PhotonUtils;
 import org.wordpress.android.util.StringUtils;
 import org.wordpress.android.util.UrlUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ReaderUtils {
-    public static String getResizedImageUrl(final String imageUrl, int width, int height, boolean isPrivate) {
-        return getResizedImageUrl(imageUrl, width, height, isPrivate, PhotonUtils.Quality.MEDIUM);
+    public static String getResizedImageUrl(final String imageUrl, int width, int height, boolean isPrivate,
+                                            boolean isPrivateAtomic) {
+        return getResizedImageUrl(imageUrl, width, height, isPrivate, isPrivateAtomic, PhotonUtils.Quality.MEDIUM);
     }
 
     public static String getResizedImageUrl(final String imageUrl,
                                             int width,
                                             int height,
                                             boolean isPrivate,
+                                            boolean isPrivateAtomic,
                                             PhotonUtils.Quality quality) {
         final String unescapedUrl = StringEscapeUtils.unescapeHtml4(imageUrl);
-        if (isPrivate) {
+
+
+        if (isPrivate && !isPrivateAtomic) {
             return getPrivateImageForDisplay(unescapedUrl, width, height);
         } else {
-            return PhotonUtils.getPhotonImageUrl(unescapedUrl, width, height, quality);
+            return PhotonUtils.getPhotonImageUrl(unescapedUrl, width, height, quality, isPrivateAtomic);
         }
     }
 
@@ -196,18 +211,33 @@ public class ReaderUtils {
      * (so we can also get its title & endpoint), returns a new tag if that fails
      */
     public static ReaderTag getTagFromTagName(String tagName, ReaderTagType tagType) {
+        return getTagFromTagName(tagName, tagType, false);
+    }
+
+    public static ReaderTag getTagFromTagName(String tagName, ReaderTagType tagType, boolean markDefaultIfInMemory) {
         ReaderTag tag = ReaderTagTable.getTag(tagName, tagType);
         if (tag != null) {
             return tag;
         } else {
-            return createTagFromTagName(tagName, tagType);
+            return createTagFromTagName(tagName, tagType, markDefaultIfInMemory);
         }
     }
 
     public static ReaderTag createTagFromTagName(String tagName, ReaderTagType tagType) {
+        return createTagFromTagName(tagName, tagType, false);
+    }
+
+    public static ReaderTag createTagFromTagName(String tagName, ReaderTagType tagType, boolean isDefaultInMemoryTag) {
         String tagSlug = sanitizeWithDashes(tagName).toLowerCase(Locale.ROOT);
         String tagDisplayName = tagType == ReaderTagType.DEFAULT ? tagName : tagSlug;
-        return new ReaderTag(tagSlug, tagDisplayName, tagName, null, tagType);
+        return new ReaderTag(
+                tagSlug,
+                tagDisplayName,
+                tagName,
+                null,
+                tagType,
+                isDefaultInMemoryTag
+        );
     }
 
     /*
@@ -217,9 +247,35 @@ public class ReaderUtils {
     public static ReaderTag getDefaultTag() {
         ReaderTag defaultTag = getTagFromEndpoint(ReaderTag.TAG_ENDPOINT_DEFAULT);
         if (defaultTag == null) {
-            defaultTag = getTagFromTagName(ReaderTag.TAG_TITLE_DEFAULT, ReaderTagType.DEFAULT);
+            defaultTag = getTagFromTagName(ReaderTag.TAG_TITLE_DEFAULT, ReaderTagType.DEFAULT, true);
         }
         return defaultTag;
+    }
+
+    public static @NonNull ReaderTag getDefaultTagFromDbOrCreateInMemory(
+            @NonNull Context context,
+            TagUpdateClientUtilsProvider clientUtilsProvider
+    ) {
+        // getDefaultTag() tries to get the default tag from reader db by tag endpoint or tag name.
+        // In case it cannot get the default tag from db, it creates it in memory with createTagFromTagName
+        ReaderTag tag = getDefaultTag();
+
+        if (tag.isDefaultInMemoryTag()) {
+            // if the tag was created in memory from createTagFromTagName
+            // we need to set some fields as below before to use it
+            tag.setTagTitle(context.getString(R.string.reader_following_display_name));
+            tag.setTagDisplayName(context.getString(R.string.reader_following_display_name));
+
+            String baseUrl = clientUtilsProvider.getTagUpdateEndpointURL();
+
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
+
+            tag.setEndpoint(baseUrl + ReaderTag.FOLLOWING_PATH);
+        }
+
+        return tag;
     }
 
     /*
@@ -229,5 +285,177 @@ public class ReaderUtils {
         String trimQuery = query != null ? query.trim() : "";
         String slug = ReaderUtils.sanitizeWithDashes(trimQuery);
         return new ReaderTag(slug, trimQuery, trimQuery, null, ReaderTagType.SEARCH);
+    }
+
+    public static Map<String, TagInfo> getDefaultTagInfo() {
+        // Note that the following is the desired order in the tabs
+        // (see usage in prependDefaults)
+        Map<String, TagInfo> defaultTagInfo = new LinkedHashMap<>();
+
+        defaultTagInfo.put(ReaderConstants.KEY_FOLLOWING, new TagInfo(ReaderTagType.DEFAULT, ReaderTag.FOLLOWING_PATH));
+        defaultTagInfo.put(ReaderConstants.KEY_DISCOVER, new TagInfo(ReaderTagType.DEFAULT, ReaderTag.DISCOVER_PATH));
+        defaultTagInfo.put(ReaderConstants.KEY_LIKES, new TagInfo(ReaderTagType.DEFAULT, ReaderTag.LIKED_PATH));
+        defaultTagInfo.put(ReaderConstants.KEY_SAVED, new TagInfo(ReaderTagType.BOOKMARKED, ""));
+
+        return defaultTagInfo;
+    }
+
+    private static boolean putIfAbsentDone(Map<String, ReaderTag> defaultTags, String key, ReaderTag tag) {
+        boolean insertionDone = false;
+
+        if (defaultTags.get(key) == null) {
+            defaultTags.put(key, tag);
+            insertionDone = true;
+        }
+
+        return insertionDone;
+    }
+
+    private static void prependDefaults(
+            Map<String, ReaderTag> defaultTags,
+            ReaderTagList orderedTagList,
+            Map<String, TagInfo> defaultTagInfo
+    ) {
+        if (defaultTags.isEmpty()) return;
+
+        List<String> reverseOrderedKeys = new ArrayList<>(defaultTagInfo.keySet());
+        Collections.reverse(reverseOrderedKeys);
+
+        for (String key : reverseOrderedKeys) {
+            if (defaultTags.containsKey(key)) {
+                ReaderTag tag = defaultTags.get(key);
+
+                orderedTagList.add(0, tag);
+            }
+        }
+    }
+
+    private static boolean defaultTagFoundAndAdded(
+            Map<String, TagInfo> defaultTagInfos,
+            ReaderTag tag,
+            Map<String, ReaderTag> defaultTags
+    ) {
+        boolean foundAndAdded = false;
+
+        for (String key : defaultTagInfos.keySet()) {
+            if (defaultTagInfos.get(key).isDesiredTag(tag)) {
+                if (putIfAbsentDone(defaultTags, key, tag)) {
+                    foundAndAdded = true;
+                }
+                break;
+            }
+        }
+
+        return foundAndAdded;
+    }
+
+    public static ReaderTagList getOrderedTagsList(ReaderTagList tagList, Map<String, TagInfo> defaultTagInfos) {
+        ReaderTagList orderedTagList = new ReaderTagList();
+        Map<String, ReaderTag> defaultTags = new HashMap<>();
+
+        for (ReaderTag tag : tagList) {
+            if (defaultTagFoundAndAdded(defaultTagInfos, tag, defaultTags)) continue;
+
+            orderedTagList.add(tag);
+        }
+        prependDefaults(defaultTags, orderedTagList, defaultTagInfos);
+
+        return orderedTagList;
+    }
+
+    public static boolean isTagManagedInFollowingTab(
+            ReaderTag tag,
+            boolean isTopLevelReader,
+            FilteredRecyclerView recyclerView
+    ) {
+        if (isTopLevelReader) {
+            if (ReaderUtils.isDefaultInMemoryTag(tag)) {
+                return true;
+            }
+
+            boolean isSpecialTag = tag != null
+                                   &&
+                                   (tag.isDiscover() || tag.isPostsILike() || tag.isBookmarked());
+
+            boolean tabsInitializingNow = recyclerView != null && recyclerView.getCurrentFilter() == null;
+
+            boolean tagIsFollowedSitesOrAFollowedTag = tag != null
+                                                       && (
+                                                               tag.isFollowedSites()
+                                                               || tag.tagType == ReaderTagType.FOLLOWED
+                                                       );
+
+            if (isSpecialTag) {
+                return false;
+            } else if (tabsInitializingNow) {
+                return tagIsFollowedSitesOrAFollowedTag;
+            } else if (recyclerView != null && recyclerView.getCurrentFilter() instanceof ReaderTag) {
+                if (recyclerView.isValidFilter(tag)) {
+                    return tag.isFollowedSites();
+                } else {
+                    // If we reach here it means we are setting a followed tag or site in the Following tab
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return tag != null && tag.isFollowedSites();
+        }
+    }
+
+    public static @NonNull ReaderTag getValidTagForSharedPrefs(
+            @NonNull ReaderTag tag,
+            boolean isTopLevelReader,
+            FilteredRecyclerView recyclerView,
+            @NonNull ReaderTag defaultTag
+    ) {
+        if (!isTopLevelReader) {
+            return tag;
+        }
+
+        boolean isValidFilter = (recyclerView != null && recyclerView.isValidFilter(tag));
+        boolean isSpecialTag = tag.isDiscover() || tag.isPostsILike() || tag.isBookmarked();
+        if (!isSpecialTag && !isValidFilter && isTagManagedInFollowingTab(tag, isTopLevelReader, recyclerView)) {
+            return defaultTag;
+        }
+
+        return tag;
+    }
+
+    public static boolean isDefaultInMemoryTag(ReaderTag tag) {
+        return tag != null && tag.isDefaultInMemoryTag();
+    }
+
+    public static String getCommaSeparatedTagSlugs(ReaderTagList tags) {
+        StringBuilder slugs = new StringBuilder();
+        for (ReaderTag tag : tags) {
+            if (slugs.length() > 0) {
+                slugs.append(",");
+            }
+            final String tagNameForApi = ReaderUtils.sanitizeWithDashes(tag.getTagSlug());
+            slugs.append(tagNameForApi);
+        }
+        return slugs.toString();
+    }
+
+    public static ReaderTagList getTagsFromCommaSeparatedSlugs(@NotNull String commaSeparatedTagSlugs) {
+        ReaderTagList tags = new ReaderTagList();
+        if (!commaSeparatedTagSlugs.trim().equals("")) {
+            for (String slug : commaSeparatedTagSlugs.split(",", -1)) {
+                ReaderTag tag = ReaderUtils.getTagFromTagName(slug, ReaderTagType.DEFAULT);
+                tags.add(tag);
+            }
+        }
+        return tags;
+    }
+
+    /**
+    * isExternalFeed identifies an external RSS feed
+     * blogId will be empty for feeds and in some instances, it is explicitly
+     * setting blogId equal to the feedId  
+     */
+    public static boolean isExternalFeed(long blogId, long feedId) {
+         return (blogId == 0 && feedId != 0) || blogId == feedId;
     }
 }

@@ -21,6 +21,7 @@ import org.wordpress.android.fluxc.model.post.PostLocation;
 import org.wordpress.android.fluxc.model.post.PostStatus;
 import org.wordpress.android.fluxc.store.PostStore;
 import org.wordpress.android.ui.posts.RemotePreviewLogicHelper.RemotePreviewType;
+import org.wordpress.android.ui.posts.mediauploadcompletionprocessors.MediaUploadCompletionProcessor;
 import org.wordpress.android.ui.prefs.AppPrefs;
 import org.wordpress.android.ui.uploads.PostEvents;
 import org.wordpress.android.ui.uploads.UploadUtils;
@@ -37,6 +38,7 @@ import org.wordpress.android.util.helpers.MediaFile;
 
 import java.text.BreakIterator;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -57,13 +59,17 @@ public class PostUtils {
     private static final String GB_IMG_BLOCK_HEADER_PLACEHOLDER = "<!-- wp:image {\"id\":%s";
     private static final String GB_IMG_BLOCK_CLASS_PLACEHOLDER = "class=\"wp-image-%s\"";
     private static final String GB_MEDIA_TEXT_BLOCK_HEADER_PLACEHOLDER = "<!-- wp:media-text {\"mediaId\":%s";
+    public static final String WP_STORIES_GUTENBERG_BLOCK_START = "<!-- wp:jetpack/story";
 
-    public static Map<String, Object> addPostTypeToAnalyticsProperties(PostImmutableModel post,
-                                                                       Map<String, Object> properties) {
+    public static Map<String, Object> addPostTypeAndPostFormatToAnalyticsProperties(PostImmutableModel post,
+                                                                                    Map<String, Object> properties) {
         if (properties == null) {
             properties = new HashMap<>();
         }
         properties.put("post_type", post.isPage() ? "page" : "post");
+        if (!StringUtils.isEmpty(post.getPostFormat())) {
+            properties.put("post_format", post.getPostFormat());
+        }
         return properties;
     }
 
@@ -143,7 +149,7 @@ public class PostUtils {
     public static void trackSavePostAnalytics(PostImmutableModel post, SiteModel site) {
         PostStatus status = PostStatus.fromPost(post);
         Map<String, Object> properties = new HashMap<>();
-        PostUtils.addPostTypeToAnalyticsProperties(post, properties);
+        PostUtils.addPostTypeAndPostFormatToAnalyticsProperties(post, properties);
         switch (status) {
             case PUBLISHED:
                 if (!post.isLocalDraft()) {
@@ -164,8 +170,10 @@ public class PostUtils {
                 } else {
                     properties.put("word_count", AnalyticsUtils.getWordCount(post.getContent()));
                     properties.put("editor_source",
-                            shouldShowGutenbergEditor(post.isLocalDraft(), post.getContent(), site)
-                                    ? SiteUtils.GB_EDITOR_NAME : SiteUtils.AZTEC_EDITOR_NAME);
+                            contentContainsWPStoryGutenbergBlocks(post.getContent())
+                                    ? SiteUtils.WP_STORIES_CREATOR_NAME
+                                    : (shouldShowGutenbergEditor(post.isLocalDraft(), post.getContent(), site)
+                                        ? SiteUtils.GB_EDITOR_NAME : SiteUtils.AZTEC_EDITOR_NAME));
                     properties.put(AnalyticsUtils.HAS_GUTENBERG_BLOCKS_KEY,
                             PostUtils.contentContainsGutenbergBlocks(post.getContent()));
                     AnalyticsUtils.trackWithSiteDetails(AnalyticsTracker.Stat.EDITOR_SCHEDULED_POST, site,
@@ -185,7 +193,7 @@ public class PostUtils {
 
     public static void trackOpenEditorAnalytics(PostImmutableModel post, SiteModel site) {
         Map<String, Object> properties = new HashMap<>();
-        PostUtils.addPostTypeToAnalyticsProperties(post, properties);
+        PostUtils.addPostTypeAndPostFormatToAnalyticsProperties(post, properties);
         if (!post.isLocalDraft()) {
             properties.put("post_id", post.getRemotePostId());
         }
@@ -258,7 +266,7 @@ public class PostUtils {
             return null;
         }
 
-        String s = HtmlUtils.fastStripHtml(description);
+        String s = HtmlUtils.fastStripHtml(removeWPGallery(description));
         if (s.length() < MAX_EXCERPT_LEN) {
             return trimEx(s);
         }
@@ -284,6 +292,15 @@ public class PostUtils {
             return null;
         }
         return trimEx(result.toString()) + "...";
+    }
+
+    /**
+     * Removes the wp-gallery tag and its internals from the given string.
+     *
+     * See https://github.com/wordpress-mobile/WordPress-Android/issues/11063
+     */
+    public static String removeWPGallery(String str) {
+        return str.replaceAll("(?s)<!--\\swp:gallery?(.*?)wp:gallery\\s-->", "");
     }
 
     public static String getFormattedDate(PostModel post) {
@@ -317,17 +334,21 @@ public class PostUtils {
         return pubDate == null || !pubDate.after(now);
     }
 
-    static boolean isPublishDateInTheFuture(String dateCreated) {
-        Date pubDate = DateTimeUtils.dateFromIso8601(dateCreated);
-        Date now = new Date();
-        return pubDate != null && pubDate.after(now);
+    public static boolean isPublishDateInTheFuture(String dateCreated) {
+        return isPublishDateInTheFuture(dateCreated, new Date());
     }
 
-    static boolean isPublishDateInThePast(String dateCreated) {
+    public static boolean isPublishDateInTheFuture(String dateCreated, Date currentDate) {
+        Date pubDate = DateTimeUtils.dateFromIso8601(dateCreated);
+        return pubDate != null && pubDate.after(currentDate);
+    }
+
+    public static boolean isPublishDateInThePast(String dateCreated, Date currentDate) {
         Date pubDate = DateTimeUtils.dateFromIso8601(dateCreated);
 
-        // just use half an hour before now as a threshold to make sure this is backdated, to avoid false positives
         Calendar cal = Calendar.getInstance();
+        cal.setTime(currentDate);
+        // just use half an hour before now as a threshold to make sure this is backdated, to avoid false positives
         cal.add(Calendar.MINUTE, -30);
         Date halfHourBack = cal.getTime();
         return pubDate != null && pubDate.before(halfHourBack);
@@ -339,7 +360,11 @@ public class PostUtils {
     }
 
     static boolean shouldPublishImmediatelyOptionBeAvailable(PostStatus postStatus) {
-        return postStatus == PostStatus.DRAFT;
+        return postStatus == PostStatus.DRAFT || postStatus == PostStatus.PRIVATE;
+    }
+
+    static boolean shouldPublishImmediatelyOptionBeAvailable(String postStatus) {
+        return postStatus.equals(PostStatus.DRAFT.toString());
     }
 
     public static void updatePublishDateIfShouldBePublishedImmediately(PostModel postModel) {
@@ -405,57 +430,42 @@ public class PostUtils {
     }
 
     public static String replaceMediaFileWithUrlInGutenbergPost(@NonNull String postContent,
-                                                 String localMediaId, MediaFile mediaFile) {
+                                                 String localMediaId, MediaFile mediaFile, String siteUrl) {
         if (mediaFile != null && contentContainsGutenbergBlocks(postContent)) {
             String remoteUrl = org.wordpress.android.util.StringUtils
                     .notNullStr(Utils.escapeQuotes(mediaFile.getFileURL()));
-            // TODO: replace the URL
-            if (!mediaFile.isVideo()) {
-                // replace gutenberg block id holder with serverMediaId, and url_holder with remoteUrl
-                String oldImgBlockHeader = String.format(GB_IMG_BLOCK_HEADER_PLACEHOLDER, localMediaId);
-                String newImgBlockHeader = String.format(GB_IMG_BLOCK_HEADER_PLACEHOLDER, mediaFile.getMediaId());
-                postContent = postContent.replace(oldImgBlockHeader, newImgBlockHeader);
-
-                String oldMediaTextBlockHeader = String.format(GB_MEDIA_TEXT_BLOCK_HEADER_PLACEHOLDER, localMediaId);
-                String newMediaTextBlockHeader = String.format(GB_MEDIA_TEXT_BLOCK_HEADER_PLACEHOLDER,
-                        mediaFile.getMediaId());
-                postContent = postContent.replace(oldMediaTextBlockHeader, newMediaTextBlockHeader);
-
-                // replace class wp-image-id with serverMediaId, and url_holder with remoteUrl
-                String oldImgClass = String.format(GB_IMG_BLOCK_CLASS_PLACEHOLDER, localMediaId);
-                String newImgClass = String.format(GB_IMG_BLOCK_CLASS_PLACEHOLDER, mediaFile.getMediaId());
-                postContent = postContent.replace(oldImgClass, newImgClass);
-
-                // let's first find this occurrence and keep note of the position, as we need to replace the
-                // immediate `src` value before
-                int iStartOfWpImageClassAttribute = postContent.indexOf(newImgClass);
-                if (iStartOfWpImageClassAttribute != -1) {
-                    // now search negatively, for the src attribute appearing right before
-                    int iStartOfImgTag = postContent.lastIndexOf("<img", iStartOfWpImageClassAttribute);
-                    if (iStartOfImgTag != -1) {
-                        Pattern p = Pattern.compile("<img[^>]*src=[\\\"']([^\\\"^']*)");
-                        Matcher m = p.matcher(postContent.substring(iStartOfImgTag));
-                        if (m.find()) {
-                            String src = m.group();
-                            int startIndex = src.indexOf("src=") + SRC_ATTRIBUTE_LENGTH_PLUS_ONE;
-                            String srcTag = src.substring(startIndex, src.length());
-                            // now replace the url
-                            postContent = postContent.replace(srcTag, remoteUrl);
-                        }
-                    }
-                }
-            } else {
-                // TODO replace in GB Video block?
-            }
+            MediaUploadCompletionProcessor processor = new MediaUploadCompletionProcessor(localMediaId, mediaFile,
+                    siteUrl);
+            postContent = processor.processContent(postContent);
         }
         return postContent;
     }
 
     public static boolean isMediaInGutenbergPostBody(@NonNull String postContent,
                                             String localMediaId) {
-        // check if media is in Gutenberg Post
-        String imgBlockHeaderToSearchFor = String.format("<!-- wp:image {\"id\":%s} -->", localMediaId);
-        return postContent.indexOf(imgBlockHeaderToSearchFor) != -1;
+        List<String> patterns = new ArrayList<>();
+        // Regex for Image and Video blocks
+        patterns.add("<!-- wp:(?:image|video){1} \\{[^\\}]*\"id\":%s([^\\d\\}][^\\}]*)*\\} -->");
+        // Regex for Media&Text block
+        patterns.add("<!-- wp:media-text \\{[^\\}]*\"mediaId\":%s([^\\d\\}][^\\}]*)*\\} -->");
+        // Regex for Gallery block
+        patterns.add("<!-- wp:gallery \\{[^\\}]*\"ids\":\\[(?:\\d*,)*%s(?:,\\d*)*\\][^\\}]*\\} -->");
+
+        StringBuilder sb = new StringBuilder();
+        // Merge the patterns into one so we don't need to go over the post content multiple times
+        for (int i = 0; i < patterns.size(); i++) {
+            sb.append("(?:")
+              // insert the media id
+              .append(String.format(patterns.get(i), localMediaId))
+              .append(")");
+            boolean notLast = i != patterns.size() - 1;
+            if (notLast) {
+                sb.append("|");
+            }
+        }
+
+        Matcher matcher = Pattern.compile(sb.toString()).matcher(postContent);
+        return matcher.find();
     }
 
     public static boolean isPostInConflictWithRemote(PostImmutableModel post) {
@@ -491,7 +501,8 @@ public class PostUtils {
 
     public static UiStringText getCustomStringForAutosaveRevisionDialog(PostModel post) {
         Context context = WordPress.getContext();
-        String firstPart = context.getString(R.string.dialog_confirm_autosave_body_first_part);
+        String firstPart = post.isPage() ? context.getString(R.string.dialog_confirm_autosave_body_first_part_for_page)
+                : context.getString(R.string.dialog_confirm_autosave_body_first_part);
 
         String lastModified =
                 TextUtils.isEmpty(post.getDateLocallyChanged()) ? post.getLastModified() : post.getDateLocallyChanged();
@@ -546,7 +557,7 @@ public class PostUtils {
 
     public static void preparePostForPublish(PostModel post, SiteModel site) {
         PostUtils.updatePublishDateIfShouldBePublishedImmediately(post);
-        post.setDateLocallyChanged(DateTimeUtils.iso8601FromTimestamp(System.currentTimeMillis() / 1000));
+        post.setDateLocallyChanged(DateTimeUtils.iso8601UTCFromTimestamp(System.currentTimeMillis() / 1000));
 
         // We need to update the post status and mark the post as locally changed. If we didn't mark it as locally
         // changed the UploadStarter wouldn't upload the post if the only change the user did was clicking on Publish
@@ -571,5 +582,9 @@ public class PostUtils {
         return flag != null && post != null
                && post.getLocalSiteId() == flag.localSiteId
                && post.getId() == flag.postId;
+    }
+
+    public static boolean contentContainsWPStoryGutenbergBlocks(String postContent) {
+        return (postContent != null && postContent.contains(WP_STORIES_GUTENBERG_BLOCK_START));
     }
 }

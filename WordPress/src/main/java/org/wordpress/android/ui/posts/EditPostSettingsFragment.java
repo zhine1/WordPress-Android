@@ -24,7 +24,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.view.menu.MenuPopupHelper;
 import androidx.appcompat.widget.PopupMenu;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
@@ -45,6 +44,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
+import org.wordpress.android.analytics.AnalyticsTracker.Stat;
 import org.wordpress.android.fluxc.Dispatcher;
 import org.wordpress.android.fluxc.action.TaxonomyAction;
 import org.wordpress.android.fluxc.generated.SiteActionBuilder;
@@ -61,22 +61,27 @@ import org.wordpress.android.fluxc.store.SiteStore;
 import org.wordpress.android.fluxc.store.SiteStore.OnPostFormatsChanged;
 import org.wordpress.android.fluxc.store.TaxonomyStore;
 import org.wordpress.android.fluxc.store.TaxonomyStore.OnTaxonomyChanged;
-import org.wordpress.android.ui.ActivityLauncher;
 import org.wordpress.android.ui.RequestCodes;
 import org.wordpress.android.ui.media.MediaBrowserType;
-import org.wordpress.android.ui.posts.EditPostPublishSettingsViewModel.PublishUiModel;
+import org.wordpress.android.ui.photopicker.MediaPickerLauncher;
+import org.wordpress.android.ui.posts.EditPostRepository.UpdatePostResult;
 import org.wordpress.android.ui.posts.FeaturedImageHelper.FeaturedImageData;
 import org.wordpress.android.ui.posts.FeaturedImageHelper.FeaturedImageState;
+import org.wordpress.android.ui.posts.FeaturedImageHelper.TrackableEvent;
 import org.wordpress.android.ui.posts.PostSettingsListDialogFragment.DialogType;
+import org.wordpress.android.ui.posts.PublishSettingsViewModel.PublishUiModel;
+import org.wordpress.android.ui.posts.prepublishing.visibility.usecases.UpdatePostStatusUseCase;
 import org.wordpress.android.ui.prefs.SiteSettingsInterface;
 import org.wordpress.android.ui.prefs.SiteSettingsInterface.SiteSettingsListener;
 import org.wordpress.android.ui.utils.UiHelpers;
+import org.wordpress.android.util.AccessibilityUtils;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.DateTimeUtils;
 import org.wordpress.android.util.GeocoderUtils;
 import org.wordpress.android.util.StringUtils;
 import org.wordpress.android.util.ToastUtils;
+import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper;
 import org.wordpress.android.util.image.ImageManager;
 import org.wordpress.android.util.image.ImageManager.RequestListener;
 import org.wordpress.android.util.image.ImageType;
@@ -88,6 +93,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import javax.inject.Inject;
 
@@ -114,6 +120,7 @@ public class EditPostSettingsFragment extends Fragment {
     private LinearLayout mExcerptContainer;
     private LinearLayout mFormatContainer;
     private LinearLayout mTagsContainer;
+    private LinearLayout mPublishDateContainer;
     private TextView mExcerptTextView;
     private TextView mSlugTextView;
     private TextView mLocationTextView;
@@ -123,6 +130,11 @@ public class EditPostSettingsFragment extends Fragment {
     private TextView mPostFormatTextView;
     private TextView mPasswordTextView;
     private TextView mPublishDateTextView;
+    private TextView mPublishDateTitleTextView;
+    private TextView mCategoriesTagsHeaderTextView;
+    private TextView mFeaturedImageHeaderTextView;
+    private TextView mMoreOptionsHeaderTextView;
+    private TextView mPublishHeaderTextView;
     private ImageView mFeaturedImageView;
     private ImageView mLocalFeaturedImageView;
     private Button mFeaturedImageButton;
@@ -143,12 +155,15 @@ public class EditPostSettingsFragment extends Fragment {
     @Inject FeaturedImageHelper mFeaturedImageHelper;
     @Inject UiHelpers mUiHelpers;
     @Inject PostSettingsUtils mPostSettingsUtils;
+    @Inject AnalyticsTrackerWrapper mAnalyticsTrackerWrapper;
+    @Inject UpdatePostStatusUseCase mUpdatePostStatusUseCase;
+    @Inject MediaPickerLauncher mMediaPickerLauncher;
 
     @Inject ViewModelProvider.Factory mViewModelFactory;
     private EditPostPublishSettingsViewModel mPublishedViewModel;
 
 
-    interface EditPostActivityHook {
+    public interface EditPostActivityHook {
         EditPostRepository getEditPostRepository();
 
         SiteModel getSite();
@@ -236,6 +251,9 @@ public class EditPostSettingsFragment extends Fragment {
 
     @Override
     public void onDestroy() {
+        if (mSiteSettings != null) {
+            mSiteSettings.clear();
+        }
         mDispatcher.unregister(this);
         super.onDestroy();
     }
@@ -258,14 +276,18 @@ public class EditPostSettingsFragment extends Fragment {
         mPostFormatTextView = rootView.findViewById(R.id.post_format);
         mPasswordTextView = rootView.findViewById(R.id.post_password);
         mPublishDateTextView = rootView.findViewById(R.id.publish_date);
+        mPublishDateTitleTextView = rootView.findViewById(R.id.publish_date_title);
+        mCategoriesTagsHeaderTextView = rootView.findViewById(R.id.post_settings_categories_and_tags_header);
+        mMoreOptionsHeaderTextView = rootView.findViewById(R.id.post_settings_more_options_header);
+        mFeaturedImageHeaderTextView = rootView.findViewById(R.id.post_settings_featured_image_header);
+        mPublishHeaderTextView = rootView.findViewById(R.id.post_settings_publish);
+        mPublishDateContainer = rootView.findViewById(R.id.publish_date_container);
 
         mFeaturedImageView = rootView.findViewById(R.id.post_featured_image);
         mLocalFeaturedImageView = rootView.findViewById(R.id.post_featured_image_local);
         mFeaturedImageButton = rootView.findViewById(R.id.post_add_featured_image_button);
         mFeaturedImageRetryOverlay = rootView.findViewById(R.id.post_featured_image_retry_overlay);
         mFeaturedImageProgressOverlay = rootView.findViewById(R.id.post_featured_image_progress_overlay);
-
-        final CardView featuredImageCardView = rootView.findViewById(R.id.post_featured_image_card_view);
 
         OnClickListener showContextMenuListener = new View.OnClickListener() {
             @Override
@@ -355,8 +377,7 @@ public class EditPostSettingsFragment extends Fragment {
             }
         });
 
-        final LinearLayout publishDateContainer = rootView.findViewById(R.id.publish_date_container);
-        publishDateContainer.setOnClickListener(new View.OnClickListener() {
+        mPublishDateContainer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 FragmentActivity activity = getActivity();
@@ -375,16 +396,20 @@ public class EditPostSettingsFragment extends Fragment {
             mFormatContainer.setVisibility(View.GONE);
         }
 
-        mPublishedViewModel.getOnUiModel().observe(this, new Observer<PublishUiModel>() {
+        mPublishedViewModel.getOnUiModel().observe(getViewLifecycleOwner(), new Observer<PublishUiModel>() {
             @Override public void onChanged(PublishUiModel uiModel) {
-                updatePublishDateTextView(uiModel.getPublishDateLabel());
+                updatePublishDateTextView(uiModel.getPublishDateLabel(),
+                        Objects.requireNonNull(getEditPostRepository().getPost()));
             }
         });
-        mPublishedViewModel.getOnPostStatusChanged().observe(this, new Observer<PostStatus>() {
+        mPublishedViewModel.getOnPostStatusChanged().observe(getViewLifecycleOwner(), new Observer<PostStatus>() {
             @Override public void onChanged(PostStatus postStatus) {
                 updatePostStatus(postStatus);
             }
         });
+
+        setupSettingHintsForAccessibility();
+        applyAccessibilityHeadingToSettings();
 
         return rootView;
     }
@@ -419,6 +444,9 @@ public class EditPostSettingsFragment extends Fragment {
             case REMOVE_FEATURED_IMAGE_MENU_ID:
                 mFeaturedImageHelper.cancelFeaturedImageUpload(site, post, false);
                 clearFeaturedImage();
+
+                mFeaturedImageHelper.trackFeaturedImageEvent(TrackableEvent.IMAGE_REMOVE_CLICKED, post.getId());
+
                 return true;
             case RETRY_FEATURED_IMAGE_UPLOAD_MENU_ID:
                 retryFeaturedImageUpload(site, post);
@@ -428,9 +456,25 @@ public class EditPostSettingsFragment extends Fragment {
         }
     }
 
+    private void setupSettingHintsForAccessibility() {
+        AccessibilityUtils.disableHintAnnouncement(mPublishDateTextView);
+        AccessibilityUtils.disableHintAnnouncement(mCategoriesTextView);
+        AccessibilityUtils.disableHintAnnouncement(mTagsTextView);
+        AccessibilityUtils.disableHintAnnouncement(mPasswordTextView);
+        AccessibilityUtils.disableHintAnnouncement(mSlugTextView);
+        AccessibilityUtils.disableHintAnnouncement(mExcerptTextView);
+        AccessibilityUtils.disableHintAnnouncement(mLocationTextView);
+    }
+
+    private void applyAccessibilityHeadingToSettings() {
+        AccessibilityUtils.enableAccessibilityHeading(mCategoriesTagsHeaderTextView);
+        AccessibilityUtils.enableAccessibilityHeading(mFeaturedImageHeaderTextView);
+        AccessibilityUtils.enableAccessibilityHeading(mMoreOptionsHeaderTextView);
+        AccessibilityUtils.enableAccessibilityHeading(mPublishHeaderTextView);
+    }
+
     private void retryFeaturedImageUpload(@NonNull SiteModel site, @NonNull PostImmutableModel post) {
-        MediaModel mediaModel =
-                mFeaturedImageHelper.retryFeaturedImageUpload(site, post);
+        MediaModel mediaModel = mFeaturedImageHelper.retryFeaturedImageUpload(site, post);
         if (mediaModel == null) {
             clearFeaturedImage();
         }
@@ -451,14 +495,15 @@ public class EditPostSettingsFragment extends Fragment {
         mExcerptTextView.setText(getEditPostRepository().getExcerpt());
         mSlugTextView.setText(getEditPostRepository().getSlug());
         mPasswordTextView.setText(getEditPostRepository().getPassword());
-        updatePostFormatTextView();
-        updateTagsTextView();
+        PostImmutableModel postModel = getEditPostRepository().getPost();
+        updatePostFormatTextView(postModel);
+        updateTagsTextView(postModel);
         updateStatusTextView();
-        updatePublishDateTextView();
+        updatePublishDateTextView(postModel);
         mPublishedViewModel.start(getEditPostRepository());
-        updateCategoriesTextView();
+        updateCategoriesTextView(postModel);
         initLocation();
-        updateFeaturedImageView();
+        updateFeaturedImageView(postModel);
     }
 
     @Override
@@ -473,6 +518,7 @@ public class EditPostSettingsFragment extends Fragment {
                 case ACTIVITY_REQUEST_CODE_PICK_LOCATION:
                     if (isAdded() && resultCode == RESULT_OK) {
                         Place place = PlacePicker.getPlace(getActivity(), data);
+                        mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_LOCATION_CHANGED);
                         setLocation(place);
                     }
                     break;
@@ -481,6 +527,7 @@ public class EditPostSettingsFragment extends Fragment {
                     if (extras != null && extras.containsKey(KEY_SELECTED_CATEGORY_IDS)) {
                         @SuppressWarnings("unchecked")
                         List<Long> categoryList = (ArrayList<Long>) extras.getSerializable(KEY_SELECTED_CATEGORY_IDS);
+                        mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_CATEGORIES_ADDED);
                         updateCategories(categoryList);
                     }
                     break;
@@ -488,6 +535,7 @@ public class EditPostSettingsFragment extends Fragment {
                     extras = data.getExtras();
                     if (resultCode == RESULT_OK && extras != null) {
                         String selectedTags = extras.getString(PostSettingsTagsActivity.KEY_SELECTED_TAGS);
+                        PostAnalyticsUtilsKt.trackPostSettings(mAnalyticsTrackerWrapper, Stat.EDITOR_POST_TAGS_CHANGED);
                         updateTags(selectedTags);
                     }
                     break;
@@ -506,6 +554,7 @@ public class EditPostSettingsFragment extends Fragment {
                 new PostSettingsInputDialogFragment.PostSettingsInputDialogListener() {
                     @Override
                     public void onInputUpdated(String input) {
+                        mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_EXCERPT_CHANGED);
                         updateExcerpt(input);
                     }
                 });
@@ -523,6 +572,7 @@ public class EditPostSettingsFragment extends Fragment {
                 new PostSettingsInputDialogFragment.PostSettingsInputDialogListener() {
                     @Override
                     public void onInputUpdated(String input) {
+                        mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_SLUG_CHANGED);
                         updateSlug(input);
                     }
                 });
@@ -563,10 +613,12 @@ public class EditPostSettingsFragment extends Fragment {
                 int index = fragment.getCheckedIndex();
                 PostStatus status = getPostStatusAtIndex(index);
                 updatePostStatus(status);
+                PostAnalyticsUtilsKt.trackPostSettings(mAnalyticsTrackerWrapper, Stat.EDITOR_POST_VISIBILITY_CHANGED);
                 break;
             case POST_FORMAT:
                 String formatName = fragment.getSelectedItem();
                 updatePostFormat(getPostFormatKeyFromName(formatName));
+                mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_FORMAT_CHANGED);
                 break;
         }
     }
@@ -616,6 +668,8 @@ public class EditPostSettingsFragment extends Fragment {
                 new PostSettingsInputDialogFragment.PostSettingsInputDialogListener() {
                     @Override
                     public void onInputUpdated(String input) {
+                        PostAnalyticsUtilsKt
+                                .trackPostSettings(mAnalyticsTrackerWrapper, Stat.EDITOR_POST_PASSWORD_CHANGED);
                         updatePassword(input);
                     }
                 });
@@ -662,10 +716,14 @@ public class EditPostSettingsFragment extends Fragment {
     private void updateExcerpt(String excerpt) {
         EditPostRepository editPostRepository = getEditPostRepository();
         if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
+            editPostRepository.updateAsync(postModel -> {
                 postModel.setExcerpt(excerpt);
-                mExcerptTextView.setText(excerpt);
                 return true;
+            }, (postModel, result) -> {
+                if (result == UpdatePostResult.Updated.INSTANCE) {
+                    mExcerptTextView.setText(excerpt);
+                }
+                return null;
             });
         }
     }
@@ -673,23 +731,42 @@ public class EditPostSettingsFragment extends Fragment {
     private void updateSlug(String slug) {
         EditPostRepository editPostRepository = getEditPostRepository();
         if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
+            editPostRepository.updateAsync(postModel -> {
                 postModel.setSlug(slug);
-                mSlugTextView.setText(slug);
                 return true;
+            }, (postModel, result) -> {
+                if (result == UpdatePostResult.Updated.INSTANCE) {
+                    mSlugTextView.setText(slug);
+                }
+                return null;
             });
         }
     }
 
     private void updatePassword(String password) {
         EditPostRepository editPostRepository = getEditPostRepository();
-        if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
-                postModel.setPassword(password);
-                mPasswordTextView.setText(password);
-                return true;
-            });
-        }
+        if (editPostRepository == null) return;
+
+        String trimmedPassword = password.trim();
+        Boolean isNewPasswordBlank = trimmedPassword.isEmpty();
+        String previousPassword = editPostRepository.getPassword();
+        Boolean isPreviousPasswordBlank = previousPassword.trim().isEmpty();
+
+        // Nothing to save
+        if (isNewPasswordBlank && isPreviousPasswordBlank) return;
+
+        // Save untrimmed password if not blank, else save empty string
+        String newPassword = isNewPasswordBlank ? trimmedPassword : password;
+
+        editPostRepository.updateAsync(postModel -> {
+            postModel.setPassword(newPassword);
+            return true;
+        }, (postModel, result) -> {
+            if (result == UpdatePostResult.Updated.INSTANCE) {
+                mPasswordTextView.setText(newPassword);
+            }
+            return null;
+        });
     }
 
     private void updateCategories(List<Long> categoryList) {
@@ -698,41 +775,49 @@ public class EditPostSettingsFragment extends Fragment {
         }
         EditPostRepository editPostRepository = getEditPostRepository();
         if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
+            editPostRepository.updateAsync(postModel -> {
                 postModel.setCategoryIdList(categoryList);
-                updateCategoriesTextView();
                 return true;
+            }, (postModel, result) -> {
+                if (result == UpdatePostResult.Updated.INSTANCE) {
+                    updateCategoriesTextView(postModel);
+                }
+                return null;
             });
         }
     }
 
-    public void updatePostStatus(PostStatus postStatus) {
+    void updatePostStatus(PostStatus postStatus) {
         EditPostRepository editPostRepository = getEditPostRepository();
         if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
-                postModel.setStatus(postStatus.toString());
-                updatePostStatusRelatedViews();
-                updateSaveButton();
-                return true;
-            });
+            mUpdatePostStatusUseCase.updatePostStatus(postStatus, editPostRepository,
+                    postImmutableModel -> {
+                        updatePostStatusRelatedViews(postImmutableModel);
+                        updateSaveButton();
+                        return null;
+                    });
         }
     }
 
     private void updatePostFormat(String postFormat) {
         EditPostRepository editPostRepository = getEditPostRepository();
         if (editPostRepository != null) {
-            editPostRepository.updateInTransaction(postModel -> {
+            editPostRepository.updateAsync(postModel -> {
                 postModel.setPostFormat(postFormat);
-                updatePostFormatTextView();
                 return true;
+            }, (postModel, result) -> {
+                if (result == UpdatePostResult.Updated.INSTANCE) {
+                    updatePostFormatTextView(postModel);
+                }
+                return null;
             });
         }
     }
 
-    public void updatePostStatusRelatedViews() {
+    public void updatePostStatusRelatedViews(PostImmutableModel postModel) {
         updateStatusTextView();
-        updatePublishDateTextView();
-        mPublishedViewModel.onPostStatusChanged(getEditPostRepository());
+        updatePublishDateTextView(postModel);
+        mPublishedViewModel.onPostStatusChanged(postModel);
     }
 
     private void updateStatusTextView() {
@@ -751,51 +836,59 @@ public class EditPostSettingsFragment extends Fragment {
         if (postRepository == null) {
             return;
         }
-        postRepository.updateInTransaction(postModel -> {
+        postRepository.updateAsync(postModel -> {
             if (!TextUtils.isEmpty(selectedTags)) {
                 String tags = selectedTags.replace("\n", " ");
                 postModel.setTagNameList(Arrays.asList(TextUtils.split(tags, ",")));
             } else {
                 postModel.setTagNameList(new ArrayList<>());
             }
-            updateTagsTextView();
             return true;
+        }, (postModel, result) -> {
+            if (result == UpdatePostResult.Updated.INSTANCE) {
+                updateTagsTextView(postModel);
+            }
+            return null;
         });
     }
 
-    private void updateTagsTextView() {
-        String tags = TextUtils.join(",", getEditPostRepository().getTagNameList());
+    private void updateTagsTextView(PostImmutableModel postModel) {
+        String tags = TextUtils.join(",", postModel.getTagNameList());
         // If `tags` is empty, the hint "Not Set" will be shown instead
         tags = StringEscapeUtils.unescapeHtml4(tags);
         mTagsTextView.setText(tags);
     }
 
-    private void updatePostFormatTextView() {
+    private void updatePostFormatTextView(PostImmutableModel postModel) {
         // Post format can be updated due to a site settings fetch and the textView might not have been initialized yet
         if (mPostFormatTextView == null) {
             return;
         }
-        String postFormat = getPostFormatNameFromKey(getEditPostRepository().getPostFormat());
+        String postFormat = getPostFormatNameFromKey(postModel.getPostFormat());
         mPostFormatTextView.setText(postFormat);
     }
 
-    private void updatePublishDateTextView() {
+    private void updatePublishDateTextView(PostImmutableModel postModel) {
         if (!isAdded()) {
             return;
         }
-        EditPostRepository postRepository = getEditPostRepository();
-        if (postRepository != null) {
-            String labelToUse = mPostSettingsUtils.getPublishDateLabel(postRepository);
-            mPublishDateTextView.setText(labelToUse);
+        if (postModel != null) {
+            String labelToUse = mPostSettingsUtils.getPublishDateLabel(postModel);
+            updatePublishDateTextView(labelToUse, postModel);
         }
     }
 
-    private void updatePublishDateTextView(String label) {
+    private void updatePublishDateTextView(String label, PostImmutableModel postImmutableModel) {
         mPublishDateTextView.setText(label);
+
+        boolean isPrivatePost = postImmutableModel.getStatus().equals(PostStatus.PRIVATE.toString());
+
+        mPublishDateTextView.setEnabled(!isPrivatePost);
+        mPublishDateTitleTextView.setEnabled(!isPrivatePost);
+        mPublishDateContainer.setEnabled(!isPrivatePost);
     }
 
-    private void updateCategoriesTextView() {
-        PostImmutableModel post = getEditPostRepository().getPost();
+    private void updateCategoriesTextView(PostImmutableModel post) {
         if (post == null || getSite() == null) {
             // Since this method can get called after a callback, we have to make sure we have the post and site
             return;
@@ -902,10 +995,14 @@ public class EditPostSettingsFragment extends Fragment {
         if (postRepository == null) {
             return;
         }
-        postRepository.updateInTransaction(postModel -> {
+        postRepository.updateAsync(postModel -> {
             postModel.setFeaturedImageId(featuredImageId);
-            updateFeaturedImageView();
             return true;
+        }, (postModel, result) -> {
+            if (result == UpdatePostResult.Updated.INSTANCE) {
+                updateFeaturedImageView(postModel);
+            }
+            return null;
         });
     }
 
@@ -913,15 +1010,14 @@ public class EditPostSettingsFragment extends Fragment {
         updateFeaturedImage(0);
     }
 
-    private void updateFeaturedImageView() {
+    private void updateFeaturedImageView(PostImmutableModel postModel) {
         Context context = getContext();
-        PostImmutableModel post = getEditPostRepository().getPost();
         SiteModel site = getSite();
-        if (!isAdded() || post == null || site == null || context == null) {
+        if (!isAdded() || postModel == null || site == null || context == null) {
             return;
         }
         final FeaturedImageData currentFeaturedImageState =
-                mFeaturedImageHelper.createCurrentFeaturedImageState(site, post);
+                mFeaturedImageHelper.createCurrentFeaturedImageState(site, postModel);
 
         FeaturedImageState uiState = currentFeaturedImageState.getUiState();
         updateFeaturedImageViews(currentFeaturedImageState.getUiState());
@@ -935,10 +1031,10 @@ public class EditPostSettingsFragment extends Fragment {
                 mImageManager.loadWithResultListener(mFeaturedImageView, ImageType.IMAGE,
                         currentFeaturedImageState.getMediaUri(), ScaleType.FIT_CENTER,
                         null, new RequestListener<Drawable>() {
-                            @Override public void onLoadFailed(@org.jetbrains.annotations.Nullable Exception e) {
+                            @Override public void onLoadFailed(@Nullable Exception e, @Nullable Object model) {
                             }
 
-                            @Override public void onResourceReady(Drawable resource) {
+                            @Override public void onResourceReady(@NonNull Drawable resource, @Nullable Object model) {
                                 if (currentFeaturedImageState.getUiState() == FeaturedImageState.REMOTE_IMAGE_LOADING) {
                                     updateFeaturedImageViews(FeaturedImageState.REMOTE_IMAGE_SET);
                                 }
@@ -953,8 +1049,12 @@ public class EditPostSettingsFragment extends Fragment {
 
     private void launchFeaturedMediaPicker() {
         if (isAdded()) {
-            ActivityLauncher.showPhotoPickerForResult(getActivity(), MediaBrowserType.FEATURED_IMAGE_PICKER, getSite(),
-                    getEditPostRepository().getId());
+            int postId = getEditPostRepository().getId();
+            mFeaturedImageHelper.trackFeaturedImageEvent(TrackableEvent.IMAGE_SET_CLICKED, postId);
+
+            mMediaPickerLauncher
+                    .showPhotoPickerForResult(requireActivity(), MediaBrowserType.FEATURED_IMAGE_PICKER, getSite(),
+                            postId);
         }
     }
 
@@ -980,7 +1080,7 @@ public class EditPostSettingsFragment extends Fragment {
             return;
         }
         if (event.causeOfChange == TaxonomyAction.FETCH_CATEGORIES) {
-            updateCategoriesTextView();
+            updateCategoriesTextView(getEditPostRepository().getPost());
         }
     }
 
@@ -1024,7 +1124,7 @@ public class EditPostSettingsFragment extends Fragment {
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            for (int i = 0;; ++i) {
+            for (int i = 0; ; ++i) {
                 sb.append(address.getAddressLine(i));
                 if (i == address.getMaxAddressLineIndex()) {
                     sb.append(".");
@@ -1060,7 +1160,7 @@ public class EditPostSettingsFragment extends Fragment {
             ToastUtils.showToast(getActivity(), R.string.post_settings_error_placepicker_missing_play_services);
         } catch (GooglePlayServicesRepairableException re) {
             GoogleApiAvailability.getInstance().getErrorDialog(getActivity(), re.getConnectionStatusCode(),
-                                                               ACTIVITY_REQUEST_PLAY_SERVICES_RESOLUTION);
+                    ACTIVITY_REQUEST_PLAY_SERVICES_RESOLUTION);
         }
     }
 
@@ -1069,17 +1169,24 @@ public class EditPostSettingsFragment extends Fragment {
         if (postRepository == null) {
             return;
         }
-        postRepository.updateInTransaction(postModel -> {
+        postRepository.updateAsync(postModel -> {
             if (place == null) {
                 postModel.clearLocation();
-                mLocationTextView.setText("");
                 mPostLocation = null;
                 return false;
             }
             mPostLocation = new PostLocation(place.getLatLng().latitude, place.getLatLng().longitude);
             postModel.setLocation(mPostLocation);
-            mLocationTextView.setText(place.getAddress());
             return true;
+        }, (postModel, result) -> {
+            if (result == UpdatePostResult.Updated.INSTANCE) {
+                if (place == null) {
+                    mLocationTextView.setText("");
+                } else {
+                    mLocationTextView.setText(place.getAddress());
+                }
+            }
+            return null;
         });
     }
 
@@ -1115,6 +1222,7 @@ public class EditPostSettingsFragment extends Fragment {
                 if (menuItem.getItemId() == R.id.menu_change_location) {
                     showLocationPicker();
                 } else if (menuItem.getItemId() == R.id.menu_remove_location) {
+                    mAnalyticsTrackerWrapper.track(Stat.EDITOR_POST_LOCATION_CHANGED);
                     setLocation(null);
                 }
                 return true;

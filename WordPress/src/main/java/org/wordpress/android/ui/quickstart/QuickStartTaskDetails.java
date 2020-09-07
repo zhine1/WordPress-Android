@@ -13,6 +13,12 @@ public enum QuickStartTaskDetails {
             R.string.quick_start_list_create_site_subtitle,
             R.drawable.ic_plus_white_24dp
     ),
+    UPDATE_SITE_TITLE(
+            QuickStartTask.UPDATE_SITE_TITLE,
+            R.string.quick_start_list_update_site_title_title,
+            R.string.quick_start_list_update_site_title_subtitle,
+            R.drawable.ic_pencil_white_24dp
+    ),
     VIEW_SITE_TUTORIAL(
             QuickStartTask.VIEW_SITE,
             R.string.quick_start_list_view_site_title,
@@ -41,7 +47,7 @@ public enum QuickStartTaskDetails {
             QuickStartTask.PUBLISH_POST,
             R.string.quick_start_list_publish_post_title,
             R.string.quick_start_list_publish_post_subtitle,
-            R.drawable.ic_create_white_24dp
+            R.drawable.ic_posts_white_24dp
     ),
     FOLLOW_SITES_TUTORIAL(
             QuickStartTask.FOLLOW_SITE,

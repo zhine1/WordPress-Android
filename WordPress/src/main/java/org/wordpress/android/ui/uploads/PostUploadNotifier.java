@@ -33,7 +33,7 @@ import org.wordpress.android.ui.posts.PostsListActivity;
 import org.wordpress.android.ui.posts.PostsListActivityKt;
 import org.wordpress.android.ui.prefs.AppPrefs;
 import org.wordpress.android.util.AppLog;
-import org.wordpress.android.util.CrashLoggingUtils;
+import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.SystemServiceFactory;
 import org.wordpress.android.util.WPMeShortlinks;
 
@@ -346,7 +346,7 @@ class PostUploadNotifier {
                 .getPendingIntentForNotificationDismiss(mContext, (int) notificationId,
                         notificationType));
 
-        Intent notificationIntent = getNotificationIntent(post, site, notificationId);
+        Intent notificationIntent = getNotificationIntent(post, site);
         notificationIntent.putExtra(ARG_NOTIFICATION_TYPE, notificationType);
 
         PendingIntent pendingIntentPost = PendingIntent.getActivity(mContext,
@@ -493,7 +493,7 @@ class PostUploadNotifier {
                         mContext.getString(R.string.notification_channel_normal_id));
 
         long notificationId = getNotificationIdForPost(post);
-        Intent notificationIntent = getNotificationIntent(post, site, notificationId);
+        Intent notificationIntent = getNotificationIntent(post, site);
         notificationIntent.setAction(String.valueOf(notificationId));
         NotificationType notificationType = NotificationType.POST_UPLOAD_ERROR;
         notificationIntent.putExtra(ARG_NOTIFICATION_TYPE, notificationType);
@@ -537,8 +537,7 @@ class PostUploadNotifier {
     }
 
     @NonNull
-    private Intent getNotificationIntent(@NonNull PostImmutableModel post, @NonNull SiteModel site,
-                                         long notificationId) {
+    private Intent getNotificationIntent(@NonNull PostImmutableModel post, @NonNull SiteModel site) {
         // Tap notification intent (open the post/page list)
         Intent notificationIntent;
         if (post.isPage()) {
@@ -824,8 +823,7 @@ class PostUploadNotifier {
                 mSystemNotificationsTracker.trackShownNotification(notificationType);
             }
         } catch (RuntimeException runtimeException) {
-            CrashLoggingUtils.logException(runtimeException, AppLog.T.UTILS, "See issue #2858 / #3966");
-            AppLog.d(AppLog.T.POSTS, "See issue #2858 / #3966; notify failed with:" + runtimeException);
+            AppLog.e(T.POSTS, "doNotify failed; See issue #2858 / #3966", runtimeException);
         }
     }
 

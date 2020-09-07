@@ -118,7 +118,7 @@ class StatsListFragment : DaggerFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val nonNullActivity = checkNotNull(activity)
+        val nonNullActivity = requireActivity()
 
         initializeViews(savedInstanceState)
         initializeViewModels(nonNullActivity)
@@ -147,65 +147,63 @@ class StatsListFragment : DaggerFragment() {
     }
 
     private fun setupObservers(activity: FragmentActivity) {
-        viewModel.uiModel.observe(this, Observer {
-            if (it != null) {
-                when (it) {
-                    is UiModel.Success -> {
-                        updateInsights(it.data)
+        viewModel.uiModel.observe(viewLifecycleOwner, Observer {
+            when (it) {
+                is UiModel.Success -> {
+                    updateInsights(it.data)
+                }
+                is UiModel.Error, null -> {
+                    recyclerView.visibility = View.GONE
+                    statsErrorView.visibility = View.VISIBLE
+                    statsEmptyView.visibility = View.GONE
+                }
+                is UiModel.Empty -> {
+                    recyclerView.visibility = View.GONE
+                    statsEmptyView.visibility = View.VISIBLE
+                    statsErrorView.visibility = View.GONE
+                    statsEmptyView.title.setText(it.title)
+                    if (it.subtitle != null) {
+                        statsEmptyView.subtitle.setText(it.subtitle)
+                    } else {
+                        statsEmptyView.subtitle.text = ""
                     }
-                    is UiModel.Error -> {
-                        recyclerView.visibility = View.GONE
-                        statsErrorView.visibility = View.VISIBLE
-                        statsEmptyView.visibility = View.GONE
+                    if (it.image != null) {
+                        statsEmptyView.image.setImageResource(it.image)
+                    } else {
+                        statsEmptyView.image.setImageDrawable(null)
                     }
-                    is UiModel.Empty -> {
-                        recyclerView.visibility = View.GONE
-                        statsEmptyView.visibility = View.VISIBLE
-                        statsErrorView.visibility = View.GONE
-                        statsEmptyView.title.setText(it.title)
-                        if (it.subtitle != null) {
-                            statsEmptyView.subtitle.setText(it.subtitle)
-                        } else {
-                            statsEmptyView.subtitle.text = ""
-                        }
-                        if (it.image != null) {
-                            statsEmptyView.image.setImageResource(it.image)
-                        } else {
-                            statsEmptyView.image.setImageDrawable(null)
-                        }
-                        statsEmptyView.button.setVisible(it.showButton)
-                    }
+                    statsEmptyView.button.setVisible(it.showButton)
                 }
             }
         })
 
-        viewModel.dateSelectorData.observe(this, Observer { dateSelectorUiModel ->
+        viewModel.dateSelectorData.observe(viewLifecycleOwner, Observer { dateSelectorUiModel ->
             drawDateSelector(dateSelectorUiModel)
         })
 
-        viewModel.navigationTarget.observe(this, Observer { event ->
+        viewModel.navigationTarget.observe(viewLifecycleOwner, Observer { event ->
             event?.getContentIfNotHandled()?.let { target ->
                 navigator.navigate(activity, target)
             }
         })
 
-        viewModel.selectedDate.observe(this, Observer { event ->
+        viewModel.selectedDate.observe(viewLifecycleOwner, Observer { event ->
             if (event != null) {
                 viewModel.onDateChanged(event.selectedSection)
             }
         })
 
-        viewModel.listSelected.observe(this, Observer {
+        viewModel.listSelected.observe(viewLifecycleOwner, Observer {
             viewModel.onListSelected()
         })
 
-        viewModel.typesChanged.observe(this, Observer { event ->
+        viewModel.typesChanged.observe(viewLifecycleOwner, Observer { event ->
             event?.getContentIfNotHandled()?.let {
                 viewModel.onTypesChanged()
             }
         })
 
-        viewModel.scrollTo?.observe(this, Observer { event ->
+        viewModel.scrollTo?.observe(viewLifecycleOwner, Observer { event ->
             if (event != null) {
                 (recyclerView.adapter as? StatsBlockAdapter)?.let { adapter ->
                     event.getContentIfNotHandled()?.let { statsType ->

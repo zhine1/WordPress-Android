@@ -1,6 +1,7 @@
 package org.wordpress.android.util.analytics;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
@@ -9,6 +10,7 @@ import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,12 +23,16 @@ import org.wordpress.android.datasets.ReaderPostTable;
 import org.wordpress.android.fluxc.Dispatcher;
 import org.wordpress.android.fluxc.generated.AccountActionBuilder;
 import org.wordpress.android.fluxc.model.CommentModel;
+import org.wordpress.android.fluxc.model.PostImmutableModel;
 import org.wordpress.android.fluxc.model.SiteModel;
 import org.wordpress.android.fluxc.store.AccountStore;
 import org.wordpress.android.fluxc.store.AccountStore.PushAccountSettingsPayload;
 import org.wordpress.android.fluxc.store.SiteStore;
 import org.wordpress.android.models.ReaderPost;
+import org.wordpress.android.ui.PagePostCreationSourcesDetail;
+import org.wordpress.android.ui.posts.EditPostActivity;
 import org.wordpress.android.ui.posts.PostListViewLayoutType;
+import org.wordpress.android.ui.posts.PostUtils;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.FluxCUtils;
 import org.wordpress.android.util.ImageUtils;
@@ -37,12 +43,10 @@ import org.wordpress.android.util.VideoUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.wordpress.android.analytics.AnalyticsTracker.Stat.NEWS_CARD_DIMISSED;
-import static org.wordpress.android.analytics.AnalyticsTracker.Stat.NEWS_CARD_EXTENDED_INFO_REQUESTED;
-import static org.wordpress.android.analytics.AnalyticsTracker.Stat.NEWS_CARD_SHOWN;
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_ARTICLE_COMMENTED_ON;
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_ARTICLE_LIKED;
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_ARTICLE_OPENED;
@@ -51,6 +55,8 @@ import static org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_LOCAL
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.READER_SEARCH_RESULT_TAPPED;
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.TRAIN_TRACKS_INTERACT;
 import static org.wordpress.android.analytics.AnalyticsTracker.Stat.TRAIN_TRACKS_RENDER;
+import static org.wordpress.android.ui.PagePostCreationSourcesDetail.CREATED_POST_SOURCE_DETAIL_KEY;
+import static org.wordpress.android.ui.posts.EditPostActivity.EXTRA_IS_QUICKPRESS;
 
 public class AnalyticsUtils {
     private static final String BLOG_ID_KEY = "blog_id";
@@ -58,6 +64,9 @@ public class AnalyticsUtils {
     private static final String COMMENT_ID_KEY = "comment_id";
     private static final String FEED_ID_KEY = "feed_id";
     private static final String FEED_ITEM_ID_KEY = "feed_item_id";
+    private static final String SOURCE_BLOG_ID_KEY = "source_blog_id";
+    private static final String SOURCE_POST_ID_KEY = "source_post_id";
+    private static final String TARGET_BLOG_ID_KEY = "target_blog_id";
     private static final String IS_JETPACK_KEY = "is_jetpack";
     private static final String INTENT_ACTION = "intent_action";
     private static final String INTENT_HOST = "intent_host";
@@ -68,19 +77,66 @@ public class AnalyticsUtils {
     private static final String NEWS_CARD_VERSION = "version";
 
     public static final String HAS_GUTENBERG_BLOCKS_KEY = "has_gutenberg_blocks";
+    public static final String HAS_WP_STORIES_BLOCKS_KEY = "has_wp_stories_blocks";
     public static final String EDITOR_HAS_HW_ACCELERATION_DISABLED_KEY = "editor_has_hw_disabled";
+    public static final String EXTRA_CREATION_SOURCE_DETAIL = "creationSourceDetail";
 
     public enum BlockEditorEnabledSource {
         VIA_SITE_SETTINGS,
         ON_SITE_CREATION,
         ON_BLOCK_POST_OPENING,
-        ON_PROGRESSIVE_ROLLOUT;
+        ON_PROGRESSIVE_ROLLOUT_PHASE_1,
+        ON_PROGRESSIVE_ROLLOUT_PHASE_2;
 
         public Map<String, Object> asPropertyMap() {
             Map<String, Object> properties = new HashMap<>();
             properties.put("source", name().toLowerCase(Locale.ROOT));
             return properties;
         }
+    }
+
+    public static void trackEditorCreatedPost(String action, Intent intent, SiteModel site, PostImmutableModel post) {
+        Map<String, Object> properties = new HashMap<>();
+        // Post created from the post list (new post button).
+        String normalizedSourceName = "post-list";
+
+        if (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+            // Post created with share with WordPress
+            normalizedSourceName = "shared-from-external-app";
+        }
+        if (EditPostActivity.NEW_MEDIA_POST.equals(
+                action)) {
+            // Post created from the media library
+            normalizedSourceName = "media-library";
+        }
+        if (intent != null && intent.hasExtra(EXTRA_IS_QUICKPRESS)) {
+            // Quick press
+            normalizedSourceName = "quick-press";
+        }
+        PostUtils.addPostTypeAndPostFormatToAnalyticsProperties(post, properties);
+        properties.put("created_post_source", normalizedSourceName);
+
+        if (intent != null
+            && intent.hasExtra(EXTRA_CREATION_SOURCE_DETAIL)
+            && normalizedSourceName == "post-list") {
+            PagePostCreationSourcesDetail source =
+                    (PagePostCreationSourcesDetail) intent.getSerializableExtra(EXTRA_CREATION_SOURCE_DETAIL);
+            properties.put(
+                    CREATED_POST_SOURCE_DETAIL_KEY,
+                    source != null ? source.getLabel() : PagePostCreationSourcesDetail.NO_DETAIL.getLabel()
+            );
+        } else {
+            properties.put(
+                    CREATED_POST_SOURCE_DETAIL_KEY,
+                    PagePostCreationSourcesDetail.NO_DETAIL.getLabel()
+            );
+        }
+
+        AnalyticsUtils.trackWithSiteDetails(
+                AnalyticsTracker.Stat.EDITOR_CREATED_POST,
+                site,
+                properties
+        );
     }
 
     public static void updateAnalyticsPreference(Context ctx,
@@ -118,14 +174,21 @@ public class AnalyticsUtils {
         metadata.setNumBlogs(siteStore.getSitesCount());
         metadata.setUsername(accountStore.getAccount().getUserName());
         metadata.setEmail(accountStore.getAccount().getEmail());
-        for (SiteModel currentSite : siteStore.getSites()) {
-            if (SiteUtils.GB_EDITOR_NAME.equals(currentSite.getMobileEditor())) {
-                metadata.setGutenbergEnabled(true);
-                break;
-            }
+        if (siteStore.hasSite()) {
+            metadata.setGutenbergEnabled(isGutenbergEnabledOnAnySite(siteStore.getSites()));
         }
 
         AnalyticsTracker.refreshMetadata(metadata);
+    }
+
+    @VisibleForTesting
+    protected static boolean isGutenbergEnabledOnAnySite(List<SiteModel> sites) {
+        for (SiteModel currentSite : sites) {
+            if (SiteUtils.GB_EDITOR_NAME.equals(currentSite.getMobileEditor())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -338,6 +401,21 @@ public class AnalyticsUtils {
         AnalyticsTracker.track(stat, properties);
     }
 
+    public static void trackWithReblogDetails(
+            AnalyticsTracker.Stat stat,
+            long sourceBlogId,
+            long sourcePostId,
+            long targetSiteId
+    ) {
+        Map<String, Object> properties = new HashMap<>();
+
+        properties.put(SOURCE_BLOG_ID_KEY, sourceBlogId);
+        properties.put(SOURCE_POST_ID_KEY, sourcePostId);
+        properties.put(TARGET_BLOG_ID_KEY, targetSiteId);
+
+        AnalyticsTracker.track(stat, properties);
+    }
+
     /**
      * Track when app launched via deep-linking
      *
@@ -519,38 +597,17 @@ public class AnalyticsUtils {
      * @param username
      * @param email
      */
-    public static void trackAnalyticsAccountCreated(String username, String email) {
+    public static void trackAnalyticsAccountCreated(String username, String email, Map<String, Object> properties) {
         AnalyticsUtils.refreshMetadataNewUser(username, email);
         // This stat is part of a funnel that provides critical information.  Before
         // making ANY modification to this stat please refer to: p4qSXL-35X-p2
-        AnalyticsTracker.track(Stat.CREATED_ACCOUNT);
+        AnalyticsTracker.track(Stat.CREATED_ACCOUNT, properties);
     }
 
     public static void trackAnalyticsPostListToggleLayout(PostListViewLayoutType viewLayoutType) {
         Map<String, String> properties = new HashMap<>();
         properties.put("post_list_view_layout_type", viewLayoutType.toString());
         AnalyticsTracker.track(AnalyticsTracker.Stat.POST_LIST_VIEW_LAYOUT_TOGGLED, properties);
-    }
-
-    /**
-     * Don't use this method directly, use injectable NewsTracker instead.
-     */
-    public static void trackNewsCardShown(String origin, int version) {
-        AnalyticsTracker.track(NEWS_CARD_SHOWN, createNewsCardProperties(origin, version));
-    }
-
-    /**
-     * Don't use this method directly, use injectable NewsTracker instead.
-     */
-    public static void trackNewsCardDismissed(String origin, int version) {
-        AnalyticsTracker.track(NEWS_CARD_DIMISSED, createNewsCardProperties(origin, version));
-    }
-
-    /**
-     * Don't use this method directly, use injectable NewsTracker instead.
-     */
-    public static void trackNewsCardExtendedInfoRequested(String origin, int version) {
-        AnalyticsTracker.track(NEWS_CARD_EXTENDED_INFO_REQUESTED, createNewsCardProperties(origin, version));
     }
 
     private static Map<String, String> createNewsCardProperties(String origin, int version) {

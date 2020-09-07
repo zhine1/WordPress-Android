@@ -18,11 +18,15 @@ public interface LoginListener {
     LoginMode getLoginMode();
 
     // Login Email input callbacks
-    void gotWpcomEmail(String email);
+    void gotWpcomEmail(String email, boolean verifyEmail);
+    void gotUnregisteredEmail(String email);
+    void gotUnregisteredSocialAccount(String email, String displayName, String idToken, String photoUrl,
+                                      String service);
     void loginViaSiteAddress();
     void loginViaSocialAccount(String email, String idToken, String service, boolean isPasswordRequired);
     void loggedInViaSocialAccount(ArrayList<Integer> oldSiteIds, boolean doLoginUpdate);
     void loginViaWpcomUsernameInstead();
+    void loginViaSiteCredentials(String inputSiteAddress);
     void helpEmailScreen(String email);
     void helpSocialEmailScreen(String email);
     void addGoogleLoginFragment();
@@ -59,6 +63,10 @@ public interface LoginListener {
                                     @NonNull String displayName, @Nullable Uri profilePicture);
     void loggedInViaUsernamePassword(ArrayList<Integer> oldSitesIds);
     void helpUsernamePassword(String url, String username, boolean isWpcom);
+    void helpNoJetpackScreen(String siteAddress, String endpointAddress, String username,
+                             String password, String userAvatarUrl, Boolean checkJetpackAvailability);
+    void helpHandleDiscoveryError(String siteAddress, String endpointAddress, String username,
+                                  String password, String userAvatarUrl, int errorMessage);
 
     // Login 2FA screen callbacks
     void help2FaScreen(String email);
@@ -71,6 +79,8 @@ public interface LoginListener {
     void doStartSignup();
     void helpSignupEmailScreen(String email);
     void helpSignupMagicLinkScreen(String email);
+    void helpSignupConfirmationScreen(String email);
     void showSignupMagicLink(String email);
+    void showSignupSocial(String email, String displayName, String idToken, String photoUrl, String service);
     void showSignupToLoginMessage();
 }

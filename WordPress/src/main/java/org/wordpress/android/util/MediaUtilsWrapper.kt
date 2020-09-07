@@ -43,6 +43,10 @@ class MediaUtilsWrapper @Inject constructor(private val appContext: Context) {
 
     fun getMimeType(uri: Uri): String? = appContext.contentResolver.getType(uri)
 
-    fun getVideoThumbnail(videoPath: String): String? =
-            EditorMediaUtils.getVideoThumbnail(appContext, videoPath)
+    fun getVideoThumbnail(videoPath: String, headers: Map<String, String>): String? =
+            EditorMediaUtils.getVideoThumbnail(appContext, videoPath, headers)
+
+    fun isLocalFile(uploadState: String): Boolean = MediaUtils.isLocalFile(uploadState)
+
+    fun getExtensionForMimeType(mimeType: String?): String = MediaUtils.getExtensionForMimeType(mimeType)
 }

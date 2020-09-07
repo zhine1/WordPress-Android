@@ -5,6 +5,8 @@ import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 import android.webkit.URLUtil;
 
+import androidx.annotation.Nullable;
+
 import org.wordpress.android.util.AppLog.T;
 
 import java.io.UnsupportedEncodingException;
@@ -17,6 +19,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import static org.wordpress.android.util.PhotonUtils.ATOMIC_MEDIA_PROXY_URL_PREFIX;
+import static org.wordpress.android.util.PhotonUtils.ATOMIC_MEDIA_PROXY_URL_SUFFIX;
 
 public class UrlUtils {
     public static String urlEncode(final String text) {
@@ -47,6 +52,10 @@ public class UrlUtils {
             }
         }
         return "";
+    }
+
+    public static boolean isContentUri(String uri) {
+        return "content".equals(Uri.parse(uri).getScheme());
     }
 
     /**
@@ -242,8 +251,30 @@ public class UrlUtils {
 
         String cleanedUrl = removeQuery(url.toLowerCase(Locale.ROOT));
 
+        if (isAtomicImageProxyUrl(cleanedUrl)) {
+            return true;
+        }
+
         return cleanedUrl.endsWith("jpg") || cleanedUrl.endsWith("jpeg")
                || cleanedUrl.endsWith("gif") || cleanedUrl.endsWith("png");
+    }
+
+    public static @Nullable String getPageJumpOrNull(String url) {
+        if (TextUtils.isEmpty(url)) {
+            return null;
+        }
+
+        if (url.contains("#")
+            && url.indexOf("#") < url.length() - 1
+            && url.split("#").length == 2) {
+            return url.substring(url.indexOf('#') + 1);
+        }
+
+        return null;
+    }
+
+    private static boolean isAtomicImageProxyUrl(String urlString) {
+        return urlString.startsWith(ATOMIC_MEDIA_PROXY_URL_PREFIX) && urlString.endsWith(ATOMIC_MEDIA_PROXY_URL_SUFFIX);
     }
 
     public static String appendUrlParameter(String url, String paramName, String paramValue) {

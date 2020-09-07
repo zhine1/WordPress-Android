@@ -1,39 +1,37 @@
 package org.wordpress.android.ui.accounts;
 
-import android.content.Context;
 import android.os.Bundle;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.fluxc.store.AccountStore;
+import org.wordpress.android.fluxc.store.SiteStore;
 import org.wordpress.android.ui.ActivityLauncher;
+import org.wordpress.android.ui.LocaleAwareActivity;
 import org.wordpress.android.ui.accounts.login.LoginEpilogueFragment;
 import org.wordpress.android.ui.accounts.login.LoginEpilogueListener;
-import org.wordpress.android.util.LocaleManager;
+import org.wordpress.android.ui.prefs.AppPrefs;
 
 import java.util.ArrayList;
 
 import javax.inject.Inject;
 
-public class LoginEpilogueActivity extends AppCompatActivity implements LoginEpilogueListener {
+public class LoginEpilogueActivity extends LocaleAwareActivity implements LoginEpilogueListener {
     public static final String EXTRA_DO_LOGIN_UPDATE = "EXTRA_DO_LOGIN_UPDATE";
     public static final String EXTRA_SHOW_AND_RETURN = "EXTRA_SHOW_AND_RETURN";
     public static final String ARG_OLD_SITES_IDS = "ARG_OLD_SITES_IDS";
 
     @Inject AccountStore mAccountStore;
-
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(LocaleManager.setLocale(newBase));
-    }
+    @Inject SiteStore mSiteStore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ((WordPress) getApplication()).component().inject(this);
+
+        LoginFlowThemeHelper.injectMissingCustomAttributes(getTheme());
 
         setContentView(R.layout.login_epilogue_activity);
 
@@ -67,6 +65,10 @@ public class LoginEpilogueActivity extends AppCompatActivity implements LoginEpi
 
     @Override
     public void onContinue() {
+        if (!mSiteStore.hasSite() && AppPrefs.shouldShowPostSignupInterstitial()) {
+            ActivityLauncher.showPostSignupInterstitial(this);
+        }
+
         setResult(RESULT_OK);
         finish();
     }

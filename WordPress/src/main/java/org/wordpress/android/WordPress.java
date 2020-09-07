@@ -1,5 +1,6 @@
 package org.wordpress.android;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.app.NotificationChannel;
@@ -24,6 +25,10 @@ import android.webkit.WebView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.provider.FontRequest;
+import androidx.emoji.text.EmojiCompat;
+import androidx.emoji.text.EmojiCompat.InitCallback;
+import androidx.emoji.text.FontRequestEmojiCompatConfig;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
@@ -37,14 +42,17 @@ import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.wordpress.rest.RestClient;
+import com.wordpress.stories.compose.NotificationTrackerProvider;
+import com.wordpress.stories.compose.frame.StoryNotificationType;
 import com.yarolegovich.wellsql.WellSql;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.jetbrains.annotations.NotNull;
 import org.wordpress.android.analytics.AnalyticsTracker;
 import org.wordpress.android.analytics.AnalyticsTracker.Stat;
-import org.wordpress.android.analytics.AnalyticsTrackerNosara;
+import org.wordpress.android.analytics.Tracker;
 import org.wordpress.android.datasets.NotificationsTable;
 import org.wordpress.android.datasets.ReaderDatabase;
 import org.wordpress.android.fluxc.Dispatcher;
@@ -55,6 +63,7 @@ import org.wordpress.android.fluxc.generated.PostActionBuilder;
 import org.wordpress.android.fluxc.generated.SiteActionBuilder;
 import org.wordpress.android.fluxc.generated.ThemeActionBuilder;
 import org.wordpress.android.fluxc.model.SiteModel;
+import org.wordpress.android.fluxc.network.rest.wpcom.site.PrivateAtomicCookie;
 import org.wordpress.android.fluxc.persistence.WellSqlConfig;
 import org.wordpress.android.fluxc.store.AccountStore;
 import org.wordpress.android.fluxc.store.AccountStore.OnAccountChanged;
@@ -71,22 +80,30 @@ import org.wordpress.android.networking.ConnectionChangeReceiver;
 import org.wordpress.android.networking.OAuthAuthenticator;
 import org.wordpress.android.networking.RestClientUtils;
 import org.wordpress.android.push.GCMRegistrationIntentService;
+import org.wordpress.android.push.NotificationType;
 import org.wordpress.android.support.ZendeskHelper;
 import org.wordpress.android.ui.ActivityId;
 import org.wordpress.android.ui.notifications.SystemNotificationsTracker;
 import org.wordpress.android.ui.notifications.services.NotificationsUpdateServiceStarter;
 import org.wordpress.android.ui.notifications.utils.NotificationsUtils;
+import org.wordpress.android.ui.posts.editor.ImageEditorFileUtils;
+import org.wordpress.android.ui.posts.editor.ImageEditorInitializer;
+import org.wordpress.android.ui.posts.editor.ImageEditorTracker;
 import org.wordpress.android.ui.prefs.AppPrefs;
+import org.wordpress.android.ui.reader.tracker.ReaderTracker;
 import org.wordpress.android.ui.stats.refresh.lists.widget.WidgetUpdater.StatsWidgetUpdaters;
+import org.wordpress.android.ui.stories.media.StoryMediaSaveUploadBridge;
 import org.wordpress.android.ui.uploads.UploadService;
 import org.wordpress.android.ui.uploads.UploadStarter;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.AppLogListener;
 import org.wordpress.android.util.AppLog.LogLevel;
 import org.wordpress.android.util.AppLog.T;
+import org.wordpress.android.util.AppThemeUtils;
 import org.wordpress.android.util.BitmapLruCache;
-import org.wordpress.android.util.CrashLoggingUtils;
+import org.wordpress.android.util.CrashLogging;
 import org.wordpress.android.util.DateTimeUtils;
+import org.wordpress.android.util.EncryptedLogging;
 import org.wordpress.android.util.FluxCUtils;
 import org.wordpress.android.util.LocaleManager;
 import org.wordpress.android.util.NetworkUtils;
@@ -99,6 +116,8 @@ import org.wordpress.android.util.UploadWorker;
 import org.wordpress.android.util.UploadWorkerKt;
 import org.wordpress.android.util.VolleyUtils;
 import org.wordpress.android.util.analytics.AnalyticsUtils;
+import org.wordpress.android.util.config.AppConfig;
+import org.wordpress.android.util.image.ImageManager;
 import org.wordpress.android.widgets.AppRatingDialog;
 
 import java.io.File;
@@ -115,6 +134,9 @@ import dagger.android.AndroidInjector;
 import dagger.android.DispatchingAndroidInjector;
 import dagger.android.HasServiceInjector;
 import dagger.android.support.HasSupportFragmentInjector;
+import kotlinx.coroutines.CoroutineScope;
+
+import static org.wordpress.android.modules.ThreadModuleKt.DEFAULT_SCOPE;
 
 public class WordPress extends MultiDexApplication implements HasServiceInjector, HasSupportFragmentInjector,
         LifecycleObserver {
@@ -124,18 +146,20 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     public static WordPressDB wpDB;
     public static boolean sAppIsInTheBackground = true;
 
-    private static RestClientUtils sRestClientUtils;
-    private static RestClientUtils sRestClientUtilsVersion1p1;
-    private static RestClientUtils sRestClientUtilsVersion1p2;
-    private static RestClientUtils sRestClientUtilsVersion1p3;
-    private static RestClientUtils sRestClientUtilsVersion0;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtils;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtilsVersion1p1;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtilsVersion1p2;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtilsVersion1p3;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtilsVersion2p1;
+    @SuppressLint("StaticFieldLeak") private static RestClientUtils sRestClientUtilsVersion0;
 
     private static final int SECONDS_BETWEEN_SITE_UPDATE = 60 * 60; // 1 hour
     private static final int SECONDS_BETWEEN_BLOGLIST_UPDATE = 15 * 60; // 15 minutes
 
-    private static Context mContext;
+    @SuppressLint("StaticFieldLeak") private static Context mContext;
     private static BitmapLruCache mBitmapCache;
     private static ApplicationLifecycleMonitor mApplicationLifecycleMonitor;
+    private static StoryNotificationTrackerProvider mStoryNotificationTrackerProvider;
 
     private static GoogleApiClient mCredentialsClient;
 
@@ -151,6 +175,19 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     @Inject StatsWidgetUpdaters mStatsWidgetUpdaters;
     @Inject StatsStore mStatsStore;
     @Inject SystemNotificationsTracker mSystemNotificationsTracker;
+    @Inject ReaderTracker mReaderTracker;
+    @Inject ImageManager mImageManager;
+    @Inject PrivateAtomicCookie mPrivateAtomicCookie;
+    @Inject ImageEditorTracker mImageEditorTracker;
+    @Inject StoryMediaSaveUploadBridge mStoryMediaSaveUploadBridge;
+    @Inject CrashLogging mCrashLogging;
+    @Inject EncryptedLogging mEncryptedLogging;
+    @Inject AppConfig mAppConfig;
+    @Inject ImageEditorFileUtils mImageEditorFileUtils;
+    @Inject @Named(DEFAULT_SCOPE) CoroutineScope mDefaultScope;
+
+    // For development and production `AnalyticsTrackerNosara`, for testing a mocked `Tracker` will be injected.
+    @Inject Tracker mTracker;
 
     @Inject @Named("custom-ssl") RequestQueue mRequestQueue;
     public static RequestQueue sRequestQueue;
@@ -209,17 +246,10 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     }
 
     @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(LocaleManager.setLocale(base));
-    }
-
-    @Override
     public void onCreate() {
         super.onCreate();
         mContext = this;
         long startDate = SystemClock.elapsedRealtime();
-
-        CrashLoggingUtils.startCrashLogging(getContext());
 
         // This call needs be made before accessing any methods in android.webkit package
         setWebViewDataDirectorySuffixOnAndroidP();
@@ -231,21 +261,27 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
         component().inject(this);
         mDispatcher.register(this);
 
+        // Start crash logging and upload any encrypted logs that were queued but not yet uploaded
+        mCrashLogging.start(getContext());
+        mEncryptedLogging.start();
+
         // Init static fields from dagger injected singletons, for legacy Actions and Utilities
         sRequestQueue = mRequestQueue;
         sImageLoader = mImageLoader;
         sOAuthAuthenticator = mOAuthAuthenticator;
 
         ProfilingUtils.start("App Startup");
+
         // Enable log recording
         AppLog.enableRecording(true);
+        AppLog.enableLogFilePersistence(this.getBaseContext(), 30);
         AppLog.addListener(new AppLogListener() {
             @Override
             public void onLog(T tag, LogLevel logLevel, String message) {
                 StringBuffer sb = new StringBuffer();
                 sb.append(logLevel.toString()).append("/").append(AppLog.TAG).append("-")
                   .append(tag.toString()).append(": ").append(message);
-                CrashLoggingUtils.log(sb.toString());
+                mCrashLogging.log(sb.toString());
             }
         });
         AppLog.i(T.UTILS, "WordPress.onCreate");
@@ -288,6 +324,7 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
         // with memory usage and the use of Configuration). More information: http://bit.ly/2H1KTQo
         // Note: if removed, this will cause crashes on Android < 21
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+        AppThemeUtils.Companion.setAppTheme(this);
 
         // verify media is sanitized
         sanitizeMediaUploadStateForSite();
@@ -317,6 +354,17 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
         UploadWorkerKt.enqueuePeriodicUploadWorkRequestForAllSites();
 
         mSystemNotificationsTracker.checkSystemNotificationsState();
+        ImageEditorInitializer.Companion.init(
+                mImageManager,
+                mImageEditorTracker,
+                mImageEditorFileUtils,
+                mDefaultScope
+        );
+
+        initEmojiCompat();
+        mStoryNotificationTrackerProvider = new StoryNotificationTrackerProvider();
+        mStoryMediaSaveUploadBridge.init(this);
+        ProcessLifecycleOwner.get().getLifecycle().addObserver(mStoryMediaSaveUploadBridge);
     }
 
     protected void initWorkManager() {
@@ -395,7 +443,7 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     }
 
     private void initAnalytics(final long elapsedTimeOnCreate) {
-        AnalyticsTracker.registerTracker(new AnalyticsTrackerNosara(getContext()));
+        AnalyticsTracker.registerTracker(mTracker);
         AnalyticsTracker.init(getContext());
 
         AnalyticsUtils.refreshMetadata(mAccountStore, mSiteStore);
@@ -495,6 +543,14 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
                                                              null, RestClient.REST_CLIENT_VERSIONS.V1_3);
         }
         return sRestClientUtilsVersion1p3;
+    }
+
+    public static RestClientUtils getRestClientUtilsV2() {
+        if (sRestClientUtilsVersion2p1 == null) {
+            sRestClientUtilsVersion2p1 = new RestClientUtils(mContext, sRequestQueue, sOAuthAuthenticator,
+                    null, RestClient.REST_CLIENT_VERSIONS.V2);
+        }
+        return sRestClientUtilsVersion2p1;
     }
 
     public static RestClientUtils getRestClientUtilsV0() {
@@ -614,6 +670,9 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
 
         // Cancel QuickStart reminders
         QuickStartUtils.cancelQuickStartReminder(context);
+
+        // Remove private Atomic cookie
+        mPrivateAtomicCookie.clearCookie();
     }
 
     private static String mDefaultUserAgent;
@@ -762,6 +821,39 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
         return "";
     }
 
+    private void initEmojiCompat() {
+        EmojiCompat.Config config;
+
+        // Use a downloadable font for EmojiCompat
+        FontRequest fontRequest = new FontRequest(
+                "com.google.android.gms.fonts",
+                "com.google.android.gms",
+                "Noto Color Emoji Compat",
+                R.array.com_google_android_gms_fonts_certs
+        );
+        config = new FontRequestEmojiCompatConfig(getApplicationContext(), fontRequest);
+        config.setReplaceAll(true);
+        config.setUseEmojiAsDefaultStyle(true);
+
+        config.registerInitCallback(new InitCallback() {
+            @Override public void onInitialized() {
+                super.onInitialized();
+                AppLog.d(T.MAIN, "EmojiCompat initialized");
+            }
+
+            @Override public void onFailed(@Nullable Throwable throwable) {
+                super.onFailed(throwable);
+                AppLog.d(T.MAIN, "EmojiCompat initialization failed: " + throwable.getMessage());
+            }
+        });
+
+        EmojiCompat.init(config);
+    }
+
+    public StoryNotificationTrackerProvider getStoryNotificationTrackerProvider() {
+        return mStoryNotificationTrackerProvider;
+    }
+
     @Override
     public AndroidInjector<Service> serviceInjector() {
         return mServiceDispatchingAndroidInjector;
@@ -774,6 +866,7 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     void onAppComesFromBackground() {
         mApplicationLifecycleMonitor.onAppComesFromBackground();
+        mAppConfig.refresh();
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
@@ -832,6 +925,10 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
                 properties.put("time_in_app", DateTimeUtils.secondsBetween(now, mApplicationOpenedDate));
                 mApplicationOpenedDate = null;
             }
+            properties.putAll(mReaderTracker.getAnalyticsData());
+
+            mReaderTracker.onAppGoesToBackground();
+
             AnalyticsTracker.track(AnalyticsTracker.Stat.APPLICATION_CLOSED, properties);
             AnalyticsTracker.endSession(false);
             // Methods onAppComesFromBackground and onAppGoesToBackground are only workarounds to track when the
@@ -844,7 +941,6 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
                     AppLog.d(T.MAIN, "ConnectionChangeReceiver successfully unregistered");
                 } catch (IllegalArgumentException e) {
                     AppLog.e(T.MAIN, "ConnectionChangeReceiver was already unregistered");
-                    CrashLoggingUtils.log(e);
                 }
             }
         }
@@ -855,6 +951,7 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
          * 2. the app was in background and is now foreground
          */
         public void onAppComesFromBackground() {
+            mReaderTracker.setupTrackers();
             AppLog.i(T.UTILS, "App comes from background");
             if (!sAppIsInTheBackground) {
                 return;
@@ -938,6 +1035,34 @@ public class WordPress extends MultiDexApplication implements HasServiceInjector
             if (evictBitmaps && mBitmapCache != null) {
                 mBitmapCache.evictAll();
             }
+        }
+    }
+
+    private class StoryNotificationTrackerProvider implements NotificationTrackerProvider {
+        private NotificationType translateNotificationTypes(StoryNotificationType storyNotificationType) {
+            switch (storyNotificationType) {
+                case STORY_SAVE_SUCCESS:
+                    return NotificationType.STORY_SAVE_SUCCESS;
+                case STORY_SAVE_ERROR:
+                    return NotificationType.STORY_SAVE_ERROR;
+                case STORY_FRAME_SAVE_SUCCESS:
+                    return NotificationType.STORY_FRAME_SAVE_SUCCESS;
+                case STORY_FRAME_SAVE_ERROR:
+                    return NotificationType.STORY_FRAME_SAVE_ERROR;
+            }
+            return NotificationType.STORY_FRAME_SAVE_ERROR; // shouldn't reach this
+        }
+
+        @Override public void trackShownNotification(@NotNull StoryNotificationType storyNotificationType) {
+            mSystemNotificationsTracker.trackShownNotification(translateNotificationTypes(storyNotificationType));
+        }
+
+        @Override public void trackTappedNotification(@NotNull StoryNotificationType storyNotificationType) {
+            mSystemNotificationsTracker.trackTappedNotification(translateNotificationTypes(storyNotificationType));
+        }
+
+        @Override public void trackDismissedNotification(@NotNull StoryNotificationType storyNotificationType) {
+            mSystemNotificationsTracker.trackDismissedNotification(translateNotificationTypes(storyNotificationType));
         }
     }
 }

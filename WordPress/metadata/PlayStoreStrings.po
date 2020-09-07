@@ -11,21 +11,22 @@ msgstr ""
 "Project-Id-Version: Release Notes & Play Store Descriptions\n"
 
 #. translators: Release notes for this version to be displayed in the Play Store. Limit to 500 characters including spaces and commas!
-msgctxt "release_note_136"
+msgctxt "release_note_156"
 msgid ""
-"13.6:\n"
-"- We updated the navigation bar color to white on Android 8.1 and higher.\n"
-"- Bugs in page list ordering are fixed, so pages always appear in alphabetical order.\n"
-"- Block editor updates: Added support for Pexels images and image alignment options.\n"
+"15.6:\n"
+"Block Editor improvements: Added settings for changing column widths to the Column block, added media editing support in the Gallery block, and improved the logic for undo/redo while drafting — enjoy smarter undoing in chunks, instead of undoing a few letters or tiny changes at a time.\n"
+msgstr ""
+
+msgctxt "release_note_155"
+msgid ""
+"15.5:\n"
+"* Block Editor: Username @mentions now auto-complete in the Block Editor on WordPress.com and Jetpack sites. Type the “@” character to see a username popup. Edit media in the Cover block. A Heading block bug fix removes an unwanted white shadow on headings with a link and string formatting in dark mode.\n"
+"* Search for self-hosted sites on the post list.\n"
+"* Upload audio and document files to the media library.\n"
 "\n"
 msgstr ""
 
-msgctxt "release_note_135"
-msgid ""
-"13.5:\n"
-"* Block Editor: We fixed an issue when multiple media selection added only one image or video block. There’s a new “Media & Text” block and we’ve added a Link Target (Open in new tab) option to the Image Block.\n"
-msgstr ""
-
+#. translators: A shorter version of the Release notes to be displayed in the Play Store. Limit to 500 characters including spaces and commas!
 #. translators: Release notes for this version to be displayed in the Play Store. Limit to 500 characters including spaces and commas!
 msgctxt "sample_post_content"
 msgid "The best moment of any trip, for me, is when I first step foot off the plane. The whole of the trip is in front me, ripe with possibility."
@@ -97,7 +98,9 @@ msgid ""
 "\n"
 "Whether you need a website builder to create your website, or a simple blog maker, WordPress can help. It gives you beautiful designs, powerful features, and the freedom to build anything you want.\n"
 "\n"
-"WordPress for Android supports self-hosted sites running WordPress 4.0 and later, and all sites at WordPress.com. Just like WordPress, WordPress for Android is open source. Learn more at  https://apps.wordpress.com/contribute/.  Need help with the app? Send us a tweet at @WPAndroid, or visit our forums at https://android.forums.wordpress.org/forum/troubleshooting.\n"
+"WordPress for Android supports self-hosted sites running WordPress 4.0 and later, and all sites at WordPress.com. Just like WordPress, WordPress for Android is open source. Learn more at  https://wp.me/P7jrAc-tJ.  Need help with the app? Send us a tweet at @WPAndroid, or visit our forums at https://android.forums.wordpress.org/forum/troubleshooting.\n"
+"\n"
+"California users privacy notice: https://wp.me/Pe4R-d/#california-consumer-privacy-act-ccpa.\n"
 msgstr ""
 
 #. translators: Title to be displayed in the Play Store. Limit to 50 characters including spaces and commas!

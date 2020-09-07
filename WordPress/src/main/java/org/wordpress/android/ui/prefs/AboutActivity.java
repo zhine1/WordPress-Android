@@ -1,29 +1,24 @@
 package org.wordpress.android.ui.prefs;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import org.wordpress.android.Constants;
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.ui.ActivityLauncher;
-import org.wordpress.android.util.LocaleManager;
+import org.wordpress.android.ui.LocaleAwareActivity;
 import org.wordpress.android.util.WPUrlUtils;
 import org.wordpress.android.widgets.WPTextView;
 
 import java.util.Calendar;
 
-public class AboutActivity extends AppCompatActivity implements OnClickListener {
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(LocaleManager.setLocale(newBase));
-    }
+public class AboutActivity extends LocaleAwareActivity implements OnClickListener {
+    private int mCurrentTapCountForSecretCrash = 0;
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -36,15 +31,14 @@ public class AboutActivity extends AppCompatActivity implements OnClickListener 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-        getSupportActionBar().setElevation(0);
 
         WPTextView version = findViewById(R.id.about_version);
         version.setText(getString(R.string.version_with_name_param, WordPress.versionName));
 
-        WPTextView tos = findViewById(R.id.about_tos);
+        View tos = findViewById(R.id.about_tos);
         tos.setOnClickListener(this);
 
-        WPTextView pp = findViewById(R.id.about_privacy);
+        View pp = findViewById(R.id.about_privacy);
         pp.setOnClickListener(this);
 
         WPTextView publisher = findViewById(R.id.about_publisher);
@@ -55,8 +49,17 @@ public class AboutActivity extends AppCompatActivity implements OnClickListener 
                 getString(R.string.copyright_with_year_and_company_params, Calendar.getInstance().get(Calendar.YEAR),
                         getString(R.string.automattic_inc)));
 
-        WPTextView about = findViewById(R.id.about_url);
+        View about = findViewById(R.id.about_url);
         about.setOnClickListener(this);
+
+        View secretCrash = findViewById(R.id.about_secret_crash);
+        secretCrash.setOnClickListener(view -> {
+            mCurrentTapCountForSecretCrash++;
+            if (mCurrentTapCountForSecretCrash >= 10) {
+                throw new IllegalStateException("This is a secret crash triggered from an invisible button in "
+                                                + "the about page in case it's necessary to test a crash");
+            }
+        });
     }
 
     @Override

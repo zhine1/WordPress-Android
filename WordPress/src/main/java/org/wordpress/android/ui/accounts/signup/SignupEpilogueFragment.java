@@ -12,24 +12,26 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.ContextThemeWrapper;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.core.widget.NestedScrollView;
+import androidx.core.widget.NestedScrollView.OnScrollChangeListener;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 
@@ -55,15 +57,19 @@ import org.wordpress.android.ui.FullScreenDialogFragment;
 import org.wordpress.android.ui.FullScreenDialogFragment.OnConfirmListener;
 import org.wordpress.android.ui.FullScreenDialogFragment.OnDismissListener;
 import org.wordpress.android.ui.RequestCodes;
-import org.wordpress.android.ui.media.MediaBrowserType;
+import org.wordpress.android.ui.accounts.UnifiedLoginTracker;
+import org.wordpress.android.ui.accounts.UnifiedLoginTracker.Click;
+import org.wordpress.android.ui.accounts.UnifiedLoginTracker.Step;
+import org.wordpress.android.ui.photopicker.MediaPickerConstants;
+import org.wordpress.android.ui.photopicker.MediaPickerLauncher;
 import org.wordpress.android.ui.photopicker.PhotoPickerActivity;
 import org.wordpress.android.ui.photopicker.PhotoPickerActivity.PhotoPickerMediaSource;
-import org.wordpress.android.ui.photopicker.PhotoPickerFragment;
 import org.wordpress.android.ui.prefs.AppPrefsWrapper;
 import org.wordpress.android.ui.reader.services.update.ReaderUpdateLogic;
 import org.wordpress.android.ui.reader.services.update.ReaderUpdateServiceStarter;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
+import org.wordpress.android.util.ContextExtensionsKt;
 import org.wordpress.android.util.GravatarUtils;
 import org.wordpress.android.util.MediaUtils;
 import org.wordpress.android.util.StringUtils;
@@ -91,7 +97,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     private FullScreenDialogFragment mDialog;
     private SignupEpilogueListener mSignupEpilogueListener;
 
-    protected ImageButton mHeaderAvatarAdd;
+    protected ImageView mHeaderAvatarAdd;
     protected String mDisplayName;
     protected String mEmailAddress;
     protected String mPhotoUrl;
@@ -100,8 +106,15 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     protected ImageView mHeaderAvatar;
     protected WPTextView mHeaderDisplayName;
     protected WPTextView mHeaderEmailAddress;
+    protected View mBottomShadow;
+    protected NestedScrollView mScrollView;
     protected boolean mIsAvatarAdded;
     protected boolean mIsEmailSignup;
+
+    private boolean mIsUpdatingDisplayName = false;
+    private boolean mIsUpdatingPassword = false;
+    private boolean mHasUpdatedPassword = false;
+    private boolean mHasMadeUpdates = false;
 
     private static final String ARG_DISPLAY_NAME = "ARG_DISPLAY_NAME";
     private static final String ARG_EMAIL_ADDRESS = "ARG_EMAIL_ADDRESS";
@@ -113,6 +126,10 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     private static final String KEY_IS_AVATAR_ADDED = "KEY_IS_AVATAR_ADDED";
     private static final String KEY_PHOTO_URL = "KEY_PHOTO_URL";
     private static final String KEY_USERNAME = "KEY_USERNAME";
+    private static final String KEY_IS_UPDATING_DISPLAY_NAME = "KEY_IS_UPDATING_DISPLAY_NAME";
+    private static final String KEY_IS_UPDATING_PASSWORD = "KEY_IS_UPDATING_PASSWORD";
+    private static final String KEY_HAS_UPDATED_PASSWORD = "KEY_HAS_UPDATED_PASSWORD";
+    private static final String KEY_HAS_MADE_UPDATES = "KEY_HAS_MADE_UPDATES";
 
     public static final String TAG = "signup_epilogue_fragment_tag";
 
@@ -120,6 +137,9 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     @Inject protected Dispatcher mDispatcher;
     @Inject protected ImageManager mImageManager;
     @Inject protected AppPrefsWrapper mAppPrefsWrapper;
+    @Inject protected UnifiedLoginTracker mUnifiedLoginTracker;
+    @Inject protected SignupUtils mSignupUtils;
+    @Inject protected MediaPickerLauncher mMediaPickerLauncher;
 
     public static SignupEpilogueFragment newInstance(String displayName, String emailAddress,
                                                      String photoUrl, String username,
@@ -157,14 +177,13 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
 
     @Override
     protected void setupContent(ViewGroup rootView) {
-        final RelativeLayout headerAvatarLayout = rootView.findViewById(R.id.signup_epilogue_header_avatar_layout);
+        final FrameLayout headerAvatarLayout = rootView.findViewById(R.id.login_epilogue_header_avatar_layout);
         headerAvatarLayout.setEnabled(mIsEmailSignup);
         headerAvatarLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), PhotoPickerActivity.class);
-                intent.putExtra(PhotoPickerFragment.ARG_BROWSER_TYPE, MediaBrowserType.GRAVATAR_IMAGE_PICKER);
-                startActivityForResult(intent, RequestCodes.PHOTO_PICKER);
+                mUnifiedLoginTracker.trackClick(Click.SELECT_AVATAR);
+                mMediaPickerLauncher.showGravatarPicker(SignupEpilogueFragment.this);
             }
         });
         headerAvatarLayout.setOnLongClickListener(new View.OnLongClickListener() {
@@ -176,12 +195,12 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
             }
         });
         ViewUtilsKt.redirectContextClickToLongPressListener(headerAvatarLayout);
-        mHeaderAvatarAdd = rootView.findViewById(R.id.signup_epilogue_header_avatar_add);
+        mHeaderAvatarAdd = rootView.findViewById(R.id.login_epilogue_header_avatar_add);
         mHeaderAvatarAdd.setVisibility(mIsEmailSignup ? View.VISIBLE : View.GONE);
-        mHeaderAvatar = rootView.findViewById(R.id.signup_epilogue_header_avatar);
-        mHeaderDisplayName = rootView.findViewById(R.id.signup_epilogue_header_display);
+        mHeaderAvatar = rootView.findViewById(R.id.login_epilogue_header_avatar);
+        mHeaderDisplayName = rootView.findViewById(R.id.login_epilogue_header_title);
         mHeaderDisplayName.setText(mDisplayName);
-        mHeaderEmailAddress = rootView.findViewById(R.id.signup_epilogue_header_email);
+        mHeaderEmailAddress = rootView.findViewById(R.id.login_epilogue_header_subtitle);
         mHeaderEmailAddress.setText(mEmailAddress);
         WPLoginInputRow inputDisplayName = rootView.findViewById(R.id.signup_epilogue_input_display);
         mEditTextDisplayName = inputDisplayName.getEditText();
@@ -207,6 +226,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
         mEditTextUsername.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                mUnifiedLoginTracker.trackClick(Click.EDIT_USERNAME);
                 launchDialog();
             }
         });
@@ -235,6 +255,27 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
 
         // Set focus on static text field to avoid showing keyboard on start.
         mHeaderEmailAddress.requestFocus();
+
+        mBottomShadow = rootView.findViewById(R.id.bottom_shadow);
+        mScrollView = rootView.findViewById(R.id.scroll_view);
+        mScrollView.setOnScrollChangeListener(
+                (OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> showBottomShadowIfNeeded());
+        // We must use onGlobalLayout here otherwise canScrollVertically will always return false
+        mScrollView.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+            @Override public void onGlobalLayout() {
+                mScrollView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                showBottomShadowIfNeeded();
+            }
+        });
+    }
+
+    private void showBottomShadowIfNeeded() {
+        if (mScrollView != null) {
+            final boolean canScrollDown = mScrollView.canScrollVertically(1);
+            if (mBottomShadow != null) {
+                mBottomShadow.setVisibility(canScrollDown ? View.VISIBLE : View.GONE);
+            }
+        }
     }
 
     @Override
@@ -242,6 +283,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
         primaryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                mUnifiedLoginTracker.trackClick(Click.CONTINUE);
                 updateAccountOrContinue();
             }
         });
@@ -269,6 +311,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
             ReaderUpdateServiceStarter.startService(WordPress.getContext(),
                     EnumSet.of(ReaderUpdateLogic.UpdateTask.TAGS));
 
+            mUnifiedLoginTracker.track(Step.SUCCESS);
             if (mIsEmailSignup) {
                 AnalyticsTracker.track(AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_VIEWED);
 
@@ -304,6 +347,11 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
                 mHeaderAvatarAdd.setVisibility(mIsAvatarAdded ? View.GONE : View.VISIBLE);
             }
             mImageManager.loadIntoCircle(mHeaderAvatar, ImageType.AVATAR_WITHOUT_BACKGROUND, mPhotoUrl);
+
+            mIsUpdatingDisplayName = savedInstanceState.getBoolean(KEY_IS_UPDATING_DISPLAY_NAME);
+            mIsUpdatingPassword = savedInstanceState.getBoolean(KEY_IS_UPDATING_PASSWORD);
+            mHasUpdatedPassword = savedInstanceState.getBoolean(KEY_HAS_UPDATED_PASSWORD);
+            mHasMadeUpdates = savedInstanceState.getBoolean(KEY_HAS_MADE_UPDATES);
         }
     }
 
@@ -317,17 +365,18 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
                     switch (requestCode) {
                         case RequestCodes.PHOTO_PICKER:
                             if (data != null) {
-                                String mediaUriString = data.getStringExtra(PhotoPickerActivity.EXTRA_MEDIA_URI);
+                                String[] mediaUriStringsArray =
+                                        data.getStringArrayExtra(MediaPickerConstants.EXTRA_MEDIA_URIS);
 
-                                if (mediaUriString != null) {
+                                if (mediaUriStringsArray != null && mediaUriStringsArray.length > 0) {
                                     PhotoPickerMediaSource source = PhotoPickerMediaSource.fromString(
-                                            data.getStringExtra(PhotoPickerActivity.EXTRA_MEDIA_SOURCE));
+                                            data.getStringExtra(MediaPickerConstants.EXTRA_MEDIA_SOURCE));
                                     AnalyticsTracker.Stat stat =
                                             source == PhotoPickerActivity.PhotoPickerMediaSource.ANDROID_CAMERA
                                                 ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_GRAVATAR_SHOT_NEW
                                                 : AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_GRAVATAR_GALLERY_PICKED;
                                     AnalyticsTracker.track(stat);
-                                    Uri imageUri = Uri.parse(mediaUriString);
+                                    Uri imageUri = Uri.parse(mediaUriStringsArray[0]);
 
                                     if (imageUri != null) {
                                         boolean wasSuccess = WPMediaUtils.fetchMediaAndDoNext(
@@ -406,6 +455,10 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
         outState.putString(KEY_EMAIL_ADDRESS, mEmailAddress);
         outState.putString(KEY_USERNAME, mUsername);
         outState.putBoolean(KEY_IS_AVATAR_ADDED, mIsAvatarAdded);
+        outState.putBoolean(KEY_IS_UPDATING_DISPLAY_NAME, mIsUpdatingDisplayName);
+        outState.putBoolean(KEY_IS_UPDATING_PASSWORD, mIsUpdatingPassword);
+        outState.putBoolean(KEY_HAS_UPDATED_PASSWORD, mHasUpdatedPassword);
+        outState.putBoolean(KEY_HAS_MADE_UPDATES, mHasMadeUpdates);
     }
 
     @Override
@@ -433,9 +486,15 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAccountChanged(OnAccountChanged event) {
         if (event.isError()) {
-            AnalyticsTracker.track(mIsEmailSignup
-                    ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UPDATE_DISPLAY_NAME_FAILED
-                    : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UPDATE_DISPLAY_NAME_FAILED);
+            if (mIsUpdatingDisplayName) {
+                mIsUpdatingDisplayName = false;
+                AnalyticsTracker.track(mIsEmailSignup
+                        ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UPDATE_DISPLAY_NAME_FAILED
+                        : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UPDATE_DISPLAY_NAME_FAILED);
+            } else if (mIsUpdatingPassword) {
+                mIsUpdatingPassword = false;
+            }
+
             AppLog.e(T.API, "SignupEpilogueFragment.onAccountChanged: "
                             + event.error.type + " - " + event.error.message);
             endProgress();
@@ -451,16 +510,20 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
                    && !TextUtils.isEmpty(mAccountStore.getAccount().getEmail())) {
             endProgress();
             populateViews();
-        } else if (changedUsername()) {
-            startProgress(false);
-            PushUsernamePayload payload = new PushUsernamePayload(
-                    mUsername, AccountUsernameActionType.KEEP_OLD_SITE_AND_ADDRESS);
-            mDispatcher.dispatch(AccountActionBuilder.newPushUsernameAction(payload));
-        } else if (event.causeOfChange == AccountAction.PUSH_SETTINGS && mSignupEpilogueListener != null) {
-            AnalyticsTracker.track(mIsEmailSignup
-                    ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UPDATE_DISPLAY_NAME_SUCCEEDED
-                    : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UPDATE_DISPLAY_NAME_SUCCEEDED);
-            mSignupEpilogueListener.onContinue();
+        } else if (event.causeOfChange == AccountAction.PUSH_SETTINGS) {
+            mHasMadeUpdates = true;
+
+            if (mIsUpdatingDisplayName) {
+                mIsUpdatingDisplayName = false;
+                AnalyticsTracker.track(mIsEmailSignup
+                        ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UPDATE_DISPLAY_NAME_SUCCEEDED
+                        : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UPDATE_DISPLAY_NAME_SUCCEEDED);
+            } else if (mIsUpdatingPassword) {
+                mIsUpdatingPassword = false;
+                mHasUpdatedPassword = true;
+            }
+
+            updateAccountOrContinue();
         }
     }
 
@@ -475,16 +538,17 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
                             + event.error.type + " - " + event.error.message);
             endProgress();
             showErrorDialog(getString(R.string.signup_epilogue_error_generic));
-        } else if (mSignupEpilogueListener != null) {
+        } else {
+            mHasMadeUpdates = true;
             AnalyticsTracker.track(mIsEmailSignup
                     ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UPDATE_USERNAME_SUCCEEDED
                     : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UPDATE_USERNAME_SUCCEEDED);
-            mSignupEpilogueListener.onContinue();
+            updateAccountOrContinue();
         }
     }
 
     protected boolean changedDisplayName() {
-        return !TextUtils.equals(getArguments().getString(ARG_DISPLAY_NAME), mDisplayName);
+        return !TextUtils.equals(mAccount.getAccount().getDisplayName(), mDisplayName);
     }
 
     protected boolean changedPassword() {
@@ -492,37 +556,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     }
 
     protected boolean changedUsername() {
-        return !TextUtils.equals(getArguments().getString(ARG_USERNAME), mUsername);
-    }
-
-    /**
-     * Create a display name from the email address by taking everything before the "@" symbol,
-     * removing all non-letters and non-periods, replacing periods with spaces, and capitalizing
-     * the first letter of each word.
-     *
-     * @return {@link String} to be the display name
-     */
-    private String createDisplayNameFromEmail() {
-        String username = mEmailAddress.split("@")[0].replaceAll("[^A-Za-z/.]", "");
-        String[] array = username.split("\\.");
-        StringBuilder builder = new StringBuilder();
-
-        for (String s : array) {
-            String capitalized = s.substring(0, 1).toUpperCase(Locale.ROOT) + s.substring(1);
-            builder.append(capitalized.concat(" "));
-        }
-
-        return builder.toString().trim();
-    }
-
-    /**
-     * Create a username from the email address by taking everything before the "@" symbol and
-     * removing all non-alphanumeric characters.
-     *
-     * @return {@link String} to be the username
-     */
-    private String createUsernameFromEmail() {
-        return mEmailAddress.split("@")[0].replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
+        return !TextUtils.equals(mAccount.getAccount().getUserName(), mUsername);
     }
 
     private boolean isPasswordInErrorMessage(String message) {
@@ -542,6 +576,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
         mDialog = new FullScreenDialogFragment.Builder(getContext())
                 .setTitle(R.string.username_changer_title)
                 .setAction(R.string.username_changer_action)
+                .setToolbarTheme(R.style.ThemeOverlay_LoginFlow_Toolbar)
                 .setOnConfirmListener(this)
                 .setOnDismissListener(this)
                 .setContent(UsernameChangerFullScreenDialogFragment.class, bundle)
@@ -569,13 +604,13 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
             mImageManager.loadIntoCircle(mHeaderAvatar, ImageType.AVATAR_WITHOUT_BACKGROUND,
                     newAvatarUploaded ? injectFilePath : avatarUrl, new RequestListener<Drawable>() {
                         @Override
-                        public void onLoadFailed(@Nullable Exception e) {
+                        public void onLoadFailed(@Nullable Exception e, @Nullable Object model) {
                             AppLog.e(T.NUX, "Uploading image to Gravatar succeeded, but setting image view failed");
                             showErrorDialogWithCloseButton(getString(R.string.signup_epilogue_error_avatar_view));
                         }
 
                         @Override
-                        public void onResourceReady(@NotNull Drawable resource) {
+                        public void onResourceReady(@NotNull Drawable resource, @Nullable Object model) {
                             if (newAvatarUploaded && resource instanceof BitmapDrawable) {
                                 Bitmap bitmap = ((BitmapDrawable) resource).getBitmap();
                                 // create a copy since the original bitmap may by automatically recycled
@@ -589,9 +624,9 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
 
     private void populateViews() {
         mEmailAddress = mAccountStore.getAccount().getEmail();
-        mDisplayName = createDisplayNameFromEmail();
+        mDisplayName = mSignupUtils.createDisplayNameFromEmail(mEmailAddress);
         mUsername = !TextUtils.isEmpty(mAccountStore.getAccount().getUserName())
-                ? mAccountStore.getAccount().getUserName() : createUsernameFromEmail();
+                ? mAccountStore.getAccount().getUserName() : mSignupUtils.createUsernameFromEmail(mEmailAddress);
         mHeaderDisplayName.setText(mDisplayName);
         mHeaderEmailAddress.setText(mEmailAddress);
         mEditTextDisplayName.setText(mDisplayName);
@@ -622,7 +657,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
             }
         };
 
-        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(getActivity(), R.style.LoginTheme))
+        AlertDialog dialog = new MaterialAlertDialogBuilder(getActivity())
                 .setMessage(message)
                 .setNeutralButton(R.string.login_error_button, dialogListener)
                 .setNegativeButton(R.string.signup_epilogue_error_button_negative, dialogListener)
@@ -632,7 +667,7 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     }
 
     protected void showErrorDialogWithCloseButton(String message) {
-        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(getActivity(), R.style.LoginTheme))
+        AlertDialog dialog = new MaterialAlertDialogBuilder(getActivity())
                 .setMessage(message)
                 .setPositiveButton(R.string.login_error_button, null)
                 .create();
@@ -640,20 +675,27 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     }
 
     protected void startCropActivity(Uri uri) {
-        final Context context = getActivity();
+        final Context baseContext = getActivity();
 
-        if (context != null) {
+        if (baseContext != null) {
+            final Context context = new ContextThemeWrapper(baseContext, R.style.WordPress_NoActionBar);
+
             UCrop.Options options = new UCrop.Options();
             options.setShowCropGrid(false);
-            options.setStatusBarColor(ContextCompat.getColor(context, R.color.status_bar));
-            options.setToolbarColor(ContextCompat.getColor(context, R.color.primary));
+            options.setStatusBarColor(ContextExtensionsKt.getColorFromAttribute(
+                    context, android.R.attr.statusBarColor
+            ));
+            options.setToolbarColor(ContextExtensionsKt.getColorFromAttribute(context, R.attr.wpColorAppBar));
+            options.setToolbarWidgetColor(ContextExtensionsKt.getColorFromAttribute(
+                    context, R.attr.colorOnPrimarySurface
+            ));
             options.setAllowedGestures(UCropActivity.SCALE, UCropActivity.NONE, UCropActivity.NONE);
             options.setHideBottomControls(true);
 
             UCrop.of(uri, Uri.fromFile(new File(context.getCacheDir(), "cropped.jpg")))
                  .withAspectRatio(1, 1)
                  .withOptions(options)
-                 .start(getActivity(), this);
+                 .start(context, this);
         }
     }
 
@@ -692,42 +734,68 @@ public class SignupEpilogueFragment extends LoginBaseFormFragment<SignupEpilogue
     }
 
     protected void undoChanges() {
-        mDisplayName = getArguments().getString(ARG_DISPLAY_NAME);
+        mDisplayName = !TextUtils.isEmpty(mAccountStore.getAccount().getDisplayName())
+                ? mAccountStore.getAccount().getDisplayName() : getArguments().getString(ARG_DISPLAY_NAME);
         mEditTextDisplayName.setText(mDisplayName);
-        mUsername = getArguments().getString(ARG_USERNAME);
+        mUsername = !TextUtils.isEmpty(mAccountStore.getAccount().getUserName())
+                ? mAccountStore.getAccount().getUserName() : getArguments().getString(ARG_USERNAME);
         mEditTextUsername.setText(mUsername);
         mInputPassword.getEditText().setText("");
         updateAccountOrContinue();
     }
 
     protected void updateAccountOrContinue() {
-        if (changedDisplayName()) {
-            startProgress(false);
-            PushAccountSettingsPayload payload = new PushAccountSettingsPayload();
-            payload.params = new HashMap<>();
-            payload.params.put("display_name", mDisplayName);
-
-            if (changedPassword()) {
-                payload.params.put("password", mInputPassword.getEditText().getText().toString());
-            }
-
-            mDispatcher.dispatch(AccountActionBuilder.newPushSettingsAction(payload));
-        } else if (changedPassword()) {
-            startProgress(false);
-            PushAccountSettingsPayload payload = new PushAccountSettingsPayload();
-            payload.params = new HashMap<>();
-            payload.params.put("password", mInputPassword.getEditText().getText().toString());
-            mDispatcher.dispatch(AccountActionBuilder.newPushSettingsAction(payload));
-        } else if (changedUsername()) {
-            startProgress(false);
-            PushUsernamePayload payload = new PushUsernamePayload(
-                    mUsername, AccountUsernameActionType.KEEP_OLD_SITE_AND_ADDRESS);
-            mDispatcher.dispatch(AccountActionBuilder.newPushUsernameAction(payload));
+        if (changedUsername()) {
+            startProgressIfNeeded();
+            updateUsername();
+        } else if (changedDisplayName()) {
+            startProgressIfNeeded();
+            mIsUpdatingDisplayName = true;
+            updateDisplayName();
+        } else if (changedPassword() && !mHasUpdatedPassword) {
+            startProgressIfNeeded();
+            mIsUpdatingPassword = true;
+            updatePassword();
         } else if (mSignupEpilogueListener != null) {
-            AnalyticsTracker.track(mIsEmailSignup
-                    ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UNCHANGED
-                    : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UNCHANGED);
+            if (!mHasMadeUpdates) {
+                AnalyticsTracker.track(mIsEmailSignup
+                        ? AnalyticsTracker.Stat.SIGNUP_EMAIL_EPILOGUE_UNCHANGED
+                        : AnalyticsTracker.Stat.SIGNUP_SOCIAL_EPILOGUE_UNCHANGED);
+            }
+            endProgressIfNeeded();
             mSignupEpilogueListener.onContinue();
+        }
+    }
+
+    private void updateDisplayName() {
+        PushAccountSettingsPayload payload = new PushAccountSettingsPayload();
+        payload.params = new HashMap<>();
+        payload.params.put("display_name", mDisplayName);
+        mDispatcher.dispatch(AccountActionBuilder.newPushSettingsAction(payload));
+    }
+
+    private void updatePassword() {
+        PushAccountSettingsPayload payload = new PushAccountSettingsPayload();
+        payload.params = new HashMap<>();
+        payload.params.put("password", mInputPassword.getEditText().getText().toString());
+        mDispatcher.dispatch(AccountActionBuilder.newPushSettingsAction(payload));
+    }
+
+    private void updateUsername() {
+        PushUsernamePayload payload = new PushUsernamePayload(
+                mUsername, AccountUsernameActionType.KEEP_OLD_SITE_AND_ADDRESS);
+        mDispatcher.dispatch(AccountActionBuilder.newPushUsernameAction(payload));
+    }
+
+    private void startProgressIfNeeded() {
+        if (!isInProgress()) {
+            startProgress(false);
+        }
+    }
+
+    private void endProgressIfNeeded() {
+        if (isInProgress()) {
+            endProgress();
         }
     }
 

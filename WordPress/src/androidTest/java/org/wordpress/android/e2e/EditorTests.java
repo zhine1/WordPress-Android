@@ -12,6 +12,7 @@ import org.wordpress.android.R;
 import org.wordpress.android.e2e.components.MasterbarComponent;
 import org.wordpress.android.e2e.pages.EditorPage;
 import org.wordpress.android.e2e.pages.MySitesPage;
+import org.wordpress.android.e2e.pages.SiteSettingsPage;
 import org.wordpress.android.support.BaseTest;
 import org.wordpress.android.ui.WPLaunchActivity;
 
@@ -37,19 +38,29 @@ public class EditorTests extends BaseTest {
     public void setUp() {
         logoutIfNecessary();
         wpLogin();
+
+        MasterbarComponent mb = new MasterbarComponent().goToMySitesTab();
+        sleep();
+
+        MySitesPage mySitesPage = new MySitesPage();
+        mySitesPage.gotoSiteSettings();
+
+        // Set to Classic.
+        new SiteSettingsPage().setEditorToClassic();
+
+        // exit the Settings page
+        pressBack();
+
+        mb.clickBlogPosts();
+
+        new MySitesPage()
+                .startNewPost();
     }
 
     @Test
     public void testPublishSimplePost() {
         String title = "Hello Espresso!";
         String content = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
-
-        MasterbarComponent mb = new MasterbarComponent().goToMySitesTab();
-        sleep();
-        mb.clickBlogPosts();
-
-        new MySitesPage()
-                .startNewPost();
 
         EditorPage editorPage = new EditorPage();
         editorPage.enterTitle(title);
@@ -64,16 +75,9 @@ public class EditorTests extends BaseTest {
         String content = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
                          + "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "
                          + "exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
-        String category = "Android Test";
+        String category = "Wedding";
         long now = Instant.now().toEpochMilli();
         String tag = "Tag " + now;
-
-        MasterbarComponent mb = new MasterbarComponent().goToMySitesTab();
-        sleep();
-        mb.clickBlogPosts();
-
-        new MySitesPage()
-                .startNewPost();
 
         EditorPage editorPage = new EditorPage();
         editorPage.enterTitle(title);

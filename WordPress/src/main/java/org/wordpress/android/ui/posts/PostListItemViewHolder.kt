@@ -11,6 +11,7 @@ import android.widget.ImageView
 import android.widget.ImageView.ScaleType
 import android.widget.PopupMenu
 import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.LayoutRes
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -19,19 +20,21 @@ import androidx.recyclerview.widget.RecyclerView
 import org.wordpress.android.R
 import org.wordpress.android.ui.utils.UiHelpers
 import org.wordpress.android.ui.utils.UiString
+import org.wordpress.android.util.expandTouchTargetArea
 import org.wordpress.android.util.getDrawableFromAttribute
 import org.wordpress.android.util.image.ImageManager
 import org.wordpress.android.util.image.ImageType
 import org.wordpress.android.viewmodel.posts.PostListItemAction
 import org.wordpress.android.viewmodel.posts.PostListItemAction.MoreItem
 import org.wordpress.android.viewmodel.posts.PostListItemAction.SingleItem
-import org.wordpress.android.viewmodel.posts.PostListItemProgressBar
-import org.wordpress.android.viewmodel.posts.PostListItemProgressBar.Determinate
-import org.wordpress.android.viewmodel.posts.PostListItemProgressBar.Indeterminate
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState.Determinate
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState.Indeterminate
 import org.wordpress.android.viewmodel.posts.PostListItemType.PostListItemUiState
 import org.wordpress.android.viewmodel.posts.PostListItemUiStateData
 import org.wordpress.android.widgets.PostListButton
 import org.wordpress.android.widgets.WPTextView
+import java.util.concurrent.atomic.AtomicBoolean
 
 sealed class PostListItemViewHolder(
     @LayoutRes layout: Int,
@@ -41,7 +44,7 @@ sealed class PostListItemViewHolder(
 ) : RecyclerView.ViewHolder(LayoutInflater.from(parent.context).inflate(layout, parent, false)) {
     private val featuredImageView: ImageView = itemView.findViewById(R.id.image_featured)
     private val titleTextView: WPTextView = itemView.findViewById(R.id.title)
-    private val dateAndAuthorTextView: WPTextView = itemView.findViewById(R.id.date_and_author)
+    private val postInfoTextView: WPTextView = itemView.findViewById(R.id.post_info)
     private val statusesTextView: WPTextView = itemView.findViewById(R.id.statuses_label)
     private val uploadProgressBar: ProgressBar = itemView.findViewById(R.id.upload_progress)
     private val disabledOverlay: FrameLayout = itemView.findViewById(R.id.disabled_overlay)
@@ -53,6 +56,10 @@ sealed class PostListItemViewHolder(
      * Url of an image loaded in the `featuredImageView`.
      */
     private var loadedFeaturedImgUrl: String? = null
+
+    companion object {
+        var isClickEnabled = AtomicBoolean(true)
+    }
 
     abstract fun onBind(item: PostListItemUiState)
 
@@ -72,7 +79,11 @@ sealed class PostListItemViewHolder(
             setBasicValues(item.data)
 
             uiHelpers.setTextOrHide(excerptTextView, item.data.excerpt)
-            itemView.setOnClickListener { item.onSelected.invoke() }
+            itemView.setOnClickListener {
+                if (isSafeClick(it)) {
+                    item.onSelected.invoke()
+                }
+            }
 
             actionButtons.forEachIndexed { index, button ->
                 updateMenuItem(button, item.actions.getOrNull(index))
@@ -85,7 +96,11 @@ sealed class PostListItemViewHolder(
                 when (action) {
                     is SingleItem -> {
                         postListButton.updateButtonType(action.buttonType)
-                        postListButton.setOnClickListener { action.onButtonClicked.invoke(action.buttonType) }
+                        postListButton.setOnClickListener {
+                            if (isSafeClick(it)) {
+                                action.onButtonClicked.invoke(action.buttonType)
+                            }
+                        }
                     }
                     is MoreItem -> {
                         postListButton.updateButtonType(action.buttonType)
@@ -96,6 +111,18 @@ sealed class PostListItemViewHolder(
                     }
                 }
             }
+        }
+
+        // Purpose of this method is to prevent 2 Editors
+        // from being launched simultaneously and then producing a crash
+        private fun isSafeClick(view: View): Boolean {
+            if (isClickEnabled.getAndSet(false)) {
+                view.postDelayed({
+                    isClickEnabled.set(true)
+                }, 1000)
+                return true
+            }
+            return false
         }
     }
 
@@ -111,23 +138,31 @@ sealed class PostListItemViewHolder(
 
             itemView.setOnClickListener { item.onSelected.invoke() }
             uiHelpers.updateVisibility(moreButton, item.compactActions.actions.isNotEmpty())
+            moreButton.expandTouchTargetArea(R.dimen.post_list_more_button_extra_padding)
             moreButton.setOnClickListener { onMoreClicked(item.compactActions.actions, moreButton) }
         }
     }
 
     protected fun setBasicValues(data: PostListItemUiStateData) {
         uiHelpers.setTextOrHide(titleTextView, data.title)
-        uiHelpers.setTextOrHide(dateAndAuthorTextView, data.dateAndAuthor)
+        updatePostInfoLabel(postInfoTextView, data.postInfo)
         uiHelpers.updateVisibility(statusesTextView, data.statuses.isNotEmpty())
         updateStatusesLabel(statusesTextView, data.statuses, data.statusesDelimiter, data.statusesColor)
         showFeaturedImage(data.imageUrl)
-        updateProgressBarState(data.progressBarState)
+        updateProgressBarState(data.progressBarUiState)
         uiHelpers.updateVisibility(disabledOverlay, data.showOverlay)
         if (data.disableRippleEffect) {
             container.background = null
         } else {
             container.background = selectableBackground
         }
+    }
+
+    private fun updatePostInfoLabel(view: TextView, uiStrings: List<UiString>?) {
+        val concatenatedText = uiStrings?.joinToString(separator = "  ·  ") {
+            uiHelpers.getTextOfUiString(view.context, it)
+        }
+        uiHelpers.setTextOrHide(view, concatenatedText)
     }
 
     protected fun onMoreClicked(actions: List<PostListItemAction>, v: View) {
@@ -147,13 +182,13 @@ sealed class PostListItemViewHolder(
         menu.show()
     }
 
-    private fun updateProgressBarState(progressBarState: PostListItemProgressBar) {
-        uiHelpers.updateVisibility(uploadProgressBar, progressBarState.visibility)
-        when (progressBarState) {
+    private fun updateProgressBarState(progressBarUiState: ProgressBarUiState) {
+        uiHelpers.updateVisibility(uploadProgressBar, progressBarUiState.visibility)
+        when (progressBarUiState) {
             Indeterminate -> uploadProgressBar.isIndeterminate = true
             is Determinate -> {
                 uploadProgressBar.isIndeterminate = false
-                uploadProgressBar.progress = progressBarState.progress
+                uploadProgressBar.progress = progressBarUiState.progress
             }
         }
     }

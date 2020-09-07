@@ -27,8 +27,11 @@ import org.wordpress.android.fluxc.store.MediaStore.FetchMediaListPayload
 import org.wordpress.android.test
 import org.wordpress.android.ui.pages.SnackbarMessageHolder
 import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddMediaToPostUiState
+import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.util.MediaUtilsWrapper
 import org.wordpress.android.util.NetworkUtilsWrapper
+import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
+import org.wordpress.android.util.analytics.AnalyticsUtilsWrapper
 import org.wordpress.android.viewmodel.Event
 import org.wordpress.android.viewmodel.helpers.ToastMessageHolder
 
@@ -99,7 +102,8 @@ class EditorMediaTest : BaseUnitTest() {
         editorMedia.addNewMediaItemsToEditorAsync(mock(), false)
         // Assert
         verify(observer, times(1)).onChanged(captor.capture())
-        assertThat(captor.firstValue.getContentIfNotHandled()?.messageRes).isEqualTo(R.string.gallery_error)
+        val message = captor.firstValue.getContentIfNotHandled()?.message as? UiStringRes
+        assertThat(message?.stringRes).isEqualTo(R.string.gallery_error)
     }
 
     @Test
@@ -121,7 +125,7 @@ class EditorMediaTest : BaseUnitTest() {
     }
 
     @Test
-    fun `addMediaFromGiphyToPostAsync invokes addLocalMediaToEditorAsync with all media`() = test {
+    fun `addGifMediaToPostAsync invokes addLocalMediaToEditorAsync with all media`() = test {
         // Arrange
         val localIdArray = listOf(1, 2, 3).toIntArray()
         val addLocalMediaToPostUseCase = createAddLocalMediaToPostUseCase()
@@ -130,11 +134,12 @@ class EditorMediaTest : BaseUnitTest() {
         createEditorMedia(
                 addLocalMediaToPostUseCase = addLocalMediaToPostUseCase
         )
-                .addMediaFromGiphyToPostAsync(localIdArray)
+                .addGifMediaToPostAsync(localIdArray)
         // Assert
         verify(addLocalMediaToPostUseCase).addLocalMediaToEditorAsync(
                 eq(localIdArray.toList()),
-                anyOrNull()
+                anyOrNull(),
+                anyBoolean()
         )
     }
 
@@ -155,7 +160,7 @@ class EditorMediaTest : BaseUnitTest() {
                 // Assert
                 verify(addLocalMediaToPostUseCase).addNewMediaToEditorAsync(
                         eq(listOf(lastRecoredVideoUri)),
-                        anyOrNull(), anyBoolean(), anyOrNull()
+                        anyOrNull(), anyBoolean(), anyOrNull(), anyBoolean()
                 )
             }
 
@@ -345,6 +350,28 @@ class EditorMediaTest : BaseUnitTest() {
         verify(retryFailedMediaUploadUseCase).retryFailedMediaAsync(anyOrNull(), eq(expectedIds))
     }
 
+    @Test
+    fun `reattachUploadingMedia is called for Aztec editor`() {
+        // Arrange
+        val reattachUploadingMediaUseCase = mock<ReattachUploadingMediaUseCase>()
+        // Act
+        createEditorMedia(reattachUploadingMediaUseCase = reattachUploadingMediaUseCase)
+                .reattachUploadingMediaForAztec(mock(), true, mock())
+        // Assert
+        verify(reattachUploadingMediaUseCase).reattachUploadingMediaForAztec(anyOrNull(), anyOrNull())
+    }
+
+    @Test
+    fun `reattachUploadingMedia is NOT called for other editors`() {
+        // Arrange
+        val reattachUploadingMediaUseCase = mock<ReattachUploadingMediaUseCase>()
+        // Act
+        createEditorMedia(reattachUploadingMediaUseCase = reattachUploadingMediaUseCase)
+                .reattachUploadingMediaForAztec(mock(), false, mock())
+        // Assert
+        verify(reattachUploadingMediaUseCase, never()).reattachUploadingMediaForAztec(anyOrNull(), anyOrNull())
+    }
+
     private companion object Fixtures {
         private val VIDEO_URI = mock<Uri>()
         private val IMAGE_URI = mock<Uri>()
@@ -361,7 +388,12 @@ class EditorMediaTest : BaseUnitTest() {
             addExistingMediaToPostUseCase: AddExistingMediaToPostUseCase = mock(),
             retryFailedMediaUploadUseCase: RetryFailedMediaUploadUseCase = mock(),
             siteModel: SiteModel = mock(),
-            editorMediaListener: EditorMediaListener = mock()
+            editorMediaListener: EditorMediaListener = mock(),
+            removeMediaUseCase: RemoveMediaUseCase = mock(),
+            cleanUpMediaToPostAssociationUseCase: CleanUpMediaToPostAssociationUseCase = mock(),
+            reattachUploadingMediaUseCase: ReattachUploadingMediaUseCase = mock(),
+            analyticsTrackerWrapper: AnalyticsTrackerWrapper = mock(),
+            analyticsUtilsWrapper: AnalyticsUtilsWrapper = mock()
         ): EditorMedia {
             val editorMedia = EditorMedia(
                     updateMediaModelUseCase,
@@ -372,6 +404,12 @@ class EditorMediaTest : BaseUnitTest() {
                     addLocalMediaToPostUseCase,
                     addExistingMediaToPostUseCase,
                     retryFailedMediaUploadUseCase,
+                    cleanUpMediaToPostAssociationUseCase,
+                    removeMediaUseCase,
+                    reattachUploadingMediaUseCase,
+                    analyticsUtilsWrapper,
+                    analyticsTrackerWrapper,
+                    TEST_DISPATCHER,
                     TEST_DISPATCHER
             )
             editorMedia.start(siteModel, editorMediaListener)
@@ -397,7 +435,8 @@ class EditorMediaTest : BaseUnitTest() {
                                 anyOrNull(),
                                 anyOrNull(),
                                 anyBoolean(),
-                                anyOrNull()
+                                anyOrNull(),
+                                anyBoolean()
                         )
                     }.thenReturn(resultForAddNewMediaToEditorAsync)
                 }

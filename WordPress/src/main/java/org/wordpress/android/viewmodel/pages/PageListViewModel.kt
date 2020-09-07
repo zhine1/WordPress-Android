@@ -1,5 +1,6 @@
 package org.wordpress.android.viewmodel.pages
 
+import androidx.annotation.ColorRes
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
@@ -11,9 +12,11 @@ import org.greenrobot.eventbus.ThreadMode
 import org.wordpress.android.R
 import org.wordpress.android.fluxc.Dispatcher
 import org.wordpress.android.fluxc.generated.MediaActionBuilder
+import org.wordpress.android.fluxc.model.LocalOrRemoteId.LocalId
 import org.wordpress.android.fluxc.model.MediaModel
 import org.wordpress.android.fluxc.model.page.PageModel
 import org.wordpress.android.fluxc.model.page.PageStatus
+import org.wordpress.android.fluxc.store.AccountStore
 import org.wordpress.android.fluxc.store.MediaStore
 import org.wordpress.android.fluxc.store.MediaStore.MediaPayload
 import org.wordpress.android.fluxc.store.MediaStore.OnMediaChanged
@@ -27,6 +30,9 @@ import org.wordpress.android.ui.pages.PageItem.Page
 import org.wordpress.android.ui.pages.PageItem.PublishedPage
 import org.wordpress.android.ui.pages.PageItem.ScheduledPage
 import org.wordpress.android.ui.pages.PageItem.TrashedPage
+import org.wordpress.android.ui.posts.AuthorFilterSelection
+import org.wordpress.android.ui.posts.AuthorFilterSelection.ME
+import org.wordpress.android.ui.utils.UiString
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.LocaleManagerWrapper
 import org.wordpress.android.util.SiteUtils
@@ -38,6 +44,7 @@ import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListType.DRAF
 import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListType.PUBLISHED
 import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListType.SCHEDULED
 import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListType.TRASHED
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -45,19 +52,25 @@ private const val MAX_TOPOLOGICAL_PAGE_COUNT = 100
 private const val DEFAULT_INDENT = 0
 
 class PageListViewModel @Inject constructor(
+    private val createPageListItemLabelsUseCase: CreatePageListItemLabelsUseCase,
+    private val postModelUploadUiStateUseCase: PostModelUploadUiStateUseCase,
+    private val pageListItemActionsUseCase: CreatePageListItemActionsUseCase,
+    private val pageItemProgressUiStateUseCase: PageItemProgressUiStateUseCase,
     private val mediaStore: MediaStore,
     private val dispatcher: Dispatcher,
     private val localeManagerWrapper: LocaleManagerWrapper,
+    private val accountStore: AccountStore,
     @Named(BG_THREAD) private val coroutineDispatcher: CoroutineDispatcher
 ) : ScopedViewModel(coroutineDispatcher) {
     private val _pages: MutableLiveData<List<PageItem>> = MutableLiveData()
-    val pages: LiveData<Pair<List<PageItem>, Boolean>> = Transformations.map(_pages) {
-        Pair(it, isSitePhotonCapable)
+    val pages: LiveData<Triple<List<PageItem>, Boolean, Boolean>> = Transformations.map(_pages) {
+        Triple(it, isSitePhotonCapable, isSitePrivateAt)
     }
 
     private val _scrollToPosition = SingleLiveEvent<Int>()
     val scrollToPosition: LiveData<Int> = _scrollToPosition
 
+    private var retryScrollToPage: LocalId? = null
     private var isStarted: Boolean = false
     private lateinit var listType: PageListType
 
@@ -67,6 +80,10 @@ class PageListViewModel @Inject constructor(
 
     private val isSitePhotonCapable: Boolean by lazy {
         SiteUtils.isPhotonCapable(pagesViewModel.site)
+    }
+
+    private val isSitePrivateAt: Boolean by lazy {
+        pagesViewModel.site.isPrivateWPComAtomic
     }
 
     enum class PageListType(val pageStatuses: List<PageStatus>) {
@@ -85,6 +102,7 @@ class PageListViewModel @Inject constructor(
                 }
             }
         }
+
         val title: Int
             get() = when (this) {
                 PUBLISHED -> R.string.pages_published
@@ -109,6 +127,8 @@ class PageListViewModel @Inject constructor(
             isStarted = true
 
             pagesViewModel.pages.observeForever(pagesObserver)
+            pagesViewModel.invalidateUploadStatus.observeForever(uploadStatusObserver)
+            pagesViewModel.authorSelectionUpdated.observeForever(authorSelectionChangedObserver)
 
             dispatcher.register(this)
         }
@@ -116,6 +136,8 @@ class PageListViewModel @Inject constructor(
 
     override fun onCleared() {
         pagesViewModel.pages.removeObserver(pagesObserver)
+        pagesViewModel.invalidateUploadStatus.removeObserver(uploadStatusObserver)
+        pagesViewModel.authorSelectionUpdated.removeObserver(authorSelectionChangedObserver)
 
         dispatcher.unregister(this)
     }
@@ -134,12 +156,14 @@ class PageListViewModel @Inject constructor(
         pagesViewModel.onNewPageButtonTapped()
     }
 
-    fun onScrollToPageRequested(remotePageId: Long) {
-        val position = _pages.value?.indexOfFirst { it is Page && it.id == remotePageId } ?: -1
+    fun onScrollToPageRequested(localPageId: Int) {
+        val position = _pages.value?.indexOfFirst { it is Page && it.localId == localPageId } ?: -1
         if (position != -1) {
             _scrollToPosition.postValue(position)
+            retryScrollToPage = null
         } else {
-            AppLog.e(AppLog.T.PAGES, "Attempt to scroll to a missing page with ID $remotePageId")
+            retryScrollToPage = LocalId(localPageId)
+            AppLog.e(AppLog.T.PAGES, "Attempt to scroll to a missing page with ID $localPageId")
         }
     }
 
@@ -148,6 +172,16 @@ class PageListViewModel @Inject constructor(
             loadPagesAsync(pages)
 
             pagesViewModel.checkIfNewPageButtonShouldBeVisible()
+        }
+    }
+
+    private val uploadStatusObserver = Observer<List<LocalId>> { ids ->
+        pagesViewModel.uploadStatusTracker.invalidateUploadStatus(ids.map { localId -> localId.value })
+    }
+
+    private val authorSelectionChangedObserver = Observer<AuthorFilterSelection> { authorSelection ->
+        authorSelection?.let {
+            pagesViewModel.pages.value?.let { loadPagesAsync(it) }
         }
     }
 
@@ -192,6 +226,10 @@ class PageListViewModel @Inject constructor(
             pagesWithBottomGap.addAll(listOf(Divider(), Divider()))
             _pages.postValue(pagesWithBottomGap)
         }
+
+        retryScrollToPage?.let {
+            onScrollToPageRequested(it.value)
+        }
     }
 
     private fun getFeaturedImageUrl(featuredImageId: Long): String? {
@@ -221,40 +259,75 @@ class PageListViewModel @Inject constructor(
     }
 
     private fun preparePublishedPages(pages: List<PageModel>, actionsEnabled: Boolean): List<PageItem> {
-        val shouldSortTopologically = pages.size < MAX_TOPOLOGICAL_PAGE_COUNT
+        val filteredPages = if (pagesViewModel.shouldFilterByAuthor())
+            pages.filter { it.post.authorId == accountStore.account.userId }
+        else pages
+
+        val shouldSortTopologically = filteredPages.size < MAX_TOPOLOGICAL_PAGE_COUNT
         val sortedPages = if (shouldSortTopologically) {
-            topologicalSort(pages, listType = PUBLISHED)
+            topologicalSort(filteredPages, listType = PUBLISHED)
         } else {
-            pages.sortedByDescending { it.date }
+            filteredPages.sortedByDescending { it.date }
         }
+
         return sortedPages
                 .map {
-                    val labels = mutableListOf<Int>()
-                    if (it.status == PageStatus.PRIVATE)
-                        labels.add(R.string.pages_private)
-                    if (it.hasLocalChanges)
-                        labels.add(R.string.local_changes)
-
                     val pageItemIndent = if (shouldSortTopologically) {
                         getPageItemIndent(it)
                     } else {
                         DEFAULT_INDENT
                     }
-                    PublishedPage(it.remoteId, it.title, it.date, labels, pageItemIndent,
-                            getFeaturedImageUrl(it.featuredImageId), actionsEnabled)
+                    val itemUiStateData = createItemUiStateData(it)
+                    PublishedPage(
+                            remoteId = it.remoteId,
+                            localId = it.pageId,
+                            title = it.title,
+                            subtitle = itemUiStateData.subtitle,
+                            date = it.date,
+                            labels = itemUiStateData.labels,
+                            labelsColor = itemUiStateData.labelsColor,
+                            indent = pageItemIndent,
+                            imageUrl = getFeaturedImageUrl(it.featuredImageId),
+                            actions = itemUiStateData.actions,
+                            actionsEnabled = actionsEnabled,
+                            progressBarUiState = itemUiStateData.progressBarUiState,
+                            showOverlay = itemUiStateData.showOverlay,
+                            author = if (pagesViewModel.authorUIState.value?.authorFilterSelection == ME)
+                                null else it.post.authorDisplayName
+                    )
                 }
     }
 
-    private fun prepareScheduledPages(pages: List<PageModel>, actionsEnabled: Boolean): List<PageItem> {
-        return pages.asSequence().groupBy { it.date.toFormattedDateString() }
-                .map { (date, results) -> listOf(Divider(date)) +
-                        results.map {
-                            val labels = mutableListOf<Int>()
-                            if (it.hasLocalChanges)
-                                labels.add(R.string.local_changes)
+    private fun prepareScheduledPages(
+        pages: List<PageModel>,
+        actionsEnabled: Boolean
+    ): List<PageItem> {
+        val filteredPages = if (pagesViewModel.shouldFilterByAuthor())
+            pages.filter { it.post.authorId == accountStore.account.userId }
+        else pages
 
-                            ScheduledPage(it.remoteId, it.title, it.date, labels,
-                                getFeaturedImageUrl(it.featuredImageId), actionsEnabled) }
+        return filteredPages.asSequence().groupBy { it.date.toFormattedDateString() }
+                .map { (date, results) ->
+                    listOf(Divider(date)) +
+                            results.map {
+                                val itemUiStateData = createItemUiStateData(it)
+
+                                ScheduledPage(
+                                        remoteId = it.remoteId,
+                                        localId = it.pageId,
+                                        title = it.title,
+                                        date = it.date,
+                                        labels = itemUiStateData.labels,
+                                        labelsColor = itemUiStateData.labelsColor,
+                                        imageUrl = getFeaturedImageUrl(it.featuredImageId),
+                                        actions = itemUiStateData.actions,
+                                        actionsEnabled = actionsEnabled,
+                                        progressBarUiState = itemUiStateData.progressBarUiState,
+                                        showOverlay = itemUiStateData.showOverlay,
+                                        author = if (pagesViewModel.authorUIState.value?.authorFilterSelection == ME)
+                                            null else it.post.authorDisplayName
+                                )
+                            }
                 }
                 .fold(mutableListOf()) { acc: MutableList<PageItem>, list: List<PageItem> ->
                     acc.addAll(list)
@@ -263,21 +336,57 @@ class PageListViewModel @Inject constructor(
     }
 
     private fun prepareDraftPages(pages: List<PageModel>, actionsEnabled: Boolean): List<PageItem> {
-        return pages.map {
-            val labels = mutableListOf<Int>()
-            if (it.status == PageStatus.PENDING)
-                labels.add(R.string.pages_pending)
-            if (it.hasLocalChanges)
-                labels.add(R.string.local_draft)
+        val filteredPages = if (pagesViewModel.shouldFilterByAuthor())
+            pages.filter { it.post.authorId == accountStore.account.userId }
+        else pages
 
-            DraftPage(it.remoteId, it.title, it.date, labels,
-                    getFeaturedImageUrl(it.featuredImageId), actionsEnabled)
+        return filteredPages
+                .map {
+            val itemUiStateData = createItemUiStateData(it)
+            DraftPage(
+                    remoteId = it.remoteId,
+                    localId = it.pageId,
+                    title = it.title,
+                    date = it.date,
+                    labels = itemUiStateData.labels,
+                    labelsColor = itemUiStateData.labelsColor,
+                    imageUrl = getFeaturedImageUrl(it.featuredImageId),
+                    actions = itemUiStateData.actions,
+                    actionsEnabled = actionsEnabled,
+                    progressBarUiState = itemUiStateData.progressBarUiState,
+                    showOverlay = itemUiStateData.showOverlay,
+                    author = if (pagesViewModel.authorUIState.value?.authorFilterSelection == ME)
+                        null else it.post.authorDisplayName
+            )
         }
     }
 
-    private fun prepareTrashedPages(pages: List<PageModel>, actionsEnabled: Boolean): List<PageItem> {
-        return pages.map {
-            TrashedPage(it.remoteId, it.title, it.date, getFeaturedImageUrl(it.featuredImageId), actionsEnabled)
+    private fun prepareTrashedPages(
+        pages: List<PageModel>,
+        actionsEnabled: Boolean
+    ): List<PageItem> {
+        val filteredPages = if (pagesViewModel.shouldFilterByAuthor())
+            pages.filter { it.post.authorId == accountStore.account.userId }
+        else pages
+
+        return filteredPages
+                    .map {
+            val itemUiStateData = createItemUiStateData(it)
+            TrashedPage(
+                    remoteId = it.remoteId,
+                    localId = it.pageId,
+                    title = it.title,
+                    date = it.date,
+                    labels = itemUiStateData.labels,
+                    labelsColor = itemUiStateData.labelsColor,
+                    imageUrl = getFeaturedImageUrl(it.featuredImageId),
+                    actions = itemUiStateData.actions,
+                    actionsEnabled = actionsEnabled,
+                    progressBarUiState = itemUiStateData.progressBarUiState,
+                    showOverlay = itemUiStateData.showOverlay,
+                    author = if (pagesViewModel.authorUIState.value?.authorFilterSelection == ME)
+                        null else it.post.authorDisplayName
+            )
         }
     }
 
@@ -316,4 +425,36 @@ class PageListViewModel @Inject constructor(
             invalidateFeaturedMedia(*event.mediaList.map { it.mediaId }.toLongArray())
         }
     }
+
+    private fun createItemUiStateData(pageModel: PageModel): ItemUiStateData {
+        val uploadUiState = postModelUploadUiStateUseCase.createUploadUiState(
+                pageModel.post,
+                pagesViewModel.site,
+                pagesViewModel.uploadStatusTracker
+        )
+        val (labels, labelColor) = createPageListItemLabelsUseCase.createLabels(pageModel.post, uploadUiState)
+
+        val (progressBarUiState, showOverlay) = pageItemProgressUiStateUseCase.getProgressStateForPage(uploadUiState)
+        val actions = pageListItemActionsUseCase.setupPageActions(
+                listType,
+                uploadUiState,
+                pagesViewModel.site,
+                pageModel.remoteId
+        )
+        val subtitle = when (pageModel.remoteId) {
+            pagesViewModel.site.pageOnFront -> R.string.site_settings_homepage
+            pagesViewModel.site.pageForPosts -> R.string.site_settings_posts_page
+            else -> null
+        }
+        return ItemUiStateData(labels, labelColor, progressBarUiState, showOverlay, actions, subtitle)
+    }
+
+    private data class ItemUiStateData(
+        val labels: List<UiString>,
+        @ColorRes val labelsColor: Int?,
+        val progressBarUiState: ProgressBarUiState,
+        val showOverlay: Boolean,
+        val actions: Set<Action>,
+        val subtitle: Int? = null
+    )
 }

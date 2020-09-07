@@ -35,12 +35,13 @@ import org.wordpress.android.fluxc.store.MediaStore;
 import org.wordpress.android.fluxc.store.MediaStore.FetchMediaListPayload;
 import org.wordpress.android.fluxc.store.MediaStore.MediaErrorType;
 import org.wordpress.android.fluxc.store.MediaStore.OnMediaListFetched;
-import org.wordpress.android.fluxc.utils.MediaUtils;
+import org.wordpress.android.fluxc.utils.MimeType;
 import org.wordpress.android.ui.ActionableEmptyView;
 import org.wordpress.android.ui.EmptyViewMessageType;
 import org.wordpress.android.ui.media.MediaGridAdapter.MediaGridAdapterCallback;
 import org.wordpress.android.ui.media.services.MediaDeleteService;
 import org.wordpress.android.ui.prefs.EmptyViewRecyclerView;
+import org.wordpress.android.util.AccessibilityUtils;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.ListUtils;
 import org.wordpress.android.util.NetworkUtils;
@@ -58,6 +59,10 @@ import java.util.List;
 import javax.inject.Inject;
 
 import static android.app.Activity.RESULT_OK;
+import static org.wordpress.android.fluxc.utils.MimeType.Type.APPLICATION;
+import static org.wordpress.android.fluxc.utils.MimeType.Type.AUDIO;
+import static org.wordpress.android.fluxc.utils.MimeType.Type.IMAGE;
+import static org.wordpress.android.fluxc.utils.MimeType.Type.VIDEO;
 import static org.wordpress.android.util.WPSwipeToRefreshHelper.buildSwipeToRefreshHelper;
 
 /**
@@ -94,30 +99,30 @@ public class MediaGridFragment extends Fragment implements MediaGridAdapterCallb
             return mValue;
         }
 
-        private String toMimeType() {
+        private MimeType.Type toMimeType() {
             switch (this) {
                 case FILTER_AUDIO:
-                    return MediaUtils.MIME_TYPE_AUDIO;
+                    return AUDIO;
                 case FILTER_DOCUMENTS:
-                    return MediaUtils.MIME_TYPE_APPLICATION;
+                    return APPLICATION;
                 case FILTER_IMAGES:
-                    return MediaUtils.MIME_TYPE_IMAGE;
+                    return IMAGE;
                 case FILTER_VIDEOS:
-                    return MediaUtils.MIME_TYPE_VIDEO;
+                    return VIDEO;
                 default:
                     return null;
             }
         }
 
-        private static MediaFilter fromMimeType(@NonNull String mimeType) {
+        private static MediaFilter fromMimeType(@NonNull MimeType.Type mimeType) {
             switch (mimeType) {
-                case MediaUtils.MIME_TYPE_APPLICATION:
+                case APPLICATION:
                     return MediaFilter.FILTER_DOCUMENTS;
-                case MediaUtils.MIME_TYPE_AUDIO:
+                case AUDIO:
                     return MediaFilter.FILTER_AUDIO;
-                case MediaUtils.MIME_TYPE_IMAGE:
+                case IMAGE:
                     return MediaFilter.FILTER_IMAGES;
-                case MediaUtils.MIME_TYPE_VIDEO:
+                case VIDEO:
                     return MediaFilter.FILTER_VIDEOS;
                 default:
                     return MediaFilter.FILTER_ALL;
@@ -707,8 +712,7 @@ public class MediaGridFragment extends Fragment implements MediaGridAdapterCallb
         }
 
         // make sure this request was for the current filter
-        if (!TextUtils.isEmpty(event.mimeType)
-            && MediaFilter.fromMimeType(event.mimeType) != mFilter) {
+        if (event.mimeType != null && MediaFilter.fromMimeType(event.mimeType) != mFilter) {
             return;
         }
 
@@ -741,8 +745,7 @@ public class MediaGridFragment extends Fragment implements MediaGridAdapterCallb
             return;
         }
 
-        if (!TextUtils.isEmpty(event.mimeType)
-            && MediaFilter.fromMimeType(event.mimeType) != mFilter) {
+        if (event.mimeType != null && MediaFilter.fromMimeType(event.mimeType) != mFilter) {
             return;
         }
 
@@ -800,6 +803,8 @@ public class MediaGridFragment extends Fragment implements MediaGridAdapterCallb
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             MenuItem mnuConfirm = menu.findItem(R.id.mnu_confirm_selection);
             mnuConfirm.setVisible(mBrowserType.isPicker());
+
+            AccessibilityUtils.setActionModeDoneButtonContentDescription(getActivity(), getString(R.string.cancel));
             return true;
         }
 

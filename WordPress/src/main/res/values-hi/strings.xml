@@ -2,7 +2,7 @@
 <!--
 Translation-Revision-Date: 2017-12-02 23:45:38+0000
 Plural-Forms: nplurals=2; plural=n != 1;
-Generator: GlotPress/2.4.0-alpha
+Generator: GlotPress/3.0.0-alpha.2
 Language: hi_IN
 -->
 <resources>
@@ -23,8 +23,6 @@ Language: hi_IN
     <string name="media_edit_url_caption">यूआरएल</string>
     <string name="media_edit_filename_caption">फ़ाइल का नाम</string>
     <string name="media_edit_filetype_caption">फाइल का प्रकार</string>
-    <string name="copy">कापी</string>
-    <string name="connect_site">साइट कनेक्ट करे</string>
     <string name="notification_settings_item_sights_and_sounds_blink_light">लाइट टिमटिमाये </string>
     <string name="notification_settings_item_sights_and_sounds_choose_sound">ध्वनि चुनें</string>
     <string name="notification_settings_category_sights_and_sounds">दृश्य और ध्वनि </string>
@@ -57,9 +55,7 @@ Language: hi_IN
     <string name="button_retry">पुन: प्रयास करें</string>
     <string name="login_epilogue_mysites_one">मेरी साइट</string>
     <string name="login_site_address">साइट का पता</string>
-    <string name="login_username_at">\@%s</string>
     <string name="login_continue">जारी रखें</string>
-    <string name="connect_more">अन्य साइट कनेक्ट करें</string>
     <string name="next">अगला</string>
     <string name="open_mail">मेल खोलें</string>
     <string name="turn_on">चालू करें</string>
@@ -74,8 +70,6 @@ Language: hi_IN
     <string name="wp_media_title">वर्डप्रेस मीडिया </string>
     <string name="error_unknown_post_type">अज्ञात पोस्ट प्रारूप</string>
     <string name="confirm">पुष्टि करें</string>
-    <string name="reader_photo_by">Photo by %s</string>
-    <string name="reader_label_visit">भेंट</string>
     <string name="swipe_for_more">अधिक के लिए स्वाइप करें</string>
     <string name="reader_err_get_post_not_authorized_signin_fallback">आप इस पोस्ट को देखने के लिए अधिकृत नहीं  हैं। पहले WordPress.com में जाकर लॉग इन करें या एक ब्राउज़र को खोलने के लिए शीर्ष कार्रवाई बटन का उपयोग करें।</string>
     <string name="reader_err_get_post_not_authorized_signin">आप इस पोस्ट को देखने के लिए अधिकृत नहीं  हैं। पहले WordPress.com में जाकर लॉग इन करें</string>
@@ -85,8 +79,8 @@ Language: hi_IN
     <string name="reader_toast_err_comment_not_found">कोई टिप्पणी नहीं पाया!</string>
     <string name="reader_toast_err_cannot_like_post">Failed to like this post</string>
     <string name="reader_title_post_detail_wpcom">WordPress.com पोस्ट</string>
-    <string name="error_notif_q_action_reply">टिप्पणी करने के लिए जवाब नहीं कर सके। बाद में पुन: प्रयास करें।</string>
     <string name="reader_title_deeplink">वर्डप्रेस रीडर</string>
+    <string name="error_notif_q_action_reply">टिप्पणी करने के लिए जवाब नहीं कर सके। बाद में पुन: प्रयास करें।</string>
     <string name="error_notif_q_action_approve">Could not approve comment. Please try again later.</string>
     <string name="error_notif_q_action_like">Could not like comment. Please try again later.</string>
     <string name="notifications_label_new_notifications_subtitle">उन्हें दिखाने के लिए टैप करेंI</string>
@@ -97,8 +91,8 @@ Language: hi_IN
     <string name="invite_error_for_username">%1$s: %2$s</string>
     <string name="send">भेजें</string>
     <string name="post_format_video">विडियो </string>
-    <string name="alignment_center">मध्य में</string>
     <string name="post_format_status">स्थिति</string>
+    <string name="alignment_center">मध्य में</string>
     <string name="post_format_standard">मानक</string>
     <string name="post_format_chat">चैट</string>
     <string name="post_format_gallery">गैलरी</string>
@@ -111,8 +105,8 @@ Language: hi_IN
     <string name="notif_suggestions">सुझाव</string>
     <string name="site_settings_list_editor_summary_one">1 आइटम </string>
     <string name="approve_auto">सभी उपयोगकर्ता</string>
-    <string name="days_quantity_one">1 दिन </string>
     <string name="days_quantity_other">%d दिन</string>
+    <string name="days_quantity_one">1 दिन </string>
     <string name="email_address">ईमेल पता</string>
     <string name="comment_status_all">सभी</string>
     <string name="could_not_load_page">पृष्ठ लोड नहीं हो सका</string>
@@ -151,7 +145,6 @@ Language: hi_IN
     <string name="reader_short_like_count_multi">%s पसंद</string>
     <string name="reader_short_like_count_one">1 पसंद</string>
     <string name="reader_short_like_count_none">पसंद</string>
-    <string name="reader_label_follow_count">%,d अनुयायी</string>
     <string name="reader_title_post_detail">पाठक लेख</string>
     <string name="notifications_push_summary">अपने उपकरण में सूचना हेतु व्यवस्था।</string>
     <string name="notification_types">अधिसूचना के प्रकार</string>
@@ -206,10 +199,8 @@ Language: hi_IN
     <string name="comment">टिप्पणी</string>
     <string name="comment_trashed">टिप्पणी ट्रैश किया गया</string>
     <string name="reader_toast_err_generic">इस कार्य को निष्पादित करने में असमर्थ</string>
-    <string name="contact_us">हमसे संपर्क करें</string>
     <string name="update_verb">अपडेट करे</string>
     <string name="schedule_verb">निर्धारित करे</string>
-    <string name="reader_title_tag_preview">टैग पूर्वावलोकन</string>
     <string name="reader_hint_add_tag_or_url">अनुसरण के लिए एक टैग या यूआरएल दर्ज करें</string>
     <string name="reader_page_followed_blogs">अनुसरण किये गए ब्लॉग </string>
     <string name="reader_page_followed_tags">अनुसरण किये गए टैग्स </string>
@@ -239,7 +230,6 @@ Language: hi_IN
     <string name="error_moderate_comment">मध्यस्थता करते हुए त्रुटि हुई</string>
     <string name="sdcard_message">मीडिया अपलोड करने के लिए एक माउंटेड एसडी कार्ड की आवश्यकता है</string>
     <string name="add_new_category">नई श्रेणी जोड़ें</string>
-    <string name="hint_comment_content">टिप्पणी</string>
     <string name="content_required">टिप्पणी आवश्यक है</string>
     <string name="http_authorization_required">प्रमाणीकरण आवश्यक</string>
     <string name="edit_comment">टिप्पणी संपादित करें</string>
@@ -261,10 +251,8 @@ Language: hi_IN
     <string name="wordpress_blog">वर्डप्रेस ब्लॉग</string>
     <string name="view_in_browser">ब्राउज़र में देखें</string>
     <string name="mnu_comment_trash">कचरा पेटी</string>
-    <string name="trash_yes">कचरा पेटी</string>
     <string name="trash">कचरा पेटी</string>
     <string name="comment_status_trash">कचरा पेटी में डाला गया</string>
-    <string name="trash_no">कचरा पेटी में नहीं डाले</string>
     <string name="reader_toast_err_add_tag">इस टैग को जोड़ने में असमर्थ</string>
     <string name="reader_toast_err_remove_tag">इस टैग को हटाने में असमर्थ</string>
     <string name="mnu_comment_unapprove">अस्वीकृत</string>
@@ -348,7 +336,6 @@ Language: hi_IN
     <string name="httppassword">एचटीटीपी कूटशब्द</string>
     <string name="httpuser">एचटीटीपी उपयोगकर्ता नाम</string>
     <string name="error_media_upload">मीडिया अपलोड करने के दौरान एक त्रुटि हुई</string>
-    <string name="publish_date">प्रकाशित करे</string>
     <string name="incorrect_credentials">गलत उपयोगकर्ता नाम या कूटशब्द.</string>
     <string name="username">उपयोगकर्ता नाम</string>
     <string name="password">कूटशब्द</string>
@@ -357,7 +344,6 @@ Language: hi_IN
     <string name="no_network_title">नेटवर्क उपलब्ध नहीं </string>
     <string name="pages">पृष्ठे</string>
     <string name="posts">पोस्ट</string>
-    <string name="blogusername">ब्लॉग उपयोगकर्ता नाम</string>
     <string name="ok">ओके</string>
     <string name="link_enter_url">यूआरएल</string>
     <string name="version">संस्करण</string>
@@ -371,7 +357,6 @@ Language: hi_IN
     <string name="quickpress_add_alert_title">शॉर्टकट नाम निर्धारित करें </string>
     <string name="settings">सेटिंग्स</string>
     <string name="quickpress_add_error">शॉर्टकट का नाम खाली नहीं हो सकता</string>
-    <string name="quickpress_window_title">QuickPress शॉर्टकट के लिए एक ब्लॉग चुने</string>
     <string name="categories">श्रेणिया</string>
     <string name="title">शीर्षक</string>
     <string name="tags_separate_with_commas">टैग को अल्पविराम से अलग करे \n</string>

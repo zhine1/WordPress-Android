@@ -8,19 +8,26 @@ import org.wordpress.android.fluxc.model.PostModel;
 import org.wordpress.android.ui.media.services.MediaUploadReadyListener;
 import org.wordpress.android.ui.posts.PostUtils;
 import org.wordpress.android.ui.prefs.AppPrefs;
+import org.wordpress.android.ui.stories.SaveStoryGutenbergBlockUseCase;
 import org.wordpress.android.util.helpers.MediaFile;
 
 
 public class MediaUploadReadyProcessor implements MediaUploadReadyListener {
     @Override
-    public PostModel replaceMediaFileWithUrlInPost(@Nullable PostModel post, String localMediaId, MediaFile mediaFile) {
+    public PostModel replaceMediaFileWithUrlInPost(@Nullable PostModel post, String localMediaId, MediaFile mediaFile,
+                                                   String siteUrl) {
         if (post != null) {
             boolean showAztecEditor = AppPrefs.isAztecEditorEnabled();
             boolean showGutenbergEditor = AppPrefs.isGutenbergEditorEnabled();
 
-            if (showGutenbergEditor && PostUtils.contentContainsGutenbergBlocks(post.getContent())) {
+            if (PostUtils.contentContainsWPStoryGutenbergBlocks(post.getContent())) {
+                SaveStoryGutenbergBlockUseCase saveStoryGutenbergBlockUseCase = new SaveStoryGutenbergBlockUseCase();
+                saveStoryGutenbergBlockUseCase
+                        .replaceLocalMediaIdsWithRemoteMediaIdsInPost(post, mediaFile);
+            } else if (showGutenbergEditor && PostUtils.contentContainsGutenbergBlocks(post.getContent())) {
                 post.setContent(
-                        PostUtils.replaceMediaFileWithUrlInGutenbergPost(post.getContent(), localMediaId, mediaFile));
+                        PostUtils.replaceMediaFileWithUrlInGutenbergPost(post.getContent(), localMediaId, mediaFile,
+                                siteUrl));
             } else if (showAztecEditor) {
                 post.setContent(AztecEditorFragment.replaceMediaFileWithUrl(WordPress.getContext(), post.getContent(),
                                                                             localMediaId, mediaFile));

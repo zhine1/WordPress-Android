@@ -1,3 +1,198 @@
+15.7
+-----
+* [**] Block Editor: New block: Pullquote
+* [**] Block Editor: Block settings now immediately reflect changes from menu sliders.
+ * [***] Reader: Introduced a new Discover tab tailored for each user.
+ * [*] Reader: Added "(un)follow" button to the site and topic detail screens.
+
+* [*] Media: Fixed a bug that would allow you to pick unsupported media that then couldn't be uploaded.
+ 
+15.6
+-----
+* [**] Block Editor: Add settings to allow changing column widths
+* [**] Block Editor: Media editing support in Gallery block.
+* [*] Block Editor: Improved logic for creating undo levels.
+ 
+15.5
+-----
+* [***] Block Editor: New feature for WordPress.com and Jetpack sites: auto-complete username mentions. An auto-complete popup will show up when the user types the @ character in the block editor.
+* [***] Enables search on post list for self-hosted sites.
+* [***] Enable upload of audio files and documents in the media library
+* [*] Block Editor: Media editing support in Cover block.
+* [*] Block Editor: Fixed a bug on the Heading block, where a heading with a link and string formatting showed a white shadow in dark mode.
+
+15.4.1
+-----
+* [**] Block Editor: Fix for editing the Classic Block in the Unsupported block editor
+
+15.4
+-----
+* [***] The login and signup flows were unified and have a new design.
+* [***] Block Editor: Media editing support in Media & Text block.
+* [***] Block Editor: New block: Social Icons
+* [*] Block Editor: Cover block placeholder is updated to allow users to start the block with a background color
+ 
+15.3
+-----
+* [*] Improve wording for confirmation dialogs when trashing posts
+* [***] Block Editor: Adds Copy, Cut, Paste, and Duplicate functionality to blocks
+* [***] Block Editor: Users can now individually edit unsupported blocks found in posts or pages. Not available on self-hosted sites or sites defaulted to classic editor.
+ 
+15.2
+-----
+* [**] Fixes tons of rendering issues in Reader post detail by changing the technical solution (shared CSS file).
+* [**] Block editor: Display content metrics information (blocks, words, characters count).
+* [**] Block Editor: Adds editor support for theme defined colors and theme defined gradients on cover and button blocks.
+* [**] Block Editor: Add support allowing Cover Block video uploads to complete after the editor has closed
+* [*] Block Editor: Fix handling of upload completion while re-opening the editor
+* [*] Fix crash when WordPress api response has an empty body
+* [*] Added ability to change Site Title from My Site screen
+
+15.1
+-----
+* Fixes issue on Notifications tab when two screens were drawn on top of each other
+* [**] Fix video thumbnails, settings and preview in Media section for private sites
+* [*] Support for breaking out of captions/citation authors by pressing enter on the following blocks: image, video, gallery, quote, and pullquote.
+
+15.0
+-----
+* [*] Fix wrong icon is used when a Password is visible
+* [***] Block Editor: New block: Verse
+* [***] Block Editor: Trash icon that is used to remove blocks is moved to the new menu reachable via ellipsis button in the block toolbar
+* [**] Block Editor: Add support for changing overlay color settings in Cover block
+* [**] Block Editor: Add enter/exit animation in FloatingToolbar
+* [**] Block Editor: Block toolbar can now collapse when the block width is smaller than the toolbar content
+* [**] Block Editor: Tooltip for page template selection buttons
+* [*] Block Editor: Fix merging of text blocks when text had active formatting (bold, italic, strike, link)
+* [*] Block Editor: Fix button alignment in page templates and make strings consistent
+* [*] Block Editor: Add support for displaying radial gradients in Buttons and Cover blocks
+* [**] Add homepage settings to pages list and to site settings. Now it's possible to change your posts page and your homepage.
+* [*] Fix wrong icon is used when a Password is visible
+* [*] Reader: Improved UI of the post card in the post feeds.
+
+14.9
+-----
+* [*] Fix issue with Preview post not working after switching to classic editor from inside the post
+* [**] Block Editor: Add support for changing background and text color in Buttons block
+* [*] Block Editor: Fix the icons and buttons in Gallery, Paragraph, List and MediaText block on RTL mode
+* [**] Block Editor: Remove Subscription Button from the Blog template since it didn't have an initial functionality and it is hard to configure for users.
+* [**] Block Editor: Update page templates to use recently added blocks
+* [**] Block editor: Fix bug in Free Photo Library which allowed selecting multiple images but only inserted one
+
+14.8
+-----
+* Block editor: Prefill caption for image blocks when available on the Media library
+* Block editor: New block: Buttons. From now you’ll be able to add the individual Button block only inside the Buttons block
+* Block editor: Fix bug where whitespaces at start of text blocks were being removed
+* Block editor: Add support for upload options in Cover block
+* Block editor: Floating toolbar, previously located above nested blocks, is now placed at the top of the screen
+* Block editor: Fix the icons in FloatingToolbar on RTL mode
+* Block editor: Add alignment options for heading block
+* Block editor: Fix titles in the media picker
+* Block editor: Update quote block to visually reflect selected alignment
+* Block editor: Fix bug where buttons in page templates were not rendering correctly on web
+* Block editor: You can now crop, zoom in/out and rotate images from the device that are being inserted in a post.
+* Block editor: Remove Subscription Button from the Blog template since it didn't have an initial functionality and it is hard to configure for users.
+* Added reblog functionality
+
+14.7
+-----
+* Block editor: Disable ripple effect for Slider control
+* Block editor: New block: Columns
+* Block editor: New starter page template: Blog
+* Block editor: Make Starter Page Template picker buttons visible only when the screen height is enough
+* Block editor: Fix a bug which caused to show URL settings modal randomly when changing the device orientation multiple times during the time Starter Page Template Preview is open
+* Block editor: "Choose media from device" now opens our built-in media picker instead of the OS default media picker.
+* Added user Gravatar to the Me menu in My Site.
+* Updated site details screen title to "My site", to avoid duplicating the title of the current site which is displayed in the screen's header area.
+
+14.6
+-----
+* Block editor: You can now crop, zoom in/out and rotate images that are already inserted in a post.
+* Fix a deeplinking issue that could lead to the app not being open after clicking on some special "wordpress://" URLs.
+* Site Creation: Improved look of the loading screen while the site is being created
+* Block editor: New block: Cover
+* Block editor: Improve icon on the "Take a Video" media option
+* Block editor: Removed the dimming effect on unselected blocks
+* Block editor: Enabled edit button over image block for Android
+* Block editor: Implemented dropdown toolbar for alignment toolbar in Heading, Paragraph, Image, MediaText blocks
+* Block Editor: When editing link settings, tapping the keyboard return button now closes the settings panel as well as closing the keyboard.
+* Page List: Fixed an issue where opening a page would sometimes result in an empty editor.
+* Dark Theme support
+
+14.5
+-----
+* Block editor: New block: Latest Posts
+* Block editor: Fix Quote block's left border not being visible in Dark Mode
+* Block editor: Added Starter Page Templates: when you create a new page, we now show you a few templates to get started more quickly.
+* Block editor: Fix crash when pasting HTML content with embeded images on paragraphs
+* Removes sections from post search results
+* Page List: Unsaved changes are automatically backed up on all devices. On page opening, the app will let you choose which version you prefer.
+* Page List: Minor design improvements
+* Site Creation: faster site creation, removed intermediate steps. Just select what kind of site you'd like, enter the domain name and the site will be created.
+* Fixed a bug where failed post uploads were sometimes being retried indefinitely
+
+14.4.1
+-----
+* Block Editor: Fix crash when inserting a Button Block.
+
+14.4
+-----
+* Fix an issue where image is sometimes uploaded with a path to local storage
+
+14.3
+-----
+* Added search to set page parent screen
+* Block editor: Add support for changing image sizes in Image blocks
+* Block editor: Add support for upload options in Gallery block
+* Block editor: Added the Button block
+* Block editor: Added the Group block
+* Block editor: Add scroll support inside block picker and block settings
+* Block editor: Fix issue preventing correct placeholder image from displaying during image upload
+* Block editor: Fix issue where adding emojis to the post title added strong HTML elements to the title of the post
+* Block editor: We’ve introduced a new toolbar that floats above the block you’re editing, which makes navigating your blocks easier — especially complex ones.
+* Reader Information Architecture: added tab filtering; added bottom sheet to filter and navigate the followed sites/tags posts.
+
+14.2
+-----
+* Block editor: Long-press Inserter icon to show options to add before/after
+* Block editor: Retry displaying image when connectivity restores
+* Block editor: Fix blank post when sharing media from another app
+* Block editor: Add support for image size options in the gallery block
+* Block editor: Fix issue that sometimes prevented merging paragraph blocks
+* Block editor: Fix retry media upload action
+
+14.1
+-----
+* Fixes an issue where searching for posts sometimes doesn't show some results.
+
+* Disable the option to remove a Jetpack site from site picker
+* Block editor: small performance improvements
+
+* Block Editor: Reduced padding around text on Rich Text based blocks.
+* Block Editor: Improved stability on very long posts.
+* Block Editor: New block "Shortcode". You can now create and edit Shortcode blocks in the editor.
+
+14.0
+-----
+* Block Editor: Fix displaying placeholder for images
+* Block Editor: Fix crash on undo
+* Block Editor: Fix styling on navigation UI
+* Information Architecture revised: moved the access to the Me screen to an option menu into My Site; added Floating Action Button in My Site to allow the creation of a new Blog post or Site page.
+
+13.9
+-----
+* Block Editor: New block "Gallery". You can now create image galleries using WordPress Media library.
+* Block Editor: Add support for the Preformatted block.
+* Block Editor: Add support for changing Settings in the List Block.
+* Block Editor: Add support for Video block settings.
+
+13.8
+-----
+* Modified Blog Post search to search for posts under all categories.
+* Block editor: Add support for Preformatted block.
+* Block editor: New Spacer block to create white space between two blocks.
+
 13.7
 -----
 * Block editor: Include block title in Unsupported block's UI
@@ -7,15 +202,17 @@
 * Block editor: Images clickable for fullscreen preview
 * Fixed time displayed on Post Conflict Detected and Unpublished Revision dialogs
 * Block editor: Fix issue when removing image/page break block crashes the app
+* Fixed a crash on Samsung devices running Android 5 (Lollipop)
+
 * Removed support for Giphy
- 
+
 13.6
 -----
  * Change navigation bar color to white on Android 8.1+
 * Pages ordering is case insensitive now
 * Block Editor: Add support for pexels images
 * Block Editor: Add left, center, and right image alignment controls
- 
+
 13.5
 -----
  * Block Editor: Fix issue when multiple media selection adds only one image or video block.
@@ -23,7 +220,7 @@
  * Block Editor: New block "Media & Text".
  * Block Editor: Fix issue where the block inserter layout wasn't correct after device rotation.
  * Fix crash when fast-scrolling on Blog Posts screen
- 
+
 13.4
 -----
 * Add Remote Preview support for posts and pages.
@@ -46,7 +243,7 @@
 * Block Editor: Blocks that would be replaced are now hidden when add block bottom sheet displays
 * Block Editor: Tapping on empty editor area now always inserts new block at end of post
 * Block Editor: Automatically saves post locally after 2 seconds of inactivity
- 
+
 13.2
 -----
 * Fix issue where establishing LinkedIn connection would always fail
@@ -171,4 +368,3 @@
 * Updated Notifications with tabs
 * Add Posting activity block to the Stats/Insights
 * Fixed error notifications for failed uploads
-

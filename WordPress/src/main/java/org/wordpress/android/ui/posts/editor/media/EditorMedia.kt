@@ -8,32 +8,39 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.wordpress.android.R
 import org.wordpress.android.analytics.AnalyticsTracker
 import org.wordpress.android.analytics.AnalyticsTracker.Stat
+import org.wordpress.android.analytics.AnalyticsTracker.Stat.EDITOR_UPLOAD_MEDIA_FAILED
+import org.wordpress.android.editor.EditorMediaUploadListener
 import org.wordpress.android.fluxc.Dispatcher
 import org.wordpress.android.fluxc.generated.MediaActionBuilder
 import org.wordpress.android.fluxc.model.MediaModel
 import org.wordpress.android.fluxc.model.MediaModel.MediaUploadState
-import org.wordpress.android.fluxc.model.PostImmutableModel
 import org.wordpress.android.fluxc.model.SiteModel
 import org.wordpress.android.fluxc.store.MediaStore
 import org.wordpress.android.fluxc.store.MediaStore.CancelMediaPayload
 import org.wordpress.android.fluxc.store.MediaStore.FetchMediaListPayload
+import org.wordpress.android.fluxc.store.MediaStore.MediaError
+import org.wordpress.android.modules.BG_THREAD
 import org.wordpress.android.modules.UI_THREAD
 import org.wordpress.android.ui.pages.SnackbarMessageHolder
-import org.wordpress.android.ui.posts.EditPostActivity.AfterSavePostListener
+import org.wordpress.android.ui.posts.EditPostRepository
 import org.wordpress.android.ui.posts.ProgressDialogUiState
 import org.wordpress.android.ui.posts.ProgressDialogUiState.HiddenProgressDialog
 import org.wordpress.android.ui.posts.ProgressDialogUiState.VisibleProgressDialog
 import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddMediaToPostUiState.AddingMediaIdle
 import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddMediaToPostUiState.AddingMultipleMedia
 import org.wordpress.android.ui.posts.editor.media.EditorMedia.AddMediaToPostUiState.AddingSingleMedia
+import org.wordpress.android.ui.uploads.UploadService
 import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.util.MediaUtilsWrapper
 import org.wordpress.android.util.NetworkUtilsWrapper
+import org.wordpress.android.util.StringUtils
 import org.wordpress.android.util.ToastUtils.Duration
-import org.wordpress.android.util.helpers.MediaFile
+import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
+import org.wordpress.android.util.analytics.AnalyticsUtilsWrapper
 import org.wordpress.android.viewmodel.Event
 import org.wordpress.android.viewmodel.SingleLiveEvent
 import org.wordpress.android.viewmodel.helpers.ToastMessageHolder
@@ -41,13 +48,6 @@ import java.util.ArrayList
 import javax.inject.Inject
 import javax.inject.Named
 import kotlin.coroutines.CoroutineContext
-
-interface EditorMediaListener {
-    fun appendMediaFile(mediaFile: MediaFile, imageUrl: String)
-    fun syncPostObjectWithUiAndSaveIt(listener: AfterSavePostListener? = null)
-    fun advertiseImageOptimization(listener: () -> Unit)
-    fun getImmutablePost(): PostImmutableModel
-}
 
 class EditorMedia @Inject constructor(
     private val updateMediaModelUseCase: UpdateMediaModelUseCase,
@@ -58,7 +58,13 @@ class EditorMedia @Inject constructor(
     private val addLocalMediaToPostUseCase: AddLocalMediaToPostUseCase,
     private val addExistingMediaToPostUseCase: AddExistingMediaToPostUseCase,
     private val retryFailedMediaUploadUseCase: RetryFailedMediaUploadUseCase,
-    @Named(UI_THREAD) private val mainDispatcher: CoroutineDispatcher
+    private val cleanUpMediaToPostAssociationUseCase: CleanUpMediaToPostAssociationUseCase,
+    private val removeMediaUseCase: RemoveMediaUseCase,
+    private val reattachUploadingMediaUseCase: ReattachUploadingMediaUseCase,
+    private val analyticsUtilsWrapper: AnalyticsUtilsWrapper,
+    private val analyticsTrackerWrapper: AnalyticsTrackerWrapper,
+    @Named(UI_THREAD) private val mainDispatcher: CoroutineDispatcher,
+    @Named(BG_THREAD) private val bgDispatcher: CoroutineDispatcher
 ) : CoroutineScope {
     // region Fields
     private var job: Job = Job()
@@ -68,6 +74,8 @@ class EditorMedia @Inject constructor(
 
     private lateinit var site: SiteModel
     private lateinit var editorMediaListener: EditorMediaListener
+
+    private val deletedMediaItemIds = mutableListOf<String>()
 
     private val _uiState: MutableLiveData<AddMediaToPostUiState> = MutableLiveData()
     val uiState: LiveData<AddMediaToPostUiState> = _uiState
@@ -117,10 +125,11 @@ class EditorMedia @Inject constructor(
                     uriList,
                     site,
                     freshlyTaken,
-                    editorMediaListener
+                    editorMediaListener,
+                    true
             )
             if (!allMediaSucceed) {
-                _snackBarMessage.value = Event(SnackbarMessageHolder(R.string.gallery_error))
+                _snackBarMessage.value = Event(SnackbarMessageHolder(UiStringRes(R.string.gallery_error)))
             }
             _uiState.value = AddingMediaIdle
         }
@@ -129,7 +138,7 @@ class EditorMedia @Inject constructor(
     /**
      * This won't create a MediaModel. It assumes the model was already created.
      */
-    fun addMediaFromGiphyToPostAsync(localMediaIds: IntArray) {
+    fun addGifMediaToPostAsync(localMediaIds: IntArray) {
         launch {
             addLocalMediaToPostUseCase.addLocalMediaToEditorAsync(
                     localMediaIds.toList(),
@@ -224,15 +233,77 @@ class EditorMedia @Inject constructor(
             retryFailedMediaUploadUseCase.retryFailedMediaAsync(editorMediaListener, failedMediaIds)
         }
     }
+
+    fun purgeMediaToPostAssociationsIfNotInPostAnymoreAsync() {
+        launch {
+            cleanUpMediaToPostAssociationUseCase
+                    .purgeMediaToPostAssociationsIfNotInPostAnymore(editorMediaListener.getImmutablePost())
+        }
+    }
+
+    fun reattachUploadingMediaForAztec(
+        editPostRepository: EditPostRepository,
+        isAztec: Boolean,
+        editorMediaUploadListener: EditorMediaUploadListener
+    ) {
+        if (isAztec) {
+            reattachUploadingMediaUseCase.reattachUploadingMediaForAztec(
+                    editPostRepository,
+                    editorMediaUploadListener
+            )
+        }
+    }
+
+    /*
+    * When the user deletes a media item that was being uploaded at that moment, we only cancel the
+    * upload but keep the media item in FluxC DB because the user might have deleted it accidentally,
+    * and they can always UNDO the delete action in Aztec.
+    * So, when the user exits then editor (and thus we lose the undo/redo history) we are safe to
+    * physically delete from the FluxC DB those items that have been deleted by the user using backspace.
+    * */
+    fun definitelyDeleteBackspaceDeletedMediaItemsAsync() {
+        launch {
+            removeMediaUseCase.removeMediaIfNotUploading(deletedMediaItemIds)
+        }
+    }
+
+    fun updateDeletedMediaItemIds(localMediaId: String) {
+        deletedMediaItemIds.add(localMediaId)
+        UploadService.setDeletedMediaItemIds(deletedMediaItemIds)
+    }
+
     // endregion
 
     fun cancelAddMediaToEditorActions() {
         job.cancel()
     }
 
-    enum class AddExistingMediaSource {
-        WP_MEDIA_LIBRARY,
-        STOCK_PHOTO_LIBRARY
+    fun onMediaDeleted(
+        showAztecEditor: Boolean,
+        showGutenbergEditor: Boolean,
+        localMediaId: String
+    ) {
+        updateDeletedMediaItemIds(localMediaId)
+        if (showAztecEditor && !showGutenbergEditor) {
+            // passing false here as we need to keep the media item in case the user wants to undo
+            cancelMediaUploadAsync(StringUtils.stringToInt(localMediaId), false)
+        } else {
+            launch {
+                removeMediaUseCase.removeMediaIfNotUploading(listOf(localMediaId))
+            }
+        }
+    }
+
+    fun onMediaUploadError(listener: EditorMediaUploadListener, media: MediaModel, error: MediaError) = launch {
+        val properties: Map<String, Any?> = withContext(bgDispatcher) {
+            analyticsUtilsWrapper
+                    .getMediaProperties(media.isVideo, null, media.filePath)
+                    .also {
+                        it["error_type"] = error.type.name
+                    }
+        }
+        analyticsTrackerWrapper.track(EDITOR_UPLOAD_MEDIA_FAILED, properties)
+        listener.onMediaUploadFailed(media.id.toString())
     }
 
     sealed class AddMediaToPostUiState(

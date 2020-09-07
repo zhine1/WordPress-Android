@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.pages_list_fragment.*
 import org.wordpress.android.R
 import org.wordpress.android.WordPress
+import org.wordpress.android.ui.utils.UiHelpers
 import org.wordpress.android.util.DisplayUtils
 import org.wordpress.android.viewmodel.pages.PagesViewModel
 import org.wordpress.android.viewmodel.pages.SearchListViewModel
@@ -25,6 +26,7 @@ class SearchListFragment : Fragment() {
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
     private lateinit var viewModel: SearchListViewModel
     private var linearLayoutManager: LinearLayoutManager? = null
+    @Inject lateinit var uiHelper: UiHelpers
 
     private val listStateKey = "list_state"
 
@@ -41,7 +43,7 @@ class SearchListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val nonNullActivity = checkNotNull(activity)
+        val nonNullActivity = requireActivity()
         (nonNullActivity.application as? WordPress)?.component()?.inject(this)
 
         initializeViews(savedInstanceState)
@@ -76,7 +78,7 @@ class SearchListFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        viewModel.searchResult.observe(this, Observer { data ->
+        viewModel.searchResult.observe(viewLifecycleOwner, Observer { data ->
             data?.let { setSearchResult(data) }
         })
     }
@@ -86,8 +88,7 @@ class SearchListFragment : Fragment() {
         if (recyclerView.adapter == null) {
             adapter = PageSearchAdapter(
                     { action, page -> viewModel.onMenuAction(action, page) },
-                    { page -> viewModel.onItemTapped(page) }
-            )
+                    { page -> viewModel.onItemTapped(page) }, uiHelper)
             recyclerView.adapter = adapter
         } else {
             adapter = recyclerView.adapter as PageSearchAdapter

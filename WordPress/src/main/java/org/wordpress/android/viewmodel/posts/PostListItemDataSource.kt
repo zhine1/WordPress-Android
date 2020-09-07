@@ -26,6 +26,18 @@ sealed class PostListItemIdentifier {
     object EndListIndicatorIdentifier : PostListItemIdentifier()
 }
 
+/**
+ * This is the post list data source to be used by `ListStore`. Before making any changes, it's important to know:
+ *
+ * 1. Lists managed by `ListStore` works by first fetching a smaller version of the models and then fetching the
+ * actual model if necessary.
+ * 2. During [getItemIdentifiers] the actual models might not be available and should not be relied upon.
+ * 3. In [getItemsAndFetchIfNecessary], if the actual model is not available, this class is responsible for fetching
+ * that model. For this post list specifically, when the actual model is fetched the list will update itself.
+ *
+ * // TODO: We can add a link to the wiki for ListStore when that's available.
+ * For more information, please see the documentation for `ListStore` components.
+ */
 class PostListItemDataSource(
     private val dispatcher: Dispatcher,
     private val postStore: PostStore,
@@ -43,10 +55,8 @@ class PostListItemDataSource(
         remoteItemIds: List<RemoteId>,
         isListFullyFetched: Boolean
     ): List<PostListItemIdentifier> {
-        val localItems = postStore.getLocalPostIdsForDescriptor(listDescriptor)
-                .map { LocalPostId(id = it) }
-        val remoteItems = remoteItemIds.map { RemotePostId(id = it) }
-        val actualItems = localItems + remoteItems
+        val localPostIds = postStore.getLocalPostIdsForDescriptor(listDescriptor)
+        val actualItems = localPostIds.map { LocalPostId(id = it) } + remoteItemIds.map { RemotePostId(id = it) }
 
         // We only want to show the end list indicator if the list is fully fetched and it's not empty
         return if (isListFullyFetched && actualItems.isNotEmpty()) {
@@ -58,15 +68,7 @@ class PostListItemDataSource(
         listDescriptor: PostListDescriptor,
         itemIdentifiers: List<PostListItemIdentifier>
     ): List<PostListItemType> {
-        val localOrRemoteIds = itemIdentifiers.mapNotNull { identifier ->
-            when (identifier) {
-                is LocalPostId -> identifier.id
-                is RemotePostId -> identifier.id
-                // We are creating a list of local and remote ids, so other type of identifiers don't matter
-                EndListIndicatorIdentifier -> null
-            }
-        }
-
+        val localOrRemoteIds = localOrRemoteIdsFromPostListItemIds(itemIdentifiers)
         val postList = postStore.getPostsByLocalOrRemotePostIds(localOrRemoteIds, listDescriptor.site)
 
         // Convert the post list into 2 maps with local and remote ids as keys
@@ -80,6 +82,19 @@ class PostListItemDataSource(
                 is LocalPostId -> transformToPostListItemType(identifier.id, localPostMap[identifier.id])
                 is RemotePostId -> transformToPostListItemType(identifier.id, remotePostMap[identifier.id])
                 EndListIndicatorIdentifier -> EndListIndicatorItem
+            }
+        }
+    }
+
+    private fun localOrRemoteIdsFromPostListItemIds(
+        itemIdentifiers: List<PostListItemIdentifier>
+    ): List<LocalOrRemoteId> {
+        return itemIdentifiers.mapNotNull {
+            when (it) {
+                is LocalPostId -> it.id
+                is RemotePostId -> it.id
+                // We are creating a list of local and remote ids, so other type of identifiers don't matter
+                EndListIndicatorIdentifier -> null
             }
         }
     }

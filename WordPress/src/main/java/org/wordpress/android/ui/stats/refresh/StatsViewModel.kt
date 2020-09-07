@@ -33,13 +33,13 @@ import org.wordpress.android.ui.stats.refresh.lists.StatsListViewModel.StatsSect
 import org.wordpress.android.ui.stats.refresh.lists.StatsListViewModel.StatsSection.MONTHS
 import org.wordpress.android.ui.stats.refresh.lists.StatsListViewModel.StatsSection.WEEKS
 import org.wordpress.android.ui.stats.refresh.lists.StatsListViewModel.StatsSection.YEARS
-import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseParam
 import org.wordpress.android.ui.stats.refresh.lists.sections.granular.SelectedDateProvider
 import org.wordpress.android.ui.stats.refresh.utils.NewsCardHandler
 import org.wordpress.android.ui.stats.refresh.utils.SelectedSectionManager
 import org.wordpress.android.ui.stats.refresh.utils.StatsSiteProvider
 import org.wordpress.android.ui.stats.refresh.utils.toStatsGranularity
 import org.wordpress.android.ui.stats.refresh.utils.trackGranular
+import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.util.NetworkUtilsWrapper
 import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.util.mapNullable
@@ -170,13 +170,15 @@ class StatsViewModel
             }
         } else {
             _isRefreshing.value = false
-            _showSnackbarMessage.value = SnackbarMessageHolder(R.string.no_network_title)
+            _showSnackbarMessage.value = SnackbarMessageHolder(UiStringRes(R.string.no_network_title))
         }
     }
 
     fun onSiteChanged() {
         loadData {
-            listUseCases.values.forEach { it.onParamChanged(UseCaseParam.Site) }
+            listUseCases.values.forEach {
+                it.refreshData(true)
+            }
         }
     }
 

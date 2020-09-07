@@ -1,6 +1,5 @@
 package org.wordpress.android.ui.accounts.signup;
 
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -9,23 +8,25 @@ import android.text.Spanned;
 import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.jetbrains.annotations.NotNull;
 import org.wordpress.android.R;
 import org.wordpress.android.analytics.AnalyticsTracker;
 import org.wordpress.android.analytics.AnalyticsTracker.Stat;
@@ -135,20 +136,26 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
     }
 
     @Override
-    public void onViewCreated(final FullScreenDialogController controller) {
+    public void setController(final FullScreenDialogController controller) {
         mDialogController = controller;
     }
 
     @Override
-    public void onActivityCreated(@Nullable final Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         if (savedInstanceState != null) {
             mIsShowingDismissDialog = savedInstanceState.getBoolean(KEY_IS_SHOWING_DISMISS_DIALOG);
             mShouldWatchText = savedInstanceState.getBoolean(KEY_SHOULD_WATCH_TEXT);
             mUsernameSelected = savedInstanceState.getString(KEY_USERNAME_SELECTED);
             mUsernameSelectedIndex = savedInstanceState.getInt(KEY_USERNAME_SELECTED_INDEX);
-            setUsernameSuggestions(savedInstanceState.getStringArrayList(KEY_USERNAME_SUGGESTIONS));
+            ArrayList<String> suggestions = savedInstanceState.getStringArrayList(KEY_USERNAME_SUGGESTIONS);
+            if (suggestions != null) {
+                setUsernameSuggestions(suggestions);
+            } else {
+                mUsernameSuggestionInput = getUsernameQueryFromDisplayName();
+                getUsernameSuggestions(mUsernameSuggestionInput);
+            }
 
             if (mIsShowingDismissDialog) {
                 showDismissDialog();
@@ -191,12 +198,9 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
         });
 
         mGetSuggestionsHandler = new Handler();
-        mGetSuggestionsRunnable = new Runnable() {
-            @Override
-            public void run() {
-                mUsernameSuggestionInput = mUsernameView.getText().toString();
-                getUsernameSuggestions(mUsernameSuggestionInput);
-            }
+        mGetSuggestionsRunnable = () -> {
+            mUsernameSuggestionInput = mUsernameView.getText().toString();
+            getUsernameSuggestions(mUsernameSuggestionInput);
         };
     }
 
@@ -213,11 +217,17 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
     }
 
     @Override
+    public void onDestroy() {
+        mGetSuggestionsHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+
+    @Override
     public boolean onConfirmClicked(FullScreenDialogController controller) {
         ActivityUtils.hideKeyboard(getActivity());
 
         if (mUsernamesAdapter != null && mUsernamesAdapter.mItems != null) {
-           onUsernameConfirmed(controller, mUsernameSelected);
+            onUsernameConfirmed(controller, mUsernameSelected);
         } else {
             controller.dismiss();
         }
@@ -241,13 +251,15 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NotNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(KEY_IS_SHOWING_DISMISS_DIALOG, mIsShowingDismissDialog);
         outState.putBoolean(KEY_SHOULD_WATCH_TEXT, false);
         outState.putString(KEY_USERNAME_SELECTED, mUsernameSelected);
         outState.putInt(KEY_USERNAME_SELECTED_INDEX, mUsernameSelectedIndex);
-        outState.putStringArrayList(KEY_USERNAME_SUGGESTIONS, new ArrayList<>(mUsernamesAdapter.mItems));
+        if (mUsernamesAdapter != null) {
+            outState.putStringArrayList(KEY_USERNAME_SUGGESTIONS, new ArrayList<>(mUsernamesAdapter.mItems));
+        }
     }
 
     @Override
@@ -308,27 +320,17 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
     private void showDismissDialog() {
         mIsShowingDismissDialog = true;
 
-        new AlertDialog.Builder(new ContextThemeWrapper(getContext(), R.style.LoginTheme))
+        new MaterialAlertDialogBuilder(getContext())
                 .setMessage(R.string.username_changer_dismiss_message)
                 .setPositiveButton(R.string.username_changer_dismiss_button_positive,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                mDialogController.dismiss();
-                            }
-                        })
+                        (dialog, which) -> mDialogController.dismiss())
                 .setNegativeButton(android.R.string.cancel,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                mIsShowingDismissDialog = false;
-                            }
-                        })
+                        (dialog, which) -> mIsShowingDismissDialog = false)
                 .show();
     }
 
     protected void showErrorDialog(Spanned message) {
-        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(getActivity(), R.style.LoginTheme))
+        AlertDialog dialog = new MaterialAlertDialogBuilder(getContext())
                 .setMessage(message)
                 .setPositiveButton(R.string.login_error_button, null)
                 .create();
@@ -350,16 +352,15 @@ public abstract class BaseUsernameChangerFullScreenDialogFragment extends Dagger
             AppLog.e(T.API, "onUsernameSuggestionsFetched: " + event.error.type + " - " + event.error.message);
             showErrorDialog(new SpannedString(getString(R.string.username_changer_error_generic)));
         } else if (event.suggestions.size() == 0) {
-            showErrorDialog(
-                    Html.fromHtml(
-                            String.format(
-                                    getString(R.string.username_changer_error_none),
-                                    "<b>",
-                                    mUsernameSuggestionInput,
-                                    "</b>"
-                                         )
-                                 )
-                           );
+            String error = String.format(
+                    getString(R.string.username_changer_error_none),
+                    "<b>",
+                    mUsernameSuggestionInput,
+                    "</b>"
+            );
+            mUsernameView.setError(Html.fromHtml(
+                    error
+            ));
         } else {
             populateUsernameSuggestions(event.suggestions);
         }

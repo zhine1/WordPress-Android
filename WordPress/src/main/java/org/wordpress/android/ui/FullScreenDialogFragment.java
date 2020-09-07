@@ -18,10 +18,10 @@ import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.StyleRes;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.DialogFragment;
@@ -31,6 +31,8 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import org.wordpress.android.R;
+import org.wordpress.android.util.ColorUtils;
+import org.wordpress.android.util.ContextExtensionsKt;
 
 /**
  * A {@link DialogFragment} implementing the full-screen dialog pattern defined in the
@@ -48,12 +50,14 @@ public class FullScreenDialogFragment extends DialogFragment {
     private String mTitle;
     private Toolbar mToolbar;
     private boolean mHideActivityBar;
+    private int mToolbarTheme;
     private int mToolbarColor;
 
     private static final String ARG_ACTION = "ARG_ACTION";
     private static final String ARG_HIDE_ACTIVITY_BAR = "ARG_HIDE_ACTIVITY_BAR";
     private static final String ARG_SUBTITLE = "ARG_SUBTITLE";
     private static final String ARG_TITLE = "ARG_TITLE";
+    private static final String ARG_TOOLBAR_THEME = "ARG_TOOLBAR_THEME";
     private static final String ARG_TOOLBAR_COLOR = "ARG_TOOLBAR_COLOR";
     private static final int ID_ACTION = 1;
 
@@ -64,7 +68,7 @@ public class FullScreenDialogFragment extends DialogFragment {
 
         boolean onDismissClicked(FullScreenDialogController controller);
 
-        void onViewCreated(FullScreenDialogController controller);
+        void setController(FullScreenDialogController controller);
     }
 
     public interface FullScreenDialogController {
@@ -98,6 +102,7 @@ public class FullScreenDialogFragment extends DialogFragment {
         bundle.putString(ARG_ACTION, builder.mAction);
         bundle.putString(ARG_TITLE, builder.mTitle);
         bundle.putString(ARG_SUBTITLE, builder.mSubtitle);
+        bundle.putInt(ARG_TOOLBAR_THEME, builder.mToolbarTheme);
         bundle.putInt(ARG_TOOLBAR_COLOR, builder.mToolbarColor);
         bundle.putBoolean(ARG_HIDE_ACTIVITY_BAR, builder.mHideActivityBar);
         return bundle;
@@ -181,7 +186,7 @@ public class FullScreenDialogFragment extends DialogFragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        ((FullScreenDialogContent) getContent()).onViewCreated(mController);
+        ((FullScreenDialogContent) getContent()).setController(mController);
     }
 
     @Override
@@ -251,6 +256,7 @@ public class FullScreenDialogFragment extends DialogFragment {
         mAction = bundle.getString(ARG_ACTION);
         mTitle = bundle.getString(ARG_TITLE);
         mSubtitle = bundle.getString(ARG_SUBTITLE);
+        mToolbarTheme = bundle.getInt(ARG_TOOLBAR_THEME);
         mToolbarColor = bundle.getInt(ARG_TOOLBAR_COLOR);
         mHideActivityBar = bundle.getBoolean(ARG_HIDE_ACTIVITY_BAR);
     }
@@ -261,34 +267,36 @@ public class FullScreenDialogFragment extends DialogFragment {
      * @param view {@link View}
      */
     private void initToolbar(View view) {
-        mToolbar = view.findViewById(R.id.full_screen_dialog_fragment_toolbar);
+        mToolbar = view.findViewById(R.id.toolbar_main);
+
+        if (mToolbarTheme > 0) {
+            mToolbar.getContext().setTheme(mToolbarTheme);
+        }
+
+        final Context context = mToolbar.getContext();
+
         mToolbar.setTitle(mTitle);
         mToolbar.setSubtitle(mSubtitle);
-        mToolbar.setSubtitleTextAppearance(view.getContext(), R.style.Toolbar_Subtitle);
-        mToolbar.setBackgroundColor(getResources().getColor(mToolbarColor));
-        mToolbar.setNavigationIcon(ContextCompat.getDrawable(view.getContext(), R.drawable.ic_close_white_24dp));
+        mToolbar.setNavigationIcon(ColorUtils.applyTintToDrawable(context, R.drawable.ic_close_white_24dp,
+                ContextExtensionsKt.getColorResIdFromAttribute(context, R.attr.colorControlNormal)));
         mToolbar.setNavigationContentDescription(R.string.close_dialog_button_desc);
-        mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onDismissClicked();
-            }
-        });
+        mToolbar.setNavigationOnClickListener(v -> onDismissClicked());
+
+        if (mToolbarColor > 0) {
+            mToolbar.setBackgroundColor(getResources().getColor(mToolbarColor));
+        }
 
         if (!mAction.isEmpty()) {
             Menu menu = mToolbar.getMenu();
             mActionItem = menu.add(0, ID_ACTION, 0, this.mAction);
             mActionItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
             mActionItem.setOnMenuItemClickListener(
-                    new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem item) {
-                            if (item.getItemId() == ID_ACTION) {
-                                onConfirmClicked();
-                                return true;
-                            } else {
-                                return false;
-                            }
+                    item -> {
+                        if (item.getItemId() == ID_ACTION) {
+                            onConfirmClicked();
+                            return true;
+                        } else {
+                            return false;
                         }
                     }
             );
@@ -421,7 +429,8 @@ public class FullScreenDialogFragment extends DialogFragment {
         String mSubtitle = "";
         String mTitle = "";
         boolean mHideActivityBar = false;
-        int mToolbarColor = R.color.primary;
+        int mToolbarTheme = 0;
+        int mToolbarColor = 0;
 
         /**
          * Builder to construct {@link FullScreenDialogFragment}.
@@ -533,6 +542,11 @@ public class FullScreenDialogFragment extends DialogFragment {
          */
         public Builder setTitle(@StringRes int textId) {
             this.mTitle = mContext.getString(textId);
+            return this;
+        }
+
+        public Builder setToolbarTheme(@StyleRes int themeId) {
+            this.mToolbarTheme = themeId;
             return this;
         }
 

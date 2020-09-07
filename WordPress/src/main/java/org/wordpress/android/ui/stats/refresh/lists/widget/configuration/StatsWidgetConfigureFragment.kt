@@ -26,8 +26,8 @@ import org.wordpress.android.ui.stats.refresh.lists.widget.configuration.StatsWi
 import org.wordpress.android.ui.stats.refresh.lists.widget.today.TodayWidgetUpdater
 import org.wordpress.android.ui.stats.refresh.lists.widget.views.ViewsWidgetUpdater
 import org.wordpress.android.ui.stats.refresh.utils.trackWithWidgetType
-import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.util.ToastUtils
+import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.util.image.ImageManager
 import org.wordpress.android.util.merge
 import javax.inject.Inject
@@ -46,7 +46,7 @@ class StatsWidgetConfigureFragment : DaggerFragment() {
     private lateinit var colorSelectionViewModel: StatsColorSelectionViewModel
     private lateinit var widgetType: WidgetType
 
-    override fun onInflate(context: Context?, attrs: AttributeSet?, savedInstanceState: Bundle?) {
+    override fun onInflate(context: Context, attrs: AttributeSet, savedInstanceState: Bundle?) {
         super.onInflate(context, attrs, savedInstanceState)
         activity?.let {
             val styledAttributes = it.obtainStyledAttributes(attrs, R.styleable.statsWidget)
@@ -69,21 +69,22 @@ class StatsWidgetConfigureFragment : DaggerFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewModel = ViewModelProviders.of(activity!!, viewModelFactory)
+        val nonNullActivity = requireActivity()
+        viewModel = ViewModelProviders.of(nonNullActivity, viewModelFactory)
                 .get(StatsWidgetConfigureViewModel::class.java)
-        siteSelectionViewModel = ViewModelProviders.of(activity!!, viewModelFactory)
+        siteSelectionViewModel = ViewModelProviders.of(nonNullActivity, viewModelFactory)
                 .get(StatsSiteSelectionViewModel::class.java)
-        colorSelectionViewModel = ViewModelProviders.of(activity!!, viewModelFactory)
+        colorSelectionViewModel = ViewModelProviders.of(nonNullActivity, viewModelFactory)
                 .get(StatsColorSelectionViewModel::class.java)
-        activity?.setResult(AppCompatActivity.RESULT_CANCELED)
+        nonNullActivity.setResult(AppCompatActivity.RESULT_CANCELED)
 
-        val appWidgetId = activity?.intent?.extras?.getInt(
+        val appWidgetId = nonNullActivity.intent?.extras?.getInt(
                 AppWidgetManager.EXTRA_APPWIDGET_ID,
                 AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-            activity?.finish()
+            nonNullActivity.finish()
             return
         }
 
@@ -100,27 +101,30 @@ class StatsWidgetConfigureFragment : DaggerFragment() {
             viewModel.addWidget()
         }
 
-        siteSelectionViewModel.dialogOpened.observe(this, Observer { event ->
+        siteSelectionViewModel.dialogOpened.observe(viewLifecycleOwner, Observer { event ->
             event?.applyIfNotHandled {
-                StatsWidgetSiteSelectionDialogFragment().show(fragmentManager, "stats_site_selection_fragment")
+                StatsWidgetSiteSelectionDialogFragment().show(requireFragmentManager(), "stats_site_selection_fragment")
             }
         })
 
-        colorSelectionViewModel.dialogOpened.observe(this, Observer { event ->
+        colorSelectionViewModel.dialogOpened.observe(viewLifecycleOwner, Observer { event ->
             event?.applyIfNotHandled {
-                StatsWidgetColorSelectionDialogFragment().show(fragmentManager, "stats_view_mode_selection_fragment")
+                StatsWidgetColorSelectionDialogFragment().show(
+                        requireFragmentManager(),
+                        "stats_view_mode_selection_fragment"
+                )
             }
         })
 
         merge(siteSelectionViewModel.notification, colorSelectionViewModel.notification).observe(
-                this,
+                viewLifecycleOwner,
                 Observer { event ->
                     event?.applyIfNotHandled {
                         ToastUtils.showToast(activity, this)
                     }
                 })
 
-        viewModel.settingsModel.observe(this, Observer { uiModel ->
+        viewModel.settingsModel.observe(viewLifecycleOwner, Observer { uiModel ->
             uiModel?.let {
                 if (uiModel.siteTitle != null) {
                     site_value.text = uiModel.siteTitle
@@ -130,18 +134,18 @@ class StatsWidgetConfigureFragment : DaggerFragment() {
             }
         })
 
-        viewModel.widgetAdded.observe(this, Observer { event ->
+        viewModel.widgetAdded.observe(viewLifecycleOwner, Observer { event ->
             event?.getContentIfNotHandled()?.let {
                 analyticsTrackerWrapper.trackWithWidgetType(STATS_WIDGET_ADDED, it.widgetType)
                 when (it.widgetType) {
                     WEEK_VIEWS -> {
-                        viewsWidgetUpdater.updateAppWidget(context!!, appWidgetId = it.appWidgetId)
+                        viewsWidgetUpdater.updateAppWidget(requireContext(), appWidgetId = it.appWidgetId)
                     }
                     ALL_TIME_VIEWS -> {
-                        allTimeWidgetUpdater.updateAppWidget(context!!, appWidgetId = it.appWidgetId)
+                        allTimeWidgetUpdater.updateAppWidget(requireContext(), appWidgetId = it.appWidgetId)
                     }
                     TODAY_VIEWS -> {
-                        todayWidgetUpdater.updateAppWidget(context!!, appWidgetId = it.appWidgetId)
+                        todayWidgetUpdater.updateAppWidget(requireContext(), appWidgetId = it.appWidgetId)
                     }
                 }
                 val resultValue = Intent()

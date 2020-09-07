@@ -1,7 +1,11 @@
 package org.wordpress.android.viewmodel.pages
 
 import androidx.lifecycle.MutableLiveData
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
+import junit.framework.Assert.assertNull
 import kotlinx.coroutines.Dispatchers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -9,16 +13,27 @@ import org.junit.Test
 import org.mockito.Mock
 import org.wordpress.android.BaseUnitTest
 import org.wordpress.android.fluxc.Dispatcher
+import org.wordpress.android.fluxc.model.AccountModel
+import org.wordpress.android.fluxc.model.LocalOrRemoteId.LocalId
+import org.wordpress.android.fluxc.model.PostModel
 import org.wordpress.android.fluxc.model.SiteModel
 import org.wordpress.android.fluxc.model.page.PageModel
 import org.wordpress.android.fluxc.model.page.PageStatus
+import org.wordpress.android.fluxc.store.AccountStore
 import org.wordpress.android.fluxc.store.MediaStore
 import org.wordpress.android.ui.pages.PageItem
 import org.wordpress.android.ui.pages.PageItem.Divider
+import org.wordpress.android.ui.pages.PageItem.Page
 import org.wordpress.android.ui.pages.PageItem.PublishedPage
+import org.wordpress.android.ui.pages.PagesAuthorFilterUIState
+import org.wordpress.android.ui.posts.AuthorFilterSelection
+import org.wordpress.android.ui.posts.AuthorFilterSelection.EVERYONE
+import org.wordpress.android.ui.posts.AuthorFilterSelection.ME
 import org.wordpress.android.util.LocaleManagerWrapper
 import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListState
 import org.wordpress.android.viewmodel.pages.PageListViewModel.PageListType.PUBLISHED
+import org.wordpress.android.viewmodel.pages.PostModelUploadUiStateUseCase.PostUploadUiState
+import org.wordpress.android.viewmodel.uistate.ProgressBarUiState
 import java.util.Date
 import java.util.Locale
 
@@ -29,18 +44,52 @@ class PageListViewModelTest : BaseUnitTest() {
     @Mock lateinit var dispatcher: Dispatcher
     @Mock lateinit var pagesViewModel: PagesViewModel
     @Mock lateinit var localeManagerWrapper: LocaleManagerWrapper
+    @Mock lateinit var pageItemProgressUiStateUseCase: PageItemProgressUiStateUseCase
+    @Mock lateinit var pageListItemActionsUseCase: CreatePageListItemActionsUseCase
+    @Mock lateinit var createUploadStateUseCase: PostModelUploadUiStateUseCase
+    @Mock lateinit var createLabelsUseCase: CreatePageListItemLabelsUseCase
+    @Mock lateinit var accountStore: AccountStore
+
     private lateinit var viewModel: PageListViewModel
     private val site = SiteModel()
     private val pageListState = MutableLiveData<PageListState>()
     @Before
     fun setUp() {
-        viewModel = PageListViewModel(mediaStore, dispatcher, localeManagerWrapper, Dispatchers.Unconfined)
+        viewModel = PageListViewModel(
+                createLabelsUseCase,
+                createUploadStateUseCase,
+                pageListItemActionsUseCase,
+                pageItemProgressUiStateUseCase,
+                mediaStore,
+                dispatcher,
+                localeManagerWrapper,
+                accountStore,
+                Dispatchers.Unconfined
+        )
+
+        whenever(pageItemProgressUiStateUseCase.getProgressStateForPage(any())).thenReturn(Pair(
+                ProgressBarUiState.Hidden, false))
+
+        val invalidateUploadStatus = MutableLiveData<List<LocalId>>()
 
         whenever(pagesViewModel.arePageActionsEnabled).thenReturn(false)
         whenever(pagesViewModel.site).thenReturn(site)
+        whenever(pagesViewModel.invalidateUploadStatus).thenReturn(invalidateUploadStatus)
+        whenever(pagesViewModel.uploadStatusTracker).thenReturn(mock())
         whenever(localeManagerWrapper.getLocale()).thenReturn(Locale.getDefault())
+        whenever(createUploadStateUseCase.createUploadUiState(any(), any(), any())).thenReturn(
+                PostUploadUiState.NothingToUpload
+        )
+        whenever(createLabelsUseCase.createLabels(any(), any())).thenReturn(Pair(emptyList(), 0))
         site.id = 10
         pageListState.value = PageListState.DONE
+
+        val authorFilterSelection = MutableLiveData<AuthorFilterSelection>()
+        whenever(pagesViewModel.authorSelectionUpdated).thenReturn(authorFilterSelection)
+        val authorFilterState = MutableLiveData<PagesAuthorFilterUIState>()
+        whenever(pagesViewModel.authorUIState).thenReturn(authorFilterState)
+        val accountModel = AccountModel()
+        accountModel.userId = 4
     }
 
     @Test
@@ -50,7 +99,7 @@ class PageListViewModelTest : BaseUnitTest() {
 
         viewModel.start(PUBLISHED, pagesViewModel)
 
-        val result = mutableListOf<Pair<List<PageItem>, Boolean>>()
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
 
         viewModel.pages.observeForever { result.add(it) }
 
@@ -76,7 +125,7 @@ class PageListViewModelTest : BaseUnitTest() {
 
         viewModel.start(PUBLISHED, pagesViewModel)
 
-        val result = mutableListOf<Pair<List<PageItem>, Boolean>>()
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
 
         viewModel.pages.observeForever { result.add(it) }
 
@@ -121,7 +170,7 @@ class PageListViewModelTest : BaseUnitTest() {
 
         viewModel.start(PUBLISHED, pagesViewModel)
 
-        val result = mutableListOf<Pair<List<PageItem>, Boolean>>()
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
 
         viewModel.pages.observeForever { result.add(it) }
 
@@ -169,7 +218,7 @@ class PageListViewModelTest : BaseUnitTest() {
 
         viewModel.start(PUBLISHED, pagesViewModel)
 
-        val result = mutableListOf<Pair<List<PageItem>, Boolean>>()
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
 
         viewModel.pages.observeForever { result.add(it) }
 
@@ -186,14 +235,220 @@ class PageListViewModelTest : BaseUnitTest() {
         assertThat((result[0].first[1] as PublishedPage).title).isEqualTo(secondPage.title)
     }
 
+    @Test
+    fun `showOverlay is correctly propagated from PageItemProgressUiStateUseCase`() {
+        // Arrange
+        val expectedShowOverlay = true
+        val pages = MutableLiveData<List<PageModel>>()
+
+        whenever(
+                pageItemProgressUiStateUseCase.getProgressStateForPage(anyOrNull())
+        ).thenReturn(
+                Pair(
+                        mock(),
+                        expectedShowOverlay
+                )
+        )
+        whenever(pagesViewModel.pages).thenReturn(pages)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+        viewModel.pages.observeForever { result.add(it) }
+
+        // Act
+        pages.value = listOf(buildPageModel(0))
+
+        // Assert
+        assertThat((result[0].first[0] as Page).showOverlay).isEqualTo(expectedShowOverlay)
+    }
+
+    @Test
+    fun `ProgressBarUiState is correctly propagated from PageItemProgressUiStateUseCase`() {
+        // Arrange
+        val expectedProgressBarUiState = ProgressBarUiState.Indeterminate
+        val pages = MutableLiveData<List<PageModel>>()
+
+        whenever(pageItemProgressUiStateUseCase.getProgressStateForPage(anyOrNull())).thenReturn(
+                Pair(
+                        expectedProgressBarUiState,
+                        true
+                )
+        )
+        whenever(pagesViewModel.pages).thenReturn(pages)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+        viewModel.pages.observeForever { result.add(it) }
+
+        // Act
+        pages.value = listOf(buildPageModel(0))
+
+        // Assert
+        assertThat((result[0].first[0] as Page).progressBarUiState).isEqualTo(expectedProgressBarUiState)
+    }
+
+    @Test
+    fun `verify PageListItemActionsUseCase passes the Menu Actions to PublishedPage`() {
+        // Arrange
+        val actions = setOf(mock<PageItem.Action>())
+
+        whenever(pageListItemActionsUseCase.setupPageActions(anyOrNull(), anyOrNull(), anyOrNull(), any())).thenReturn(
+                actions
+        )
+
+        val pages = MutableLiveData<List<PageModel>>()
+        whenever(pagesViewModel.pages).thenReturn(pages)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+        val result = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+        viewModel.pages.observeForever { result.add(it) }
+
+        // Act
+        pages.value = listOf(buildPageModel(0))
+
+        // Assert
+        assertThat((result[0].first[0] as PublishedPage).actions).isEqualTo(actions)
+    }
+
+    @Test
+    fun `filter pages by everyone`() {
+        val pages = MutableLiveData<List<PageModel>>()
+        whenever(pagesViewModel.pages).thenReturn(pages)
+        val authorFilterSelection = MutableLiveData<AuthorFilterSelection>()
+        whenever(pagesViewModel.authorSelectionUpdated).thenReturn(authorFilterSelection)
+        val authorFilterState = MutableLiveData<PagesAuthorFilterUIState>()
+        whenever(pagesViewModel.authorUIState).thenReturn(authorFilterState)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+
+        val pagesResult = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+
+        viewModel.pages.observeForever { pagesResult.add(it) }
+
+        val pageModels = (0..10).map { buildPageModel(it, authorId = it.toLong()) }
+        pages.value = pageModels
+
+        assertThat(pagesResult).hasSize(1)
+        var pageItems = pagesResult[0].first
+        assertThat(pageItems).hasSize(13)
+
+        authorFilterState.value = PagesAuthorFilterUIState(
+                authorFilterSelection = EVERYONE,
+                authorFilterItems = listOf(),
+                isAuthorFilterVisible = true)
+        authorFilterSelection.value = EVERYONE
+
+        pageItems = pagesResult[1].first
+        assertThat(pageItems).hasSize(13)
+    }
+
+    @Test
+    fun `filter pages by me`() {
+        val pages = MutableLiveData<List<PageModel>>()
+        whenever(pagesViewModel.pages).thenReturn(pages)
+        val authorFilterSelection = MutableLiveData<AuthorFilterSelection>()
+        whenever(pagesViewModel.authorSelectionUpdated).thenReturn(authorFilterSelection)
+        val authorFilterState = MutableLiveData<PagesAuthorFilterUIState>()
+        whenever(pagesViewModel.authorUIState).thenReturn(authorFilterState)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+
+        val pagesResult = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+
+        viewModel.pages.observeForever { pagesResult.add(it) }
+
+        val pageModels = (0..10).map { buildPageModel(it, authorId = it.toLong()) }
+        pages.value = pageModels
+
+        assertThat(pagesResult).hasSize(1)
+        var pageItems = pagesResult[0].first
+        assertThat(pageItems).hasSize(13)
+
+        authorFilterState.value = PagesAuthorFilterUIState(
+                authorFilterSelection = ME,
+                authorFilterItems = listOf(),
+                isAuthorFilterVisible = true)
+        authorFilterSelection.value = ME
+
+        pageItems = pagesResult[1].first
+        assertThat(pageItems).hasSize(13)
+    }
+
+    @Test
+    fun `filter pages by everyone shows author name`() {
+        val pages = MutableLiveData<List<PageModel>>()
+        whenever(pagesViewModel.pages).thenReturn(pages)
+        val authorFilterSelection = MutableLiveData<AuthorFilterSelection>()
+        whenever(pagesViewModel.authorSelectionUpdated).thenReturn(authorFilterSelection)
+        val authorFilterState = MutableLiveData<PagesAuthorFilterUIState>()
+        whenever(pagesViewModel.authorUIState).thenReturn(authorFilterState)
+
+        val authorDisplayName = "Automattic"
+        viewModel.start(PUBLISHED, pagesViewModel)
+
+        val pagesResult = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+
+        viewModel.pages.observeForever { pagesResult.add(it) }
+
+        val pageModels = (0..1).map { buildPageModel(it, authorId = it.toLong(),
+                authorDisplayName = authorDisplayName) }
+        pages.value = pageModels
+
+        authorFilterState.value = PagesAuthorFilterUIState(
+                authorFilterSelection = EVERYONE,
+                authorFilterItems = listOf(),
+                isAuthorFilterVisible = true)
+        authorFilterSelection.value = EVERYONE
+
+        val pageItems = pagesResult[1].first
+        val pageItem = pageItems[0] as PublishedPage
+        assertThat(pageItem.author).isEqualToIgnoringCase(authorDisplayName)
+    }
+
+    @Test
+    fun `filter pages by me does not show author name`() {
+        val pages = MutableLiveData<List<PageModel>>()
+        whenever(pagesViewModel.pages).thenReturn(pages)
+        val authorFilterSelection = MutableLiveData<AuthorFilterSelection>()
+        whenever(pagesViewModel.authorSelectionUpdated).thenReturn(authorFilterSelection)
+        val authorFilterState = MutableLiveData<PagesAuthorFilterUIState>()
+        whenever(pagesViewModel.authorUIState).thenReturn(authorFilterState)
+
+        viewModel.start(PUBLISHED, pagesViewModel)
+
+        val pagesResult = mutableListOf<Triple<List<PageItem>, Boolean, Boolean>>()
+
+        viewModel.pages.observeForever { pagesResult.add(it) }
+
+        val pageModels = (0..1).map { buildPageModel(it, authorId = it.toLong()) }
+        pages.value = pageModels
+
+        authorFilterState.value = PagesAuthorFilterUIState(
+                authorFilterSelection = ME,
+                authorFilterItems = listOf(),
+                isAuthorFilterVisible = true)
+        authorFilterSelection.value = ME
+
+        val pageItems = pagesResult[1].first
+        val pageItem = pageItems[0] as PublishedPage
+        assertNull(pageItem.author)
+    }
+
     private fun buildPageModel(
         id: Int,
         date: Date = Date(0),
         parent: PageModel? = null,
-        pageTitle: String? = null
+        pageTitle: String? = null,
+        status: PageStatus = PageStatus.PUBLISHED,
+        authorId: Long? = null,
+        authorDisplayName: String? = null
     ): PageModel {
         val title = pageTitle ?: if (id < 10) "Title 0$id" else "Title $id"
-        return PageModel(site, id, title, PageStatus.PUBLISHED, date, false, id.toLong(), parent, id.toLong())
+        return PageModel(PostModel().apply { this.setId(id)
+                this.setAuthorId(authorId ?: 0)
+                this.setAuthorDisplayName(authorDisplayName) },
+                site, id, title, status, date, false, id.toLong(),
+                parent, id.toLong())
     }
 
     private fun assertDivider(pageItem: PageItem) {

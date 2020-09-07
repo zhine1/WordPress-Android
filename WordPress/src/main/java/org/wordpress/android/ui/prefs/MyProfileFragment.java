@@ -19,6 +19,7 @@ import org.wordpress.android.fluxc.model.AccountModel;
 import org.wordpress.android.fluxc.store.AccountStore;
 import org.wordpress.android.fluxc.store.AccountStore.OnAccountChanged;
 import org.wordpress.android.fluxc.store.AccountStore.PushAccountSettingsPayload;
+import org.wordpress.android.ui.TextInputDialogFragment;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.ToastUtils;
 import org.wordpress.android.widgets.WPTextView;
@@ -27,9 +28,7 @@ import java.util.HashMap;
 
 import javax.inject.Inject;
 
-public class MyProfileFragment extends Fragment implements ProfileInputDialogFragment.Callback {
-    private static final String DIALOG_TAG = "DIALOG";
-
+public class MyProfileFragment extends Fragment implements TextInputDialogFragment.Callback {
     private WPTextView mFirstName;
     private WPTextView mLastName;
     private WPTextView mDisplayName;
@@ -74,10 +73,10 @@ public class MyProfileFragment extends Fragment implements ProfileInputDialogFra
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         final ViewGroup rootView = (ViewGroup) inflater.inflate(R.layout.my_profile_fragment, container, false);
 
-        mFirstName = (WPTextView) rootView.findViewById(R.id.first_name);
-        mLastName = (WPTextView) rootView.findViewById(R.id.last_name);
-        mDisplayName = (WPTextView) rootView.findViewById(R.id.display_name);
-        mAboutMe = (WPTextView) rootView.findViewById(R.id.about_me);
+        mFirstName = rootView.findViewById(R.id.first_name);
+        mLastName = rootView.findViewById(R.id.last_name);
+        mDisplayName = rootView.findViewById(R.id.display_name);
+        mAboutMe = rootView.findViewById(R.id.about_me);
 
         rootView.findViewById(R.id.first_name_row).setOnClickListener(
                 createOnClickListener(
@@ -137,17 +136,14 @@ public class MyProfileFragment extends Fragment implements ProfileInputDialogFra
                                                        final String hint,
                                                        final WPTextView textView,
                                                        final boolean isMultiline) {
-        return new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ProfileInputDialogFragment inputDialog = ProfileInputDialogFragment.newInstance(dialogTitle,
-                                                                                                textView.getText()
-                                                                                                        .toString(),
-                                                                                                hint, isMultiline,
-                                                                                                textView.getId());
-                inputDialog.setTargetFragment(MyProfileFragment.this, 0);
-                inputDialog.show(getFragmentManager(), DIALOG_TAG);
-            }
+        return v -> {
+            TextInputDialogFragment inputDialog = TextInputDialogFragment.newInstance(dialogTitle,
+                    textView.getText()
+                            .toString(),
+                    hint, isMultiline, true,
+                    textView.getId());
+            inputDialog.setTargetFragment(MyProfileFragment.this, 0);
+            inputDialog.show(getFragmentManager(), TextInputDialogFragment.TAG);
         };
     }
 
@@ -184,9 +180,14 @@ public class MyProfileFragment extends Fragment implements ProfileInputDialogFra
             return;
         }
 
-        WPTextView textView = (WPTextView) rootView.findViewById(callbackId);
+        WPTextView textView = rootView.findViewById(callbackId);
         updateLabel(textView, input);
         updateMyProfileForLabel(textView);
+    }
+
+    @Override
+    public void onTextInputDialogDismissed(int callbackId) {
+        // noop
     }
 
     @SuppressWarnings("unused")

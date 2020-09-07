@@ -1,6 +1,5 @@
 package org.wordpress.android.viewmodel.posts
 
-import android.annotation.SuppressLint
 import android.text.TextUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -58,7 +57,6 @@ private const val SEARCH_DELAY_MS = 500L
 private const val SEARCH_PROGRESS_INDICATOR_DELAY_MS = 500L
 private const val EMPTY_VIEW_THROTTLE = 250L
 
-@SuppressLint("UseSparseArrays")
 class PostListViewModel @Inject constructor(
     private val dispatcher: Dispatcher,
     private val listStore: ListStore,
@@ -222,7 +220,11 @@ class PostListViewModel @Inject constructor(
                     searchQuery = searchQuery
             )
         } else {
-            PostListDescriptorForXmlRpcSite(site = connector.site, statusList = connector.postListType.postStatuses)
+            PostListDescriptorForXmlRpcSite(
+                    site = connector.site,
+                    statusList = connector.postListType.postStatuses,
+                    searchQuery = searchQuery
+            )
         }
     }
 
@@ -354,24 +356,28 @@ class PostListViewModel @Inject constructor(
         }?.index
     }
 
-    private fun transformPostModelToPostListItemUiState(post: PostModel) =
-            listItemUiStateHelper.createPostListItemUiState(
-                    authorFilterSelection,
-                    post = post,
-                    uploadStatus = connector.getUploadStatus(post, connector.site),
-                    unhandledConflicts = connector.doesPostHaveUnhandledConflict(post),
-                    hasAutoSave = connector.hasAutoSave(post),
-                    capabilitiesToPublish = uploadUtilsWrapper.userCanPublish(connector.site),
-                    statsSupported = isStatsSupported,
-                    featuredImageUrl =
-                    convertToPhotonUrlIfPossible(connector.getFeaturedImageUrl(post.featuredImageId)),
-                    formattedDate = PostUtils.getFormattedDate(post),
-                    performingCriticalAction = connector.postActionHandler.isPerformingCriticalAction(LocalId(post.id)),
-                    onAction = { postModel, buttonType, statEvent ->
-                        trackPostListAction(connector.site, buttonType, postModel, statEvent)
-                        connector.postActionHandler.handlePostButton(buttonType, postModel)
-                    }
-            )
+    private fun transformPostModelToPostListItemUiState(post: PostModel): PostListItemUiState {
+        val hasAutoSave = connector.hasAutoSave(post)
+        return listItemUiStateHelper.createPostListItemUiState(
+                authorFilterSelection,
+                post = post,
+                site = connector.site,
+                unhandledConflicts = connector.doesPostHaveUnhandledConflict(post),
+                hasAutoSave = hasAutoSave,
+                capabilitiesToPublish = uploadUtilsWrapper.userCanPublish(connector.site),
+                statsSupported = isStatsSupported,
+                featuredImageUrl =
+                convertToPhotonUrlIfPossible(connector.getFeaturedImageUrl(post.featuredImageId)),
+                formattedDate = PostUtils.getFormattedDate(post),
+                performingCriticalAction = connector.postActionHandler.isPerformingCriticalAction(LocalId(post.id)),
+                onAction = { postModel, buttonType, statEvent ->
+                    trackPostListAction(connector.site, buttonType, postModel, statEvent)
+                    connector.postActionHandler.handlePostButton(buttonType, postModel, hasAutoSave)
+                },
+                uploadStatusTracker = connector.uploadStatusTracker,
+                isSearch = connector.postListType == SEARCH
+        )
+    }
 
     private fun retryOnConnectionAvailableAfterRefreshError() {
         val connectionAvailableAfterRefreshError = networkUtilsWrapper.isNetworkAvailable() &&
@@ -387,7 +393,8 @@ class PostListViewModel @Inject constructor(
                     featuredImageUrl,
                     photonWidth,
                     photonHeight,
-                    !SiteUtils.isPhotonCapable(connector.site)
+                    !SiteUtils.isPhotonCapable(connector.site),
+                    connector.site.isPrivateWPComAtomic
             )
 
     fun updateAuthorFilterIfNotSearch(authorFilterSelection: AuthorFilterSelection): Boolean {

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.View.OnClickListener;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
@@ -16,13 +17,17 @@ import org.wordpress.android.WordPress;
 import org.wordpress.android.fluxc.Dispatcher;
 import org.wordpress.android.fluxc.generated.PostActionBuilder;
 import org.wordpress.android.fluxc.model.MediaModel;
+import org.wordpress.android.fluxc.model.MediaUploadModel;
 import org.wordpress.android.fluxc.model.PostImmutableModel;
 import org.wordpress.android.fluxc.model.PostModel;
 import org.wordpress.android.fluxc.model.SiteModel;
 import org.wordpress.android.fluxc.model.post.PostStatus;
+import org.wordpress.android.fluxc.persistence.UploadSqlUtils;
 import org.wordpress.android.fluxc.store.MediaStore.MediaError;
+import org.wordpress.android.fluxc.store.MediaStore.MediaErrorType;
 import org.wordpress.android.fluxc.store.PostStore.PostError;
 import org.wordpress.android.fluxc.store.UploadStore.UploadError;
+import org.wordpress.android.fluxc.utils.MimeTypes;
 import org.wordpress.android.ui.ActivityLauncher;
 import org.wordpress.android.ui.posts.EditPostActivity;
 import org.wordpress.android.ui.posts.PostUtils;
@@ -30,21 +35,27 @@ import org.wordpress.android.ui.prefs.AppPrefs;
 import org.wordpress.android.ui.uploads.UploadActionUseCase.UploadAction;
 import org.wordpress.android.ui.utils.UiString;
 import org.wordpress.android.ui.utils.UiString.UiStringRes;
+import org.wordpress.android.ui.utils.UiString.UiStringText;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.DateTimeUtils;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.SiteUtils;
+import org.wordpress.android.util.SnackbarItem;
+import org.wordpress.android.util.SnackbarItem.Action;
+import org.wordpress.android.util.SnackbarItem.Info;
+import org.wordpress.android.util.SnackbarSequencer;
 import org.wordpress.android.util.ToastUtils;
 import org.wordpress.android.util.UploadWorkerKt;
 import org.wordpress.android.util.WPMediaUtils;
-import org.wordpress.android.widgets.WPSnackbar;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class UploadUtils {
     private static final int K_SNACKBAR_WAIT_TIME_MS = 5000;
+    private static final MimeTypes MIME_TYPES = new MimeTypes();
 
     /**
      * Returns a post-type specific error message string.
@@ -80,7 +91,8 @@ public class UploadUtils {
                 return isPage ? new UiStringRes(R.string.error_unknown_page)
                         : new UiStringRes(R.string.error_unknown_post);
             case UNKNOWN_POST_TYPE:
-                return new UiStringRes(R.string.error_unknown_post_type);
+                return isPage ? new UiStringRes(R.string.error_unknown_page_type)
+                        : new UiStringRes(R.string.error_unknown_post_type);
             case UNAUTHORIZED:
                 return isPage ? new UiStringRes(R.string.error_refresh_unauthorized_pages)
                         : new UiStringRes(R.string.error_refresh_unauthorized_posts);
@@ -92,13 +104,17 @@ public class UploadUtils {
                 if (eligibleForAutoUpload) {
                     switch (postStatus) {
                         case PRIVATE:
-                            return new UiStringRes(R.string.error_post_not_published_retrying_private);
+                            return isPage ? new UiStringRes(R.string.error_page_not_published_retrying_private)
+                                    : new UiStringRes(R.string.error_post_not_published_retrying_private);
                         case PUBLISHED:
-                            return new UiStringRes(R.string.error_post_not_published_retrying);
+                            return isPage ? new UiStringRes(R.string.error_page_not_published_retrying)
+                                    : new UiStringRes(R.string.error_post_not_published_retrying);
                         case SCHEDULED:
-                            return new UiStringRes(R.string.error_post_not_scheduled_retrying);
+                            return isPage ? new UiStringRes(R.string.error_page_not_scheduled_retrying)
+                                    : new UiStringRes(R.string.error_post_not_scheduled_retrying);
                         case PENDING:
-                            return new UiStringRes(R.string.error_post_not_submitted_retrying);
+                            return isPage ? new UiStringRes(R.string.error_page_not_submitted_retrying)
+                                    : new UiStringRes(R.string.error_post_not_submitted_retrying);
                         case UNKNOWN:
                         case DRAFT:
                         case TRASHED:
@@ -107,13 +123,17 @@ public class UploadUtils {
                 } else {
                     switch (postStatus) {
                         case PRIVATE:
-                            return new UiStringRes(R.string.error_post_not_published_private);
+                            return isPage ? new UiStringRes(R.string.error_page_not_published_private)
+                                    : new UiStringRes(R.string.error_post_not_published_private);
                         case PUBLISHED:
-                            return new UiStringRes(R.string.error_post_not_published);
+                            return isPage ? new UiStringRes(R.string.error_page_not_published)
+                                    : new UiStringRes(R.string.error_post_not_published);
                         case SCHEDULED:
-                            return new UiStringRes(R.string.error_post_not_scheduled);
+                            return isPage ? new UiStringRes(R.string.error_page_not_scheduled)
+                                    : new UiStringRes(R.string.error_post_not_scheduled);
                         case PENDING:
-                            return new UiStringRes(R.string.error_post_not_submitted);
+                            return isPage ? new UiStringRes(R.string.error_page_not_submitted)
+                                    : new UiStringRes(R.string.error_post_not_submitted);
                         case UNKNOWN:
                         case DRAFT:
                         case TRASHED:
@@ -133,53 +153,76 @@ public class UploadUtils {
 
         if (errorMessage == null) {
             // In case of a generic or uncaught error, return the message from the API response or the error type
-            errorMessage = TextUtils.isEmpty(error.message) ? error.type.toString() : error.message;
+            String msg = error.getApiUserMessageIfAvailable();
+            errorMessage = TextUtils.isEmpty(msg) ? error.type.toString() : msg;
+        }
+
+        // Capitalize message first letter; this is done since some messages
+        // (like a few got from FluxC) are not capitalized.
+        if (errorMessage.length() > 0) {
+            String firstLetter = errorMessage.substring(0, 1);
+            String restOfMessage = errorMessage.length() > 1 ? errorMessage.substring(1) : "";
+            errorMessage = firstLetter.toUpperCase(Locale.getDefault()) + restOfMessage;
         }
 
         return errorMessage;
+    }
+
+    public static @NonNull
+    String getErrorMessageFromMedia(Context context, @NonNull MediaModel media) {
+        MediaUploadModel uploadModel = UploadSqlUtils.getMediaUploadModelForLocalId(media.getId());
+
+        MediaError error = new MediaError(
+                MediaErrorType.fromString(null != uploadModel ? uploadModel.getErrorType() : null),
+                null != uploadModel ? uploadModel.getErrorMessage() : null
+        );
+
+        return getErrorMessageFromMediaError(context, media, error);
     }
 
     public static boolean isMediaError(UploadError uploadError) {
         return uploadError != null && uploadError.mediaError != null;
     }
 
-    public static void handleEditPostResultSnackbars(@NonNull final Activity activity,
-                                                     @NonNull final Dispatcher dispatcher,
-                                                     @NonNull View snackbarAttachView,
-                                                     @NonNull Intent data,
-                                                     @NonNull final PostModel post,
-                                                     @NonNull final SiteModel site,
-                                                     @NonNull final UploadAction uploadAction,
-                                                     View.OnClickListener publishPostListener) {
+    public static void handleEditPostModelResultSnackbars(@NonNull final Activity activity,
+                                                          @NonNull final Dispatcher dispatcher,
+                                                          @NonNull View snackbarAttachView,
+                                                          @NonNull Intent data,
+                                                          @NonNull final PostModel post,
+                                                          @NonNull final SiteModel site,
+                                                          @NonNull final UploadAction uploadAction,
+                                                          SnackbarSequencer sequencer,
+                                                          View.OnClickListener publishPostListener) {
         boolean hasChanges = data.getBooleanExtra(EditPostActivity.EXTRA_HAS_CHANGES, false);
         if (!hasChanges) {
             // if there are no changes, we don't need to do anything
             return;
         }
 
-        boolean savedLocally = data.getBooleanExtra(EditPostActivity.EXTRA_SAVED_AS_LOCAL_DRAFT, false);
-        if (savedLocally && !NetworkUtils.isNetworkAvailable(activity)) {
+        boolean uploadNotStarted = data.getBooleanExtra(EditPostActivity.EXTRA_UPLOAD_NOT_STARTED, false);
+        if (uploadNotStarted && !NetworkUtils.isNetworkAvailable(activity)) {
             // The network is not available, we can enqueue a request to upload local changes later
             UploadWorkerKt.enqueueUploadWorkRequestForSite(site);
             // And tell the user about it
-            showSnackbar(snackbarAttachView, getDeviceOfflinePostNotUploadedMessage(post, uploadAction),
+            showSnackbar(snackbarAttachView, getDeviceOfflinePostModelNotUploadedMessage(post, uploadAction),
                     R.string.cancel,
                     v -> {
                         int msgRes = cancelPendingAutoUpload(post, dispatcher);
-                        showSnackbar(snackbarAttachView, msgRes);
-                    });
+                        showSnackbar(snackbarAttachView, msgRes, sequencer);
+                    }, sequencer);
             return;
         }
 
         boolean hasFailedMedia = data.getBooleanExtra(EditPostActivity.EXTRA_HAS_FAILED_MEDIA, false);
         if (hasFailedMedia) {
-            showSnackbar(snackbarAttachView, R.string.editor_post_saved_locally_failed_media, R.string.button_edit,
+            showSnackbar(snackbarAttachView, post.isPage() ? R.string.editor_page_saved_locally_failed_media
+                            : R.string.editor_post_saved_locally_failed_media, R.string.button_edit,
                          new View.OnClickListener() {
                              @Override
                              public void onClick(View v) {
                                  ActivityLauncher.editPostOrPageForResult(activity, site, post);
                              }
-                         });
+                         }, sequencer);
             return;
         }
 
@@ -188,9 +231,11 @@ public class UploadUtils {
         boolean isScheduledPost = postStatus == PostStatus.SCHEDULED;
         if (isScheduledPost) {
             // if it's a scheduled post, we only want to show a "Sync" button if it's locally saved
-            if (savedLocally) {
-                showSnackbar(snackbarAttachView, R.string.editor_post_saved_locally, R.string.button_sync,
-                             publishPostListener);
+            if (uploadNotStarted) {
+                showSnackbar(snackbarAttachView,
+                        post.isPage() ? R.string.editor_page_saved_locally : R.string.editor_post_saved_locally,
+                        R.string.button_sync,
+                        publishPostListener, sequencer);
             }
             return;
         }
@@ -198,11 +243,14 @@ public class UploadUtils {
         boolean isPublished = postStatus == PostStatus.PUBLISHED;
         if (isPublished) {
             // if it's a published post, we only want to show a "Sync" button if it's locally saved
-            if (savedLocally) {
-                showSnackbar(snackbarAttachView, R.string.editor_post_saved_locally, R.string.button_sync,
-                             publishPostListener);
+            if (uploadNotStarted) {
+                showSnackbar(snackbarAttachView,
+                        post.isPage() ? R.string.editor_page_saved_locally : R.string.editor_post_saved_locally,
+                        R.string.button_sync,
+                        publishPostListener, sequencer);
             } else {
-                showSnackbar(snackbarAttachView, R.string.editor_uploading_post);
+                showSnackbar(snackbarAttachView,
+                        post.isPage() ? R.string.editor_uploading_page : R.string.editor_uploading_post, sequencer);
             }
             return;
         }
@@ -211,71 +259,170 @@ public class UploadUtils {
         if (isDraft) {
             if (PostUtils.isPublishable(post)) {
                 // if the post is publishable, we offer the PUBLISH button
-                if (savedLocally) {
+                if (uploadNotStarted) {
                     showSnackbarSuccessAction(snackbarAttachView, R.string.editor_draft_saved_locally,
                                               R.string.button_publish,
-                                              publishPostListener);
+                                              publishPostListener, sequencer);
                 } else {
                     if (UploadService.hasPendingOrInProgressMediaUploadsForPost(post)
                         || UploadService.isPostUploadingOrQueued(post)) {
-                        showSnackbar(snackbarAttachView, R.string.editor_uploading_draft);
+                        showSnackbar(snackbarAttachView, R.string.editor_uploading_draft, sequencer);
                     } else {
                         showSnackbarSuccessAction(snackbarAttachView, R.string.editor_draft_saved_online,
                                                   R.string.button_publish,
-                                                  publishPostListener);
+                                                  publishPostListener, sequencer);
                     }
                 }
             } else {
-                showSnackbar(snackbarAttachView, R.string.editor_draft_saved_locally);
+                showSnackbar(snackbarAttachView, R.string.editor_draft_saved_locally, sequencer);
             }
         } else {
-            if (savedLocally) {
-                showSnackbar(snackbarAttachView, R.string.editor_post_saved_locally, R.string.button_publish,
-                             publishPostListener);
+            if (uploadNotStarted) {
+                showSnackbar(snackbarAttachView,
+                        post.isPage() ? R.string.editor_page_saved_locally : R.string.editor_post_saved_locally,
+                        R.string.button_publish,
+                             publishPostListener, sequencer);
             } else {
                 if (UploadService.hasPendingOrInProgressMediaUploadsForPost(post)
                     || UploadService.isPostUploadingOrQueued(post)) {
-                    showSnackbar(snackbarAttachView, R.string.editor_uploading_post);
+                    showSnackbar(snackbarAttachView,
+                            post.isPage() ? R.string.editor_uploading_page : R.string.editor_uploading_post, sequencer);
                 } else {
-                    showSnackbarSuccessAction(snackbarAttachView, R.string.editor_post_saved_online,
+                    showSnackbarSuccessAction(snackbarAttachView,
+                            post.isPage() ? R.string.editor_page_saved_online : R.string.editor_post_saved_online,
                                               R.string.button_publish,
-                                              publishPostListener);
+                                              publishPostListener, sequencer);
                 }
             }
         }
     }
 
-    private static void showSnackbarError(View view, String message, int buttonTitleRes,
-                                          View.OnClickListener onClickListener) {
-        WPSnackbar.make(view, message, K_SNACKBAR_WAIT_TIME_MS).setAction(buttonTitleRes, onClickListener).show();
+    public static void showSnackbarError(View view, String message, int buttonTitleRes,
+                                          OnClickListener onClickListener, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                             view,
+                             new UiStringText(message),
+                             K_SNACKBAR_WAIT_TIME_MS
+                        ),
+                        new Action(
+                             new UiStringRes(buttonTitleRes),
+                             onClickListener
+                        ),
+                        null
+                )
+        );
     }
 
-    public static void showSnackbarError(View view, String message) {
-        WPSnackbar.make(view, message, K_SNACKBAR_WAIT_TIME_MS).show();
+    public static void showSnackbarError(View view, String message, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringText(message),
+                                K_SNACKBAR_WAIT_TIME_MS
+                        ),
+                        null,
+                        null
+                )
+        );
     }
 
     private static void showSnackbar(View view, int messageRes, int buttonTitleRes,
-                                     View.OnClickListener onClickListener) {
-        WPSnackbar.make(view, messageRes, K_SNACKBAR_WAIT_TIME_MS).setAction(buttonTitleRes, onClickListener).show();
+                                     OnClickListener onClickListener, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringRes(messageRes),
+                                K_SNACKBAR_WAIT_TIME_MS
+                        ),
+                        new Action(
+                                new UiStringRes(buttonTitleRes),
+                                onClickListener
+                        ),
+                        null
+                )
+        );
     }
 
     public static void showSnackbarSuccessAction(View view, int messageRes, int buttonTitleRes,
-                                                  View.OnClickListener onClickListener) {
-        WPSnackbar.make(view, messageRes, K_SNACKBAR_WAIT_TIME_MS).setAction(buttonTitleRes, onClickListener).show();
+                                                 OnClickListener onClickListener, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringRes(messageRes),
+                                K_SNACKBAR_WAIT_TIME_MS
+                        ),
+                        new Action(
+                                new UiStringRes(buttonTitleRes),
+                                onClickListener
+                        ),
+                        null
+                )
+        );
     }
 
     private static void showSnackbarSuccessAction(View view, String message, int buttonTitleRes,
-                                                  View.OnClickListener onClickListener) {
-        WPSnackbar.make(view, message, K_SNACKBAR_WAIT_TIME_MS).setAction(buttonTitleRes, onClickListener).show();
+                                                  OnClickListener onClickListener, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringText(message),
+                                K_SNACKBAR_WAIT_TIME_MS
+                        ),
+                        new Action(
+                                new UiStringRes(buttonTitleRes),
+                                onClickListener
+                        ),
+                        null
+                )
+        );
     }
 
     public static void showSnackbarSuccessActionOrange(View view, int messageRes, int buttonTitleRes,
-                                                  View.OnClickListener onClickListener) {
-        WPSnackbar.make(view, messageRes, Snackbar.LENGTH_LONG).setAction(buttonTitleRes, onClickListener).show();
+                                                       View.OnClickListener onClickListener,
+                                                       SnackbarSequencer snackbarSequencer) {
+        snackbarSequencer.enqueue(new SnackbarItem(
+                new Info(
+                        view,
+                        new UiStringRes(messageRes),
+                        Snackbar.LENGTH_LONG
+                ),
+                new Action(new UiStringRes(buttonTitleRes), onClickListener),
+                null
+        ));
     }
 
-    public static void showSnackbar(View view, int messageRes) {
-        WPSnackbar.make(view, messageRes, Snackbar.LENGTH_LONG).show();
+    public static void showSnackbar(View view, int messageRes, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringRes(messageRes),
+                                Snackbar.LENGTH_LONG
+                        ),
+                        null,
+                        null
+                )
+        );
+    }
+
+    public static void showSnackbar(View view, String messageText, SnackbarSequencer sequencer) {
+        sequencer.enqueue(
+                new SnackbarItem(
+                        new Info(
+                                view,
+                                new UiStringText(messageText),
+                                Snackbar.LENGTH_LONG
+                        ),
+                        null,
+                        null
+                )
+        );
     }
 
     public static void publishPost(Activity activity, final PostModel post, SiteModel site, Dispatcher dispatcher) {
@@ -312,7 +459,8 @@ public class UploadUtils {
                                                      boolean isError,
                                                      final PostModel post,
                                                      final String errorMessage,
-                                                     final SiteModel site, final Dispatcher dispatcher) {
+                                                     final SiteModel site, final Dispatcher dispatcher,
+                                                     SnackbarSequencer sequencer) {
         boolean userCanPublish = userCanPublish(site);
         if (isError) {
             if (errorMessage != null) {
@@ -326,12 +474,12 @@ public class UploadUtils {
                                                                   activity, post, false);
                                                           activity.startService(intent);
                                                       }
-                                                  });
+                                                  }, sequencer);
                 } else {
-                    UploadUtils.showSnackbarError(snackbarAttachView, errorMessage);
+                    UploadUtils.showSnackbarError(snackbarAttachView, errorMessage, sequencer);
                 }
             } else {
-                UploadUtils.showSnackbar(snackbarAttachView, R.string.editor_draft_saved_locally);
+                UploadUtils.showSnackbar(snackbarAttachView, R.string.editor_draft_saved_locally, sequencer);
             }
         } else {
             if (post != null) {
@@ -382,9 +530,9 @@ public class UploadUtils {
 
                 if (snackbarButtonRes > 0) {
                     UploadUtils.showSnackbarSuccessAction(snackbarAttachView, snackbarMessageRes, snackbarButtonRes,
-                            publishPostListener);
+                            publishPostListener, sequencer);
                 } else {
-                    UploadUtils.showSnackbar(snackbarAttachView, snackbarMessageRes);
+                    UploadUtils.showSnackbar(snackbarAttachView, snackbarMessageRes, sequencer);
                 }
             }
         }
@@ -393,7 +541,8 @@ public class UploadUtils {
     public static void onMediaUploadedSnackbarHandler(final Activity activity, View snackbarAttachView,
                                                       boolean isError,
                                                       final List<MediaModel> mediaList, final SiteModel site,
-                                                      final String messageForUser) {
+                                                      final String messageForUser,
+                                                      SnackbarSequencer sequencer) {
         if (isError) {
             if (messageForUser != null) {
                 // RETRY only available for Aztec
@@ -409,57 +558,75 @@ public class UploadUtils {
                                                                                                mediaListToRetry, true);
                                                           activity.startService(retryIntent);
                                                       }
-                                                  });
+                                                  }, sequencer);
                 } else {
-                    UploadUtils.showSnackbarError(snackbarAttachView, messageForUser);
+                    UploadUtils.showSnackbarError(snackbarAttachView, messageForUser, sequencer);
                 }
             } else {
-                UploadUtils.showSnackbarError(snackbarAttachView, activity.getString(R.string.error_media_upload));
+                UploadUtils.showSnackbarError(
+                        snackbarAttachView,
+                        activity.getString(R.string.error_media_upload),
+                        sequencer
+                );
             }
         } else {
             if (mediaList == null || mediaList.isEmpty()) {
                 return;
             }
+            boolean showPostAction = false;
+            for (MediaModel mediaModel : mediaList) {
+                showPostAction |= MIME_TYPES.isImageType(mediaModel.getMimeType()) || MIME_TYPES
+                        .isVideoType(mediaModel.getMimeType());
+            }
+            if (showPostAction) {
+                // show success snackbar for media only items and offer the WRITE POST functionality)
+                UploadUtils.showSnackbarSuccessAction(snackbarAttachView, messageForUser,
+                        R.string.media_files_uploaded_write_post, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                // WRITE POST functionality: show pre-populated Post
+                                ArrayList<MediaModel> mediaListToInsertInPost = new ArrayList<>();
+                                mediaListToInsertInPost.addAll(mediaList);
 
-            // show success snackbar for media only items and offer the WRITE POST functionality)
-            UploadUtils.showSnackbarSuccessAction(snackbarAttachView, messageForUser,
-                                                  R.string.media_files_uploaded_write_post, new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            // WRITE POST functionality: show pre-populated Post
-                            ArrayList<MediaModel> mediaListToInsertInPost = new ArrayList<>();
-                            mediaListToInsertInPost.addAll(mediaList);
-
-                            Intent writePostIntent = new Intent(activity, EditPostActivity.class);
-                            writePostIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                            writePostIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            writePostIntent.putExtra(WordPress.SITE, site);
-                            writePostIntent.putExtra(EditPostActivity.EXTRA_IS_PAGE, false);
-                            writePostIntent.putExtra(EditPostActivity.EXTRA_INSERT_MEDIA, mediaListToInsertInPost);
-                            activity.startActivity(writePostIntent);
-                        }
-                    });
+                                Intent writePostIntent = new Intent(activity, EditPostActivity.class);
+                                writePostIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                                writePostIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                writePostIntent.putExtra(WordPress.SITE, site);
+                                writePostIntent.putExtra(EditPostActivity.EXTRA_IS_PAGE, false);
+                                writePostIntent.putExtra(EditPostActivity.EXTRA_INSERT_MEDIA, mediaListToInsertInPost);
+                                activity.startActivity(writePostIntent);
+                            }
+                        }, sequencer);
+            } else {
+                // Do not show action for audio/document files until there is a block handling them in GB
+                UploadUtils.showSnackbar(snackbarAttachView, messageForUser, sequencer);
+            }
         }
     }
 
     @StringRes
-    private static int getDeviceOfflinePostNotUploadedMessage(@NonNull final PostModel post,
-                                                              @NonNull final UploadAction uploadAction) {
+    private static int getDeviceOfflinePostModelNotUploadedMessage(@NonNull final PostModel post,
+                                                                   @NonNull final UploadAction uploadAction) {
         if (uploadAction != UploadAction.UPLOAD) {
-            return R.string.error_publish_no_network;
+            return post.isPage() ? R.string.error_publish_page_no_network : R.string.error_publish_no_network;
         } else {
             switch (PostStatus.fromPost(post)) {
                 case PUBLISHED:
                 case UNKNOWN:
-                    return R.string.post_waiting_for_connection_publish;
+                    return post.isPage() ? R.string.page_waiting_for_connection_publish
+                            : R.string.post_waiting_for_connection_publish;
                 case DRAFT:
-                    return R.string.post_waiting_for_connection_draft;
+                    return post.isPage() ? R.string.page_waiting_for_connection_draft
+                            : R.string.post_waiting_for_connection_draft;
                 case PRIVATE:
-                    return R.string.post_waiting_for_connection_private;
+                    return post.isPage() ? R.string.page_waiting_for_connection_private
+                            : R.string.post_waiting_for_connection_private;
                 case PENDING:
-                    return R.string.post_waiting_for_connection_pending;
+                    return post.isPage() ? R.string.page_waiting_for_connection_pending
+                            : R.string.post_waiting_for_connection_pending;
                 case SCHEDULED:
-                    return R.string.post_waiting_for_connection_scheduled;
+                    return post.isPage() ? R.string.page_waiting_for_connection_scheduled
+                            : R.string.post_waiting_for_connection_scheduled;
                 case TRASHED:
                     throw new IllegalArgumentException("Trashing posts should be handled in a different code path.");
             }

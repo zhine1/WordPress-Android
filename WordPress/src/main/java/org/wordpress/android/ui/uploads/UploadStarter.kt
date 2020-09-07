@@ -10,13 +10,14 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import org.wordpress.android.analytics.AnalyticsTracker.Stat
 import org.wordpress.android.fluxc.Dispatcher
 import org.wordpress.android.fluxc.generated.UploadActionBuilder
 import org.wordpress.android.fluxc.model.SiteModel
+import org.wordpress.android.fluxc.store.PageStore
 import org.wordpress.android.fluxc.store.PostStore
 import org.wordpress.android.fluxc.store.SiteStore
 import org.wordpress.android.modules.BG_THREAD
@@ -25,7 +26,7 @@ import org.wordpress.android.testing.OpenForTesting
 import org.wordpress.android.ui.uploads.UploadActionUseCase.UploadAction
 import org.wordpress.android.ui.uploads.UploadActionUseCase.UploadAction.DO_NOTHING
 import org.wordpress.android.util.AppLog
-import org.wordpress.android.util.CrashLoggingUtils
+import org.wordpress.android.util.AppLog.T
 import org.wordpress.android.util.NetworkUtilsWrapper
 import org.wordpress.android.util.analytics.AnalyticsTrackerWrapper
 import org.wordpress.android.util.skip
@@ -52,6 +53,7 @@ class UploadStarter @Inject constructor(
     private val context: Context,
     private val dispatcher: Dispatcher,
     private val postStore: PostStore,
+    private val pageStore: PageStore,
     private val siteStore: SiteStore,
     private val uploadActionUseCase: UploadActionUseCase,
     private val tracker: AnalyticsTrackerWrapper,
@@ -62,13 +64,6 @@ class UploadStarter @Inject constructor(
     private val connectionStatus: LiveData<ConnectionStatus>
 ) : CoroutineScope {
     private val job = Job()
-
-    /**
-     * When the app comes to foreground both `queueUploadFromAllSites` and `queueUploadFromSite` are invoked.
-     * The problem is that they can run in parallel and `uploadServiceFacade.isPostUploadingOrQueued(it)` might return
-     * out-of-date result and a same post is added twice.
-     */
-    private val mutex = Mutex()
 
     override val coroutineContext: CoroutineContext get() = job + bgDispatcher
 
@@ -106,7 +101,7 @@ class UploadStarter @Inject constructor(
         try {
             checkConnectionAndUpload(sites = sites)
         } catch (e: Exception) {
-            CrashLoggingUtils.log(e)
+            AppLog.e(T.MEDIA, e)
         }
     }
 
@@ -117,7 +112,7 @@ class UploadStarter @Inject constructor(
         try {
             checkConnectionAndUpload(sites = listOf(site))
         } catch (e: Exception) {
-            CrashLoggingUtils.log(e)
+            AppLog.e(T.MEDIA, e)
         }
     }
 
@@ -141,45 +136,53 @@ class UploadStarter @Inject constructor(
 
     /**
      * This is meant to be used by [checkConnectionAndUpload] only.
+     *
+     * The method needs to be synchronized from the following reasons. When the app comes to foreground both
+     * `queueUploadFromAllSites` and `queueUploadFromSite` are invoked. The problem is that they can run in parallel
+     * and `uploadServiceFacade.isPostUploadingOrQueued(it)` might return out-of-date result and a same post is added
+     * twice.
      */
+    @Synchronized
     private suspend fun upload(site: SiteModel) = coroutineScope {
-        try {
-            mutex.lock()
-            postStore.getPostsWithLocalChanges(site)
-                    .asSequence()
-                    .map { post ->
-                        val action = uploadActionUseCase.getAutoUploadAction(post, site)
-                        Pair(post, action)
-                    }
-                    .filter { (_, action) ->
-                        action != DO_NOTHING
-                    }
-                    .toList()
-                    .forEach { (post, action) ->
-                        trackAutoUploadAction(action, post.status)
-                        AppLog.d(
-                                AppLog.T.POSTS,
-                                "UploadStarter for post title: ${post.title}, action: $action"
-                        )
-                        dispatcher.dispatch(
-                                UploadActionBuilder.newIncrementNumberOfAutoUploadAttemptsAction(
-                                        post
-                                )
-                        )
-                        uploadServiceFacade.uploadPost(
-                                context = context,
-                                post = post,
-                                trackAnalytics = false
-                        )
-                    }
-        } finally {
-            mutex.unlock()
-        }
+        val posts = async { postStore.getPostsWithLocalChanges(site) }
+        val pages = async { pageStore.getPagesWithLocalChanges(site) }
+        val list = posts.await() + pages.await()
+
+        list.asSequence()
+                .map { post ->
+                    val action = uploadActionUseCase.getAutoUploadAction(post, site)
+                    Pair(post, action)
+                }
+                .filter { (_, action) ->
+                    action != DO_NOTHING
+                }
+                .toList()
+                .forEach { (post, action) ->
+                    trackAutoUploadAction(action, post.status, post.isPage)
+                    AppLog.d(
+                            AppLog.T.POSTS,
+                            "UploadStarter for post (isPage: ${post.isPage}) title: ${post.title}, action: $action"
+                    )
+                    dispatcher.dispatch(
+                            UploadActionBuilder.newIncrementNumberOfAutoUploadAttemptsAction(
+                                    post
+                            )
+                    )
+                    uploadServiceFacade.uploadPost(
+                            context = context,
+                            post = post,
+                            trackAnalytics = false
+                    )
+                }
     }
 
-    private fun trackAutoUploadAction(action: UploadAction, status: String) {
+    private fun trackAutoUploadAction(
+        action: UploadAction,
+        status: String,
+        isPage: Boolean
+    ) {
         tracker.track(
-                Stat.AUTO_UPLOAD_POST_INVOKED,
+                if (isPage) Stat.AUTO_UPLOAD_PAGE_INVOKED else Stat.AUTO_UPLOAD_POST_INVOKED,
                 mapOf(
                         "upload_action" to action.toString(),
                         "post_status" to status

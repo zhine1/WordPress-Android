@@ -4,7 +4,6 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -19,6 +18,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -79,7 +80,7 @@ public class SignupMagicLinkFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View layout = inflater.inflate(R.layout.signup_magic_link, container, false);
+        View layout = inflater.inflate(R.layout.signup_magic_link_screen, container, false);
 
         mOpenMailButton = layout.findViewById(R.id.signup_magic_link_button);
         mOpenMailButton.setOnClickListener(new View.OnClickListener() {
@@ -112,12 +113,12 @@ public class SignupMagicLinkFragment extends Fragment {
         ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
 
         if (actionBar != null) {
-            actionBar.setDisplayShowTitleEnabled(false);
+            actionBar.setTitle(R.string.sign_up_label);
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
         if (savedInstanceState == null) {
-            mAnalyticsListener.trackMagicLinkOpenEmailClientViewed();
+            mAnalyticsListener.trackSignupMagicLinkOpenEmailClientViewed();
         }
     }
 
@@ -156,6 +157,7 @@ public class SignupMagicLinkFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.help) {
+            mAnalyticsListener.trackShowHelpClick();
             if (mLoginListener != null) {
                 mLoginListener.helpSignupMagicLinkScreen(mEmail);
             }
@@ -219,6 +221,7 @@ public class SignupMagicLinkFragment extends Fragment {
     }
 
     protected void showErrorDialog(String message) {
+        mAnalyticsListener.trackFailure(message);
         DialogInterface.OnClickListener dialogListener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -231,7 +234,7 @@ public class SignupMagicLinkFragment extends Fragment {
             }
         };
 
-        AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(getActivity(), R.style.LoginTheme))
+        AlertDialog dialog = new MaterialAlertDialogBuilder(getActivity())
                 .setMessage(message)
                 .setNegativeButton(R.string.signup_magic_link_error_button_negative, dialogListener)
                 .setPositiveButton(R.string.signup_magic_link_error_button_positive, dialogListener)

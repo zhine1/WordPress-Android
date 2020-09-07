@@ -29,7 +29,6 @@ import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.SuggestionSpan;
 import android.util.DisplayMetrics;
-import android.view.ContextThemeWrapper;
 import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -47,9 +46,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LiveData;
 
 import com.android.volley.toolbox.ImageLoader;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 
 import org.json.JSONException;
@@ -67,8 +68,10 @@ import org.wordpress.android.util.ToastUtils;
 import org.wordpress.android.util.UrlUtils;
 import org.wordpress.android.util.helpers.MediaFile;
 import org.wordpress.android.util.helpers.MediaGallery;
+import org.wordpress.aztec.AlignmentRendering;
 import org.wordpress.aztec.Aztec;
 import org.wordpress.aztec.AztecAttributes;
+import org.wordpress.aztec.AztecContentChangeWatcher.AztecTextChangeObserver;
 import org.wordpress.aztec.AztecExceptionHandler;
 import org.wordpress.aztec.AztecParser;
 import org.wordpress.aztec.AztecText;
@@ -120,6 +123,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         View.OnTouchListener,
         EditorMediaUploadListener,
         IAztecToolbarClickListener,
+        AztecTextChangeObserver,
         IHistoryListener {
     public static class AztecLoggingException extends Exception {
         public AztecLoggingException(String message) {
@@ -131,6 +135,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         }
     }
 
+    private static final String AZTEC_EDITOR_NAME = "aztec";
     private static final String ATTR_TAPPED_MEDIA_PREDICATE = "tapped_media_predicate";
 
     private static final String ATTR_ALIGN = "align";
@@ -143,6 +148,8 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     private static final String ANIMATED_MEDIA = "animated-media";
     private static final String TEMP_VIDEO_UPLOADING_CLASS = "data-temp-aztec-video";
     private static final String GUTENBERG_BLOCK_START = "<!-- wp:";
+
+    private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
 
     private static final int MIN_BITMAP_DIMENSION_DP = 48;
     public static final int DEFAULT_MEDIA_PLACEHOLDER_DIMENSION_DP = 196;
@@ -229,7 +236,8 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mContentAndSourceContainer = view.findViewById(R.id.aztec_content_and_source_container);
 
         mTitle.addTextChangedListener(mTextWatcher);
-        mContent.addTextChangedListener(mTextWatcher);
+        mContent.getContentChangeWatcher().registerObserver(this);
+        mSource.addTextChangedListener(mTextWatcher);
 
         // Set the default value for max and min picture sizes.
         maxMediaSize = EditorMediaUtils.getMaximumThumbnailSizeForEditor(getActivity());
@@ -278,6 +286,14 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
 
         mFormattingToolbar = (AztecToolbar) view.findViewById(R.id.formatting_toolbar);
         mFormattingToolbar.setExpanded(mIsToolbarExpanded);
+
+        View mediaCollapseButton = mFormattingToolbar.findViewById(R.id.format_bar_button_media_collapsed);
+        View mediaExpandButton = mFormattingToolbar.findViewById(R.id.format_bar_button_media_expanded);
+
+        mediaCollapseButton.setBackgroundTintList(ContextCompat
+                .getColorStateList(mediaExpandButton.getContext(), R.color.media_button_background_tint_selector));
+        mediaExpandButton.setBackgroundTintList(ContextCompat
+                .getColorStateList(mediaExpandButton.getContext(), R.color.media_button_background_tint_selector));
 
         mTitle.setOnFocusChangeListener(
                 new View.OnFocusChangeListener() {
@@ -362,6 +378,11 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mEditorFragmentListener.onEditorFragmentInitialized();
 
         return view;
+    }
+
+    @Override public void onDestroyView() {
+        super.onDestroyView();
+        mContent.getContentChangeWatcher().unregisterObserver(this);
     }
 
     public void setEditorImageSettingsListener(EditorImageSettingsListener listener) {
@@ -558,6 +579,12 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         mTitle.setText(text);
     }
 
+    @NonNull
+    @Override
+    public String getEditorName() {
+        return AZTEC_EDITOR_NAME;
+    }
+
     @Override
     public void setContent(CharSequence text) {
         if (text == null) {
@@ -747,7 +774,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     private void checkForFailedUploadAndSwitchToHtmlMode() {
         // Show an Alert Dialog asking the user if he wants to remove all failed media before upload
         if (hasFailedMediaUploads()) {
-            new AlertDialog.Builder(new ContextThemeWrapper(getActivity(), R.style.Calypso_Dialog_Alert))
+            new MaterialAlertDialogBuilder(getActivity())
                     .setMessage(R.string.editor_failed_uploads_switch_html)
                     .setPositiveButton(R.string.editor_remove_failed_uploads, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
@@ -967,8 +994,18 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     }
 
     @Override
+    public void showContentInfo() throws EditorFragmentNotAddedException {
+        // not implemented for Aztec
+    }
+
+    @Override
     public LiveData<Editable> getTitleOrContentChanged() {
         return mTextWatcher.getAfterTextChanged();
+    }
+
+    @Override
+    public void onContentChanged() {
+        mTextWatcher.postTextChanged();
     }
 
     @Override
@@ -1175,6 +1212,10 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         return false;
     }
 
+    @Override public void mediaSelectionCancelled() {
+        // noop implementation for shared interface with block editor
+    }
+
     @Override
     public void onMediaUploadReattached(String localId, float currentProgress) {
         mUploadingMediaProgressMax.put(localId, currentProgress);
@@ -1360,30 +1401,22 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
     }
 
     @Override
-    public void onMediaUploadFailed(final String localMediaId, final EditorFragmentAbstract.MediaType
-            mediaType, final String errorMessage) {
+    public void onMediaUploadFailed(final String localMediaId) {
         if (!isAdded() || mContent == null) {
             return;
         }
-        if (mediaType != null) {
-            switch (mediaType) {
-                case IMAGE:
-                case VIDEO:
-                    MediaPredicate localMediaIdPredicate = MediaPredicate.getLocalMediaIdPredicate(localMediaId);
-                    AttributesWithClass attributesWithClass = getAttributesWithClass(
-                            mContent.getElementAttributes(localMediaIdPredicate));
+        MediaPredicate localMediaIdPredicate = MediaPredicate.getLocalMediaIdPredicate(localMediaId);
+        AttributesWithClass attributesWithClass = getAttributesWithClass(
+                mContent.getElementAttributes(localMediaIdPredicate));
 
-                    attributesWithClass.removeClass(ATTR_STATUS_UPLOADING);
-                    attributesWithClass.addClass(ATTR_STATUS_FAILED);
+        attributesWithClass.removeClass(ATTR_STATUS_UPLOADING);
+        attributesWithClass.addClass(ATTR_STATUS_FAILED);
 
-                    mContent.clearOverlays(localMediaIdPredicate);
-                    overlayFailedMedia(localMediaId, attributesWithClass.getAttributes());
-                    mContent.resetAttributedMediaSpan(localMediaIdPredicate);
-                    break;
-            }
-            mFailedMediaIds.add(localMediaId);
-            mUploadingMediaProgressMax.remove(localMediaId);
-        }
+        mContent.clearOverlays(localMediaIdPredicate);
+        overlayFailedMedia(localMediaId, attributesWithClass.getAttributes());
+        mContent.resetAttributedMediaSpan(localMediaIdPredicate);
+        mFailedMediaIds.add(localMediaId);
+        mUploadingMediaProgressMax.remove(localMediaId);
     }
 
     @Override
@@ -1659,8 +1692,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         switch (uploadStatus) {
             case ATTR_STATUS_UPLOADING:
                 // Display 'cancel upload' dialog
-                AlertDialog.Builder builder = new AlertDialog.Builder(
-                        new ContextThemeWrapper(getActivity(), R.style.Calypso_Dialog_Alert));
+                AlertDialog.Builder builder = new MaterialAlertDialogBuilder(getActivity());
                 builder.setTitle(getString(R.string.stop_upload_dialog_title));
                 builder.setPositiveButton(R.string.stop_upload_dialog_button_yes,
                         new DialogInterface.OnClickListener() {
@@ -1790,8 +1822,9 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
                 // Use https:// when requesting the auth header, in case the image is incorrectly using http://
                 // If an auth header is returned, force https:// for the actual HTTP request
                 final String imageSrc = metaData.getSrc();
-                String authHeader = mEditorFragmentListener.onAuthHeaderRequested(UrlUtils.makeHttps(imageSrc));
-                if (authHeader.length() > 0) {
+                Map<String, String> authHeaders =
+                        mEditorFragmentListener.onAuthHeaderRequested(UrlUtils.makeHttps(imageSrc));
+                if (authHeaders != null && authHeaders.containsKey(AUTHORIZATION_HEADER_NAME)) {
                     metaData.setSrc(UrlUtils.makeHttps(imageSrc));
                 }
 
@@ -2296,7 +2329,7 @@ public class AztecEditorFragment extends EditorFragmentAbstract implements
         plugins.add(new CaptionShortcodePlugin());
         plugins.add(new VideoShortcodePlugin());
         plugins.add(new AudioShortcodePlugin());
-        return new AztecParser(plugins);
+        return new AztecParser(AlignmentRendering.SPAN_LEVEL, plugins);
     }
 
     private Drawable getLoadingImagePlaceholder() {

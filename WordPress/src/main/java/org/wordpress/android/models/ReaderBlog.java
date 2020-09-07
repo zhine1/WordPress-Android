@@ -64,6 +64,9 @@ public class ReaderBlog {
             blog.isFollowing = true;
         } else {
             blog.blogId = json.optLong("ID");
+            if (blog.blogId == 0) {
+                blog.blogId = json.optLong("blog_ID");
+            }
             blog.feedId = json.optLong("feed_ID");
             blog.setName(JSONUtils.getStringDecoded(json, "name"));
             blog.setDescription(JSONUtils.getStringDecoded(json, "description"));
@@ -180,5 +183,17 @@ public class ReaderBlog {
                && this.getUrl().equals(blogInfo.getUrl())
                && this.getFeedUrl().equals(blogInfo.getFeedUrl())
                && this.getImageUrl().equals(blogInfo.getImageUrl());
+    }
+
+    public boolean isSameBlogOrFeedAs(ReaderBlog blogInfo) {
+        boolean areBothValidFeeds = this.blogId == this.feedId
+                                    && blogInfo.blogId == blogInfo.feedId
+                                    && this.hasFeedUrl()
+                                    && blogInfo.hasFeedUrl();
+
+        return blogInfo != null
+               && this.blogId == blogInfo.blogId
+               && this.getUrl().equals(blogInfo.getUrl())
+               && (!areBothValidFeeds || this.getFeedUrl().equals(blogInfo.getFeedUrl()));
     }
 }

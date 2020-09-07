@@ -2,18 +2,18 @@
 <!--
 Translation-Revision-Date: 2015-12-08 01:00:08+0000
 Plural-Forms: nplurals=2; plural=n != 1;
-Generator: GlotPress/2.4.0-alpha
+Generator: GlotPress/3.0.0-alpha.2
 Language: az
 -->
 <resources>
-    <string name="theme_support">Dəstək</string>
     <string name="theme_view">Bax</string>
-    <string name="active">Aktiv</string>
+    <string name="theme_support">Dəstək</string>
     <string name="support">Dəstək</string>
-    <string name="page_updated">Səhifə yeniləndi</string>
-    <string name="post_updated">Yazı yeniləndi</string>
-    <string name="page_published">Səhifə dərc edildi</string>
+    <string name="active">Aktiv</string>
     <string name="post_published">Yazı dərc edildi</string>
+    <string name="page_published">Səhifə dərc edildi</string>
+    <string name="post_updated">Yazı yeniləndi</string>
+    <string name="page_updated">Səhifə yeniləndi</string>
     <string name="reader_short_comment_count_multi">%s Şərh</string>
     <string name="reader_short_comment_count_one">1 Şərh</string>
     <string name="reader_short_like_count_multi">%s Bəyənmə</string>
@@ -52,7 +52,6 @@ Language: az
     <string name="hide">Gizlət</string>
     <string name="select_all">Tamamını seç</string>
     <string name="language">Dil</string>
-    <string name="editor_toast_invalid_path">Keçərsiz fayl yolu.</string>
     <string name="verification_code">Təsdiqləmə kodu</string>
     <string name="invalid_verification_code">Keçərsiz təsdiqləmə kodu</string>
     <string name="reader_empty_posts_request_failed">Yazılar geri alına bilmir</string>
@@ -112,7 +111,6 @@ Language: az
     <string name="posts_empty_list">Hələlik yazı yoxdur. Bir yazı yaratmağa nə deyərsiniz?</string>
     <string name="comment_reply_to_user">Bunu cavabla: %s</string>
     <string name="reader_toast_err_generic">Bu hərəkət həyata keçirilə bilmir</string>
-    <string name="contact_us">Əlaqə yaradın</string>
     <string name="update_verb">Yenilə</string>
     <string name="schedule_verb">Planla</string>
     <string name="reader_page_followed_tags">İzlənilən etiketlər</string>
@@ -163,7 +161,6 @@ Language: az
     <string name="category_name">Kateqoriya adı</string>
     <string name="file_error_create">Müvəqqəti media faylı yaradıla bilmir. Cihazınızda yetərli böş sahə olduğundan əmin olun.</string>
     <string name="open_source_licenses">Açıq mənbə lisenziyaları</string>
-    <string name="hint_comment_content">Şərh</string>
     <string name="saving_changes">Dəyişikliklər qeyd edilir</string>
     <string name="sure_to_cancel_edit_comment">Şərhin redaktəsi ləğv edilsinmi?</string>
     <string name="content_required">Şərh vacibdir</string>
@@ -177,8 +174,6 @@ Language: az
     <string name="dlg_spamming_comments">Spam olaraq işarələnir</string>
     <string name="dlg_trashing_comments">Zibil qutusuna göndərilir</string>
     <string name="dlg_confirm_trash_comments">Zibil qutusuna göndərilsinmi?</string>
-    <string name="trash_yes">Zibil</string>
-    <string name="trash_no">Zibil deyil</string>
     <string name="trash">Zibil</string>
     <string name="page_settings">Səhifə parametrləri</string>
     <string name="local_draft">Yerli qaralama</string>
@@ -253,7 +248,6 @@ Language: az
     <string name="httpuser">HTTP istifadəçi adı</string>
     <string name="httppassword">HTTP parolu</string>
     <string name="error_media_upload">Media faylının yüklənməsi zamanı xəta baş verdi.</string>
-    <string name="publish_date">Dərc edilmiş</string>
     <string name="incorrect_credentials">Yanlış istifadəçi adı və ya parol</string>
     <string name="password">Parol</string>
     <string name="username">İstifadəçi adı</string>
@@ -263,7 +257,6 @@ Language: az
     <string name="no_network_title">Şəbəkə əlçatan deyil</string>
     <string name="pages">Səhifələr</string>
     <string name="ok">OK</string>
-    <string name="blogusername">bloqistifadəçiadı</string>
     <string name="link_enter_url">URL</string>
     <string name="version">Versiya</string>
     <string name="app_title">Android üçün WordPress</string>
@@ -275,7 +268,6 @@ Language: az
     <string name="immediately">Həmən</string>
     <string name="quickpress_add_alert_title">Qısa yol ismi təyin et</string>
     <string name="settings">Parametrlər</string>
-    <string name="quickpress_window_title">QuickPress qısa yolu üçün bloq seçin</string>
     <string name="quickpress_add_error">Qısa yol ismi boş ola bilməz</string>
     <string name="categories">Kateqoriyalar</string>
     <string name="title">Başlıq</string>

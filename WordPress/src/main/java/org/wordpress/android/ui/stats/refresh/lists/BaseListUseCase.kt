@@ -18,6 +18,7 @@ import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase
 import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseModel
 import org.wordpress.android.ui.stats.refresh.lists.sections.BaseStatsUseCase.UseCaseParam
 import org.wordpress.android.ui.stats.refresh.utils.StatsSiteProvider
+import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.util.PackageUtils
 import org.wordpress.android.util.combineMap
 import org.wordpress.android.util.distinct
@@ -70,7 +71,7 @@ class BaseListUseCase(
 
     private val mutableSnackbarMessage = MutableLiveData<Int>()
     val snackbarMessage: LiveData<SnackbarMessageHolder> = mutableSnackbarMessage.map {
-        SnackbarMessageHolder(it)
+        SnackbarMessageHolder(UiStringRes(it))
     }
 
     private val mutableListSelected = SingleLiveEvent<Unit>()
@@ -84,7 +85,7 @@ class BaseListUseCase(
         loadData(true, forced)
     }
 
-    suspend fun onParamChanged(param: UseCaseParam) {
+    private suspend fun onParamChanged(param: UseCaseParam) {
         statsTypes.value?.forEach { type ->
             useCases.find { it.type == type }
                     ?.let { block ->
@@ -122,7 +123,7 @@ class BaseListUseCase(
                 }
             }
         } else {
-            mutableSnackbarMessage.value = R.string.stats_site_not_loaded_yet
+            mutableSnackbarMessage.postValue(R.string.stats_site_not_loaded_yet)
         }
     }
 

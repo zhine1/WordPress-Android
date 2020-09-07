@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.help_activity.*
+import kotlinx.android.synthetic.main.toolbar_main.*
 import org.wordpress.android.R
 import org.wordpress.android.WordPress
 import org.wordpress.android.analytics.AnalyticsTracker
@@ -18,13 +18,13 @@ import org.wordpress.android.support.ZendeskExtraTags
 import org.wordpress.android.support.ZendeskHelper
 import org.wordpress.android.ui.ActivityId
 import org.wordpress.android.ui.AppLogViewerActivity
+import org.wordpress.android.ui.LocaleAwareActivity
 import org.wordpress.android.ui.prefs.AppPrefs
-import org.wordpress.android.util.LocaleManager
 import org.wordpress.android.util.SiteUtils
 import java.util.ArrayList
 import javax.inject.Inject
 
-class HelpActivity : AppCompatActivity() {
+class HelpActivity : LocaleAwareActivity() {
     @Inject lateinit var accountStore: AccountStore
     @Inject lateinit var siteStore: SiteStore
     @Inject lateinit var supportHelper: SupportHelper
@@ -40,15 +40,13 @@ class HelpActivity : AppCompatActivity() {
         intent.extras?.get(WordPress.SITE) as SiteModel?
     }
 
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LocaleManager.setLocale(newBase))
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         (application as WordPress).component().inject(this)
 
         setContentView(R.layout.help_activity)
+
+        setSupportActionBar(toolbar_main)
 
         val actionBar = supportActionBar
         if (actionBar != null) {
@@ -57,11 +55,11 @@ class HelpActivity : AppCompatActivity() {
             actionBar.elevation = 0f // remove shadow
         }
 
-        contactUsButton.setOnClickListener { createNewZendeskTicket() }
-        faqButton.setOnClickListener { showZendeskFaq() }
-        myTicketsButton.setOnClickListener { showZendeskTickets() }
+        contact_us_button.setOnClickListener { createNewZendeskTicket() }
+        faq_button.setOnClickListener { showZendeskFaq() }
+        my_tickets_button.setOnClickListener { showZendeskTickets() }
         applicationVersion.text = getString(R.string.version_with_name_param, WordPress.versionName)
-        applicationLogButton.setOnClickListener { v ->
+        application_log_button.setOnClickListener { v ->
             startActivity(Intent(v.context, AppLogViewerActivity::class.java))
         }
 
@@ -69,10 +67,17 @@ class HelpActivity : AppCompatActivity() {
             var emailSuggestion = AppPrefs.getSupportEmail()
             if (emailSuggestion.isNullOrEmpty()) {
                 emailSuggestion = supportHelper
-                        .getSupportEmailAndNameSuggestion(accountStore.account, selectedSiteFromExtras).first
+                        .getSupportEmailAndNameSuggestion(
+                                accountStore.account,
+                                selectedSiteFromExtras
+                        ).first
             }
 
-            supportHelper.showSupportIdentityInputDialog(this, emailSuggestion, isNameInputHidden = true) { email, _ ->
+            supportHelper.showSupportIdentityInputDialog(
+                    this,
+                    emailSuggestion,
+                    isNameInputHidden = true
+            ) { email, _ ->
                 zendeskHelper.setSupportEmail(email)
                 refreshContactEmailText()
                 AnalyticsTracker.track(Stat.SUPPORT_IDENTITY_SET)
@@ -81,10 +86,10 @@ class HelpActivity : AppCompatActivity() {
         }
 
         /**
-        * If the user taps on a Zendesk notification, we want to show them the `My Tickets` page. However, this
-        * should only be triggered when the activity is first created, otherwise if the user comes back from
-        * `My Tickets` and rotates the screen (or triggers the activity re-creation in any other way) it'll navigate
-        * them to `My Tickets` again since the `originFromExtras` will still be [Origin.ZENDESK_NOTIFICATION].
+         * If the user taps on a Zendesk notification, we want to show them the `My Tickets` page. However, this
+         * should only be triggered when the activity is first created, otherwise if the user comes back from
+         * `My Tickets` and rotates the screen (or triggers the activity re-creation in any other way) it'll navigate
+         * them to `My Tickets` again since the `originFromExtras` will still be [Origin.ZENDESK_NOTIFICATION].
          */
         if (savedInstanceState == null && originFromExtras == Origin.ZENDESK_NOTIFICATION) {
             showZendeskTickets()
@@ -106,16 +111,31 @@ class HelpActivity : AppCompatActivity() {
     }
 
     private fun createNewZendeskTicket() {
-        zendeskHelper.createNewTicket(this, originFromExtras, selectedSiteFromExtras, extraTagsFromExtras)
+        zendeskHelper.createNewTicket(
+                this,
+                originFromExtras,
+                selectedSiteFromExtras,
+                extraTagsFromExtras
+        )
     }
 
     private fun showZendeskTickets() {
-        zendeskHelper.showAllTickets(this, originFromExtras, selectedSiteFromExtras, extraTagsFromExtras)
+        zendeskHelper.showAllTickets(
+                this,
+                originFromExtras,
+                selectedSiteFromExtras,
+                extraTagsFromExtras
+        )
     }
 
     private fun showZendeskFaq() {
         zendeskHelper
-                .showZendeskHelpCenter(this, originFromExtras, selectedSiteFromExtras, extraTagsFromExtras)
+                .showZendeskHelpCenter(
+                        this,
+                        originFromExtras,
+                        selectedSiteFromExtras,
+                        extraTagsFromExtras
+                )
     }
 
     private fun refreshContactEmailText() {
@@ -148,6 +168,7 @@ class HelpActivity : AppCompatActivity() {
         RELEASE_NOTES("origin:release-notes"),
         SIGNUP_EMAIL("origin:signup-email"),
         SIGNUP_MAGIC_LINK("origin:signup-magic-link"),
+        SIGNUP_CONFIRMATION("origin:signup-confirmation"),
         SITE_CREATION_CREATING("origin:site-create-creating"),
         SITE_CREATION_SEGMENTS("origin:site-create-site-segments"),
         SITE_CREATION_VERTICALS("origin:site-create-site-verticals"),
@@ -176,23 +197,20 @@ class HelpActivity : AppCompatActivity() {
                 intent.putExtra(WordPress.SITE, selectedSite)
             }
 
-            val tagsList: ArrayList<String>? = if (SiteUtils.isBlockEditorDefaultForNewPost(selectedSite)) {
-                // construct a mutable list to add the Gutenberg related extra tag
-                val list = ArrayList<String>()
+            // construct a mutable list to add the related and extra tags
+            val tagsList = ArrayList<String>()
 
-                // add the provided list of tags if any
-                extraSupportTags?.let {
-                    list.addAll(extraSupportTags)
-                }
-
-                // Append the "mobile_gutenberg_is_default" tag if gutenberg is set to default for new posts
-                list.add(ZendeskExtraTags.gutenbergIsDefault)
-                list // "return" the list
-            } else {
-                extraSupportTags as ArrayList<String>?
+            // add the provided list of tags if any
+            extraSupportTags?.let {
+                tagsList.addAll(extraSupportTags)
             }
 
-            if (tagsList != null && tagsList.isNotEmpty()) {
+            // Append the "mobile_gutenberg_is_default" tag if gutenberg is set to default for new posts
+            if (SiteUtils.isBlockEditorDefaultForNewPost(selectedSite)) {
+                tagsList.add(ZendeskExtraTags.gutenbergIsDefault)
+            }
+
+            if (tagsList.isNotEmpty()) {
                 intent.putStringArrayListExtra(EXTRA_TAGS_KEY, tagsList)
             }
 

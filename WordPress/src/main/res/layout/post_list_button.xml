@@ -10,6 +10,7 @@
     android:paddingTop="@dimen/margin_large">
 
     <ImageView
+        android:alpha="@dimen/material_emphasis_medium"
         android:id="@+id/image"
         android:layout_width="16dp"
         android:layout_height="16dp"
@@ -23,8 +24,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:singleLine="true"
-        android:textColor="?attr/wpColorTextSubtle"
         android:textSize="@dimen/text_sz_medium"
+        android:textColor="?attr/wpColorOnSurfaceMedium"
         tools:text="text" />
 
 </LinearLayout>

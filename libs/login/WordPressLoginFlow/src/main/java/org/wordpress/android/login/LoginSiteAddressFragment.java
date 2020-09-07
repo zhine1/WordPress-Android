@@ -16,18 +16,18 @@ import android.widget.TextView;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.Observer;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.wordpress.android.fluxc.Dispatcher;
-import org.wordpress.android.fluxc.generated.AuthenticationActionBuilder;
 import org.wordpress.android.fluxc.generated.SiteActionBuilder;
 import org.wordpress.android.fluxc.network.HTTPAuthManager;
 import org.wordpress.android.fluxc.network.MemorizingTrustManager;
 import org.wordpress.android.fluxc.network.discovery.SelfHostedEndpointFinder.DiscoveryError;
 import org.wordpress.android.fluxc.store.AccountStore;
-import org.wordpress.android.fluxc.store.AccountStore.OnDiscoveryResponse;
 import org.wordpress.android.fluxc.store.SiteStore.OnConnectSiteInfoChecked;
 import org.wordpress.android.fluxc.store.SiteStore.OnWPComSiteFetched;
 import org.wordpress.android.login.util.SiteUtils;
@@ -46,8 +46,8 @@ import javax.inject.Inject;
 
 import dagger.android.support.AndroidSupportInjection;
 
-public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListener> implements TextWatcher,
-        OnEditorCommitListener {
+public class LoginSiteAddressFragment extends LoginBaseDiscoveryFragment implements TextWatcher,
+        OnEditorCommitListener, LoginBaseDiscoveryFragment.LoginBaseDiscoveryListener {
     private static final String KEY_REQUESTED_SITE_ADDRESS = "KEY_REQUESTED_SITE_ADDRESS";
 
     public static final String TAG = "login_site_address_fragment_tag";
@@ -95,22 +95,29 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
         }
         mSiteAddressInput.addTextChangedListener(this);
         mSiteAddressInput.setOnEditorCommitListener(this);
+
+        rootView.findViewById(R.id.login_site_address_help_button).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mAnalyticsListener.trackShowHelpClick();
+                showSiteAddressHelp();
+            }
+        });
     }
 
     @Override
     protected void setupBottomButtons(Button secondaryButton, Button primaryButton) {
-        secondaryButton.setText(R.string.login_site_address_help);
-        secondaryButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showSiteAddressHelp();
-            }
-        });
+        secondaryButton.setVisibility(View.GONE);
         primaryButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 discover();
             }
         });
+    }
+
+    @Override
+    protected void buildToolbar(Toolbar toolbar, ActionBar actionBar) {
+        actionBar.setTitle(R.string.log_in);
     }
 
     @Override
@@ -143,12 +150,12 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
 
         mLoginSiteAddressValidator = new LoginSiteAddressValidator();
 
-        mLoginSiteAddressValidator.getIsValid().observe(this, new Observer<Boolean>() {
+        mLoginSiteAddressValidator.getIsValid().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
             @Override public void onChanged(Boolean enabled) {
                 getPrimaryButton().setEnabled(enabled);
             }
         });
-        mLoginSiteAddressValidator.getErrorMessageResId().observe(this, new Observer<Integer>() {
+        mLoginSiteAddressValidator.getErrorMessageResId().observe(getViewLifecycleOwner(), new Observer<Integer>() {
             @Override public void onChanged(Integer resId) {
                 if (resId != null) {
                     showError(resId);
@@ -175,15 +182,15 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
         if (!NetworkUtils.checkConnection(getActivity())) {
             return;
         }
+        mAnalyticsListener.trackSubmitClicked();
+
+        mLoginBaseDiscoveryListener = this;
 
         mRequestedSiteAddress = mLoginSiteAddressValidator.getCleanedSiteAddress();
 
         String cleanedXmlrpcSuffix = UrlUtils.removeXmlrpcSuffix(mRequestedSiteAddress);
 
         if (mLoginListener.getLoginMode() == LoginMode.WOO_LOGIN_MODE) {
-            // TODO: This is temporary code to test out sign in flow milestone 1 effectiveness. If we move
-            // forward with this flow, we will need to just call the XMLRPC discovery code and handle all the
-            // edge cases such as HTTP auth and self-signed SSL.
             mAnalyticsListener.trackConnectedSiteInfoRequested(cleanedXmlrpcSuffix);
             mDispatcher.dispatch(SiteActionBuilder.newFetchConnectSiteInfoAction(cleanedXmlrpcSuffix));
         } else {
@@ -215,7 +222,9 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
     }
 
     private void showError(int messageId) {
-        mSiteAddressInput.setError(getString(messageId));
+        String message = getString(messageId);
+        mAnalyticsListener.trackFailure(message);
+        mSiteAddressInput.setError(message);
     }
 
     @Override
@@ -224,12 +233,12 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
         mRequestedSiteAddress = null;
     }
 
-    private void askForHttpAuthCredentials(@NonNull final String url) {
-        LoginHttpAuthDialogFragment loginHttpAuthDialogFragment = LoginHttpAuthDialogFragment.newInstance(url);
-        loginHttpAuthDialogFragment.setTargetFragment(this, LoginHttpAuthDialogFragment.DO_HTTP_AUTH);
-        loginHttpAuthDialogFragment.show(getFragmentManager(), LoginHttpAuthDialogFragment.TAG);
+    @Override
+    @NonNull public String getRequestedSiteAddress() {
+        return mRequestedSiteAddress;
     }
 
+    @Override
     public void handleDiscoveryError(DiscoveryError error, final String failedEndpoint) {
         switch (error) {
             case ERRONEOUS_SSL_CERTIFICATE:
@@ -270,6 +279,38 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
         }
     }
 
+    @Override
+    public void handleWpComDiscoveryError(String failedEndpoint) {
+        AppLog.e(T.API, "Inputted a wpcom address in site address screen.");
+
+        // If the user is already logged in a wordpress.com account, bail out
+        if (mAccountStore.hasAccessToken()) {
+            String currentUsername = mAccountStore.getAccount().getUserName();
+            AppLog.e(T.NUX, "User is already logged in WordPress.com: " + currentUsername);
+
+            ArrayList<Integer> oldSitesIDs = SiteUtils.getCurrentSiteIds(mSiteStore, true);
+            mLoginListener.alreadyLoggedInWpcom(oldSitesIDs);
+        } else {
+            mLoginListener.gotWpcomSiteInfo(failedEndpoint, null, null);
+        }
+    }
+
+    @Override
+    public void handleDiscoverySuccess(@NonNull String endpointAddress) {
+        AppLog.i(T.NUX, "Discovery succeeded, endpoint: " + endpointAddress);
+
+        // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
+        String inputSiteAddress = mRequestedSiteAddress;
+        endProgress();
+        mLoginListener.gotXmlRpcEndpoint(inputSiteAddress, endpointAddress);
+    }
+
+    private void askForHttpAuthCredentials(@NonNull final String url) {
+        LoginHttpAuthDialogFragment loginHttpAuthDialogFragment = LoginHttpAuthDialogFragment.newInstance(url);
+        loginHttpAuthDialogFragment.setTargetFragment(this, LoginHttpAuthDialogFragment.DO_HTTP_AUTH);
+        loginHttpAuthDialogFragment.show(getFragmentManager(), LoginHttpAuthDialogFragment.TAG);
+    }
+
     private void showSiteAddressHelp() {
         new LoginSiteAddressHelpDialogFragment().show(getFragmentManager(), LoginSiteAddressHelpDialogFragment.TAG);
     }
@@ -308,14 +349,14 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
                 endProgress();
             } else {
                 // Start the discovery process
-                mDispatcher.dispatch(AuthenticationActionBuilder.newDiscoverEndpointAction(mRequestedSiteAddress));
+                initiateDiscovery();
             }
         } else {
             if (event.site.isJetpackInstalled() && mLoginListener.getLoginMode() != LoginMode.WPCOM_LOGIN_ONLY) {
                 // If Jetpack site, treat it as self-hosted and start the discovery process
                 // An exception is WPCOM_LOGIN_ONLY mode - in that case we're only interested in adding sites
                 // through WordPress.com login, and should proceed along that login path
-                mDispatcher.dispatch(AuthenticationActionBuilder.newDiscoverEndpointAction(mRequestedSiteAddress));
+                initiateDiscovery();
                 return;
             }
 
@@ -327,56 +368,6 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
                     event.site.getName(),
                     event.site.getIconUrl());
         }
-    }
-
-    @SuppressWarnings("unused")
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onDiscoverySucceeded(OnDiscoveryResponse event) {
-        if (mRequestedSiteAddress == null) {
-            // bail if user canceled
-            return;
-        }
-
-        if (!isAdded()) {
-            return;
-        }
-
-        // hold the URL in a variable to use below otherwise it gets cleared up by endProgress
-        final String requestedSiteAddress = mRequestedSiteAddress;
-
-        if (isInProgress()) {
-            endProgress();
-        }
-
-        if (event.isError()) {
-            mAnalyticsListener.trackLoginFailed(event.getClass().getSimpleName(),
-                    event.error.name(), event.error.toString());
-
-            if (event.error == DiscoveryError.WORDPRESS_COM_SITE) {
-                AppLog.e(T.API, "Inputted a wpcom address in site address screen.");
-
-                // If the user is already logged in a wordpress.com account, bail out
-                if (mAccountStore.hasAccessToken()) {
-                    String currentUsername = mAccountStore.getAccount().getUserName();
-                    AppLog.e(T.NUX, "User is already logged in WordPress.com: " + currentUsername);
-
-                    ArrayList<Integer> oldSitesIDs = SiteUtils.getCurrentSiteIds(mSiteStore, true);
-                    mLoginListener.alreadyLoggedInWpcom(oldSitesIDs);
-                } else {
-                    mLoginListener.gotWpcomSiteInfo(event.failedEndpoint, null, null);
-                }
-
-                return;
-            } else {
-                AppLog.e(T.API, "onDiscoveryResponse has error: " + event.error.name()
-                                + " - " + event.error.toString());
-                handleDiscoveryError(event.error, event.failedEndpoint);
-                return;
-            }
-        }
-
-        AppLog.i(T.NUX, "Discovery succeeded, endpoint: " + event.xmlRpcEndpoint);
-        mLoginListener.gotXmlRpcEndpoint(requestedSiteAddress, event.xmlRpcEndpoint);
     }
 
     @SuppressWarnings("unused")
@@ -426,7 +417,7 @@ public class LoginSiteAddressFragment extends LoginBaseFormFragment<LoginListene
             if (event.info.isWPCom && event.info.hasJetpack) {
                 // This is likely an atomic site.
                 hasJetpack = true;
-            } else if (event.info.hasJetpack && event.info.isJetpackActive && event.info.isJetpackConnected) {
+            } else if (event.info.isJetpackConnected) {
                 hasJetpack = true;
             }
             properties.put("login_calculated_has_jetpack", Boolean.toString(hasJetpack));

@@ -130,8 +130,6 @@ class EditorPhotoPicker(
             val displayHeight = DisplayUtils.getDisplayPixelHeight(activity)
             updatePickerContainerHeight((displayHeight * 0.5f).toInt())
         }
-
-        photoPickerFragment?.reload()
     }
 
     override fun onMediaToolbarButtonClicked(action: MediaToolbarAction?) {
@@ -144,7 +142,7 @@ class EditorPhotoPicker(
                 MediaToolbarAction.CAMERA -> photoPickerFragment.showCameraPopupMenu(
                         activity.findViewById(action.buttonId)
                 )
-                MediaToolbarAction.GALLERY -> photoPickerFragment.showPickerPopupMenu(
+                MediaToolbarAction.GALLERY -> photoPickerFragment.performActionOrShowPopup(
                         activity.findViewById(action.buttonId)
                 )
                 MediaToolbarAction.LIBRARY -> photoPickerFragment.doIconClicked(PhotoPickerIcon.WP_MEDIA)

@@ -4,21 +4,19 @@ import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
-import android.view.ContextThemeWrapper
-import androidx.appcompat.app.AlertDialog.Builder
 import androidx.appcompat.app.AppCompatDialogFragment
-import org.wordpress.android.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Basic dialog fragment with support for 1,2 or 3 buttons.
  */
 class BasicFragmentDialog : AppCompatDialogFragment() {
     private lateinit var mTag: String
-    private lateinit var mMessage: String
-    private lateinit var mPositiveButtonLabel: String
-    private var mTitle: String? = null
-    private var mNegativeButtonLabel: String? = null
-    private var mCancelButtonLabel: String? = null
+    private lateinit var mMessage: CharSequence
+    private lateinit var mPositiveButtonLabel: CharSequence
+    private var mTitle: CharSequence? = null
+    private var mNegativeButtonLabel: CharSequence? = null
+    private var mCancelButtonLabel: CharSequence? = null
     private var dismissedByPositiveButton = false
     private var dismissedByNegativeButton = false
     private var dismissedByCancelButton = false
@@ -37,11 +35,11 @@ class BasicFragmentDialog : AppCompatDialogFragment() {
 
     fun initialize(
         tag: String,
-        title: String?,
-        message: String,
-        positiveButtonLabel: String,
-        negativeButtonLabel: String? = null,
-        cancelButtonLabel: String? = null
+        title: CharSequence?,
+        message: CharSequence,
+        positiveButtonLabel: CharSequence,
+        negativeButtonLabel: CharSequence? = null,
+        cancelButtonLabel: CharSequence? = null
     ) {
         mTag = tag
         mTitle = title
@@ -59,26 +57,26 @@ class BasicFragmentDialog : AppCompatDialogFragment() {
 
         if (savedInstanceState != null) {
             mTag = savedInstanceState.getString(STATE_KEY_TAG)
-            mTitle = savedInstanceState.getString(STATE_KEY_TITLE)
-            mMessage = savedInstanceState.getString(STATE_KEY_MESSAGE)
-            mPositiveButtonLabel = savedInstanceState.getString(STATE_KEY_POSITIVE_BUTTON_LABEL)
-            mNegativeButtonLabel = savedInstanceState.getString(STATE_KEY_NEGATIVE_BUTTON_LABEL)
-            mCancelButtonLabel = savedInstanceState.getString(STATE_KEY_CANCEL_BUTTON_LABEL)
+            mTitle = savedInstanceState.getCharSequence(STATE_KEY_TITLE)
+            mMessage = savedInstanceState.getCharSequence(STATE_KEY_MESSAGE)
+            mPositiveButtonLabel = savedInstanceState.getCharSequence(STATE_KEY_POSITIVE_BUTTON_LABEL)
+            mNegativeButtonLabel = savedInstanceState.getCharSequence(STATE_KEY_NEGATIVE_BUTTON_LABEL)
+            mCancelButtonLabel = savedInstanceState.getCharSequence(STATE_KEY_CANCEL_BUTTON_LABEL)
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(STATE_KEY_TAG, mTag)
-        outState.putString(STATE_KEY_TITLE, mTitle)
-        outState.putString(STATE_KEY_MESSAGE, mMessage)
-        outState.putString(STATE_KEY_POSITIVE_BUTTON_LABEL, mPositiveButtonLabel)
-        outState.putString(STATE_KEY_NEGATIVE_BUTTON_LABEL, mNegativeButtonLabel)
-        outState.putString(STATE_KEY_CANCEL_BUTTON_LABEL, mCancelButtonLabel)
+        outState.putCharSequence(STATE_KEY_TITLE, mTitle)
+        outState.putCharSequence(STATE_KEY_MESSAGE, mMessage)
+        outState.putCharSequence(STATE_KEY_POSITIVE_BUTTON_LABEL, mPositiveButtonLabel)
+        outState.putCharSequence(STATE_KEY_NEGATIVE_BUTTON_LABEL, mNegativeButtonLabel)
+        outState.putCharSequence(STATE_KEY_CANCEL_BUTTON_LABEL, mCancelButtonLabel)
         super.onSaveInstanceState(outState)
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val builder = Builder(ContextThemeWrapper(activity, R.style.Calypso_Dialog_Alert))
+        val builder = MaterialAlertDialogBuilder(activity)
         builder.setMessage(mMessage)
                 .setPositiveButton(mPositiveButtonLabel) { _, _ ->
                     dismissedByPositiveButton = true
@@ -113,7 +111,7 @@ class BasicFragmentDialog : AppCompatDialogFragment() {
         return builder.create()
     }
 
-    override fun onAttach(context: Context?) {
+    override fun onAttach(context: Context) {
         super.onAttach(context)
         if (activity !is BasicDialogPositiveClickInterface) {
             throw RuntimeException("Hosting activity must implement BasicDialogPositiveClickInterface")
@@ -123,7 +121,7 @@ class BasicFragmentDialog : AppCompatDialogFragment() {
         }
     }
 
-    override fun onDismiss(dialog: DialogInterface?) {
+    override fun onDismiss(dialog: DialogInterface) {
         val activity = activity
         if (activity != null && activity is BasicDialogOnDismissByOutsideTouchInterface) {
             // Only handle the event if it wasn't triggered by a button

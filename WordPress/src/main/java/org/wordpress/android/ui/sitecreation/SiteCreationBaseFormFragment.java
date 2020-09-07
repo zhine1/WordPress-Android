@@ -46,17 +46,17 @@ public abstract class SiteCreationBaseFormFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        ViewGroup rootView = createMainView(inflater, container, savedInstanceState);
-        setupContent(rootView);
-        return rootView;
+        return createMainView(inflater, container, savedInstanceState);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        Toolbar toolbar = view.findViewById(R.id.toolbar);
-        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
+        setupContent((ViewGroup) getView().getRootView());
+
+        Toolbar toolbar = view.findViewById(R.id.toolbar_main);
+        ((AppCompatActivity) requireActivity()).setSupportActionBar(toolbar);
 
         ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
         if (actionBar != null) {

@@ -327,8 +327,14 @@ public class GutenbergEditorFragment extends EditorFragmentAbstract implements
                 },
                 new OnGutenbergDidSendButtonPressedActionListener() {
                     @Override
-                    public void gutenbergDidSendButtonPressedAction(String buttonType) {
-                        mEditorFragmentListener.showJetpackSettings();
+                    public void gutenbergDidSendButtonPressedAction(
+                            String buttonType, String blockId, ArrayList<Object> mediaFiles
+                    ) {
+                        if ("missing_block_alert_action_button".compareTo(buttonType) == 0) {
+                            mEditorFragmentListener.showJetpackSettings();
+                        } else if ("media_files_editor_action_button".compareTo(buttonType) == 0) {
+                            mEditorFragmentListener.onStoryComposerLoadRequested(mediaFiles, blockId);
+                        }
                     }
                 },
                 mEditorFragmentListener::getMention,

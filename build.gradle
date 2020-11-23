@@ -139,7 +139,7 @@ ext {
     materialVersion = '1.2.1'
     preferenceVersion = '1.1.0'
     swipeToRefresh = '1.1.0'
-    uCropVersion = '2.2.4'
+    uCropVersion = 'fa9597573680b37ac6052a12914700a24a28247e'
     lifecycleVersion = '2.2.0'
 
     // testing

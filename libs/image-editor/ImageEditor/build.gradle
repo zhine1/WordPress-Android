@@ -81,7 +81,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion"
 
     // uCrop
-    implementation ("com.github.yalantis:ucrop:$uCropVersion") {
+    implementation ("com.github.wordpress-mobile:ucrop:$uCropVersion") {
         exclude group: 'com.squareup.okhttp3'
         exclude group: 'androidx.core', module: 'core'
         exclude group: 'androidx.constraintlayout', module: 'constraintlayout'

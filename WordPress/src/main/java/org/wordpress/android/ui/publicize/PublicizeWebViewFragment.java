@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -25,7 +26,6 @@ import org.wordpress.android.ui.ScrollableViewInitializedListener;
 import org.wordpress.android.ui.WPWebViewActivity;
 import org.wordpress.android.ui.publicize.PublicizeConstants.ConnectAction;
 import org.wordpress.android.util.WebViewUtils;
-import org.wordpress.android.util.helpers.WebChromeClientWithVideoPoster;
 
 import javax.inject.Inject;
 
@@ -192,9 +192,9 @@ public class PublicizeWebViewFragment extends PublicizeBaseFragment {
         }
     }
 
-    private class PublicizeWebChromeClient extends WebChromeClientWithVideoPoster {
+    private class PublicizeWebChromeClient extends WebChromeClient {
         PublicizeWebChromeClient() {
-            super(mWebView, R.drawable.media_movieclip);
+            super();
         }
 
         @Override

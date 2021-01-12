@@ -30,6 +30,7 @@ class SubFilterViewModel @Inject constructor(
 
     private var isStarted = false
     private var isFirstLoad = true
+    private var shouldRequestNewerPosts = true
 
     /**
      * Tag may be null for Blog previews for instance.
@@ -40,6 +41,7 @@ class SubFilterViewModel @Inject constructor(
         }
 
         isStarted = true
+        shouldRequestNewerPosts = currentSubfilter == null
 
         tag?.let {
             updateSubfilter(currentSubfilter ?: getCurrentSubfilterValue(organization))
@@ -138,7 +140,10 @@ class SubFilterViewModel @Inject constructor(
     }
 
     fun onSubfilterSelected(subfilterListItem: SubfilterListItem, initialTag: ReaderTag?) {
-        changeSubfilter(subfilterListItem, true, initialTag)
+        changeSubfilter(subfilterListItem, shouldRequestNewerPosts, initialTag)
+        if (!shouldRequestNewerPosts) {
+            shouldRequestNewerPosts = true
+        }
     }
 
     fun onSubfilterReselected(organization: Organization, initialTag: ReaderTag?) {

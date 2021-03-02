@@ -40,6 +40,8 @@ import org.wordpress.android.ui.reader.actions.ReaderActions.UpdateResult.FAILED
 import org.wordpress.android.ui.reader.actions.ReaderActions.UpdateResult.HAS_NEW
 import org.wordpress.android.ui.reader.actions.ReaderActions.UpdateResult.UNCHANGED
 import org.wordpress.android.ui.reader.actions.ReaderActions.UpdateResultListener
+import org.wordpress.android.ui.reader.discover.DiscoverSortingType
+import org.wordpress.android.ui.reader.discover.DiscoverSortingType.NONE
 import org.wordpress.android.ui.reader.repository.usecases.GetDiscoverCardsUseCase
 import org.wordpress.android.ui.reader.repository.usecases.ParseDiscoverCardsJsonUseCase
 import org.wordpress.android.ui.reader.repository.usecases.tags.GetFollowedTagsUseCase
@@ -64,10 +66,15 @@ class ReaderDiscoverLogic(
     }
 
     @Inject lateinit var parseDiscoverCardsJsonUseCase: ParseDiscoverCardsJsonUseCase
+
     @Inject lateinit var appPrefsWrapper: AppPrefsWrapper
+
     @Inject lateinit var readerTagTableWrapper: ReaderTagTableWrapper
+
     @Inject lateinit var getFollowedTagsUseCase: GetFollowedTagsUseCase
+
     @Inject lateinit var readerBlogTableWrapper: ReaderBlogTableWrapper
+
     @Inject lateinit var getDiscoverCardsUseCase: GetDiscoverCardsUseCase
 
     enum class DiscoverTasks {
@@ -76,18 +83,25 @@ class ReaderDiscoverLogic(
 
     private var listenerCompanion: JobParameters? = null
 
-    fun performTasks(task: DiscoverTasks, companion: JobParameters?) {
+    fun performTasks(task: DiscoverTasks, companion: JobParameters?, sortingType: DiscoverSortingType) {
         listenerCompanion = companion
-        requestDataForDiscover(task, UpdateResultListener {
+        requestDataForDiscover(task, sortingType) {
             EventBus.getDefault().post(FetchDiscoverCardsEnded(task, it))
             completionListener.onCompleted(listenerCompanion)
-        })
+        }
     }
 
-    private fun requestDataForDiscover(taskType: DiscoverTasks, resultListener: UpdateResultListener) {
+    private fun requestDataForDiscover(
+        taskType: DiscoverTasks,
+        sortingType: DiscoverSortingType,
+        resultListener: UpdateResultListener
+    ) {
         coroutineScope.launch {
             val params = HashMap<String, String>()
             params["tags"] = getFollowedTagsUseCase.get().joinToString { it.tagSlug }
+            if (sortingType != NONE) {
+                params["sort"] = sortingType.sortedBy
+            }
 
             when (taskType) {
                 REQUEST_FIRST_PAGE -> {
@@ -113,7 +127,12 @@ class ReaderDiscoverLogic(
 
             val listener = Listener { jsonObject ->
                 coroutineScope.launch {
-                    handleRequestDiscoverDataResponse(taskType, jsonObject, resultListener)
+                    handleRequestDiscoverDataResponse(
+                            taskType,
+                            sortingType,
+                            jsonObject,
+                            resultListener
+                    )
                 }
             }
             val errorListener = ErrorListener { volleyError ->
@@ -126,6 +145,7 @@ class ReaderDiscoverLogic(
 
     private suspend fun handleRequestDiscoverDataResponse(
         taskType: DiscoverTasks,
+        sortingType: DiscoverSortingType,
         json: JSONObject?,
         resultListener: UpdateResultListener
     ) {
@@ -134,18 +154,18 @@ class ReaderDiscoverLogic(
             return
         }
         if (taskType == REQUEST_FIRST_PAGE) {
-            clearCache()
+            clearCache(sortingType)
         }
         val fullCardsJson = json.optJSONArray(JSON_CARDS)
 
         // Parse the json into cards model objects
         val cards = parseCards(fullCardsJson)
         insertPostsIntoDb(cards.filterIsInstance<ReaderPostCard>().map { it.post })
-        insertBlogsIntoDb(cards.filterIsInstance<ReaderRecommendedBlogsCard>().map { it.blogs }.flatten())
+        insertBlogsIntoDb(cards.filterIsInstance<ReaderRecommendedBlogsCard>().flatMap { it.blogs })
 
         // Simplify the json. The simplified version is used in the upper layers to load the data from the db.
         val simplifiedCardsJson = createSimplifiedJson(fullCardsJson)
-        insertCardsJsonIntoDb(simplifiedCardsJson)
+        insertCardsJsonIntoDb(simplifiedCardsJson, sortingType)
 
         val nextPageHandle = parseDiscoverCardsJsonUseCase.parseNextPageHandle(json)
         appPrefsWrapper.readerCardsPageHandle = nextPageHandle
@@ -248,9 +268,17 @@ class ReaderDiscoverLogic(
                 originalCardJson.optJSONArray(JSON_CARD_DATA)?.let { jsonRecommendedBlogs ->
                     for (i in 0 until jsonRecommendedBlogs.length()) {
                         JSONObject().apply {
-                            val jsonRecommendedBlog = jsonRecommendedBlogs.getJSONObject(i)
-                            put(RECOMMENDED_BLOG_ID, jsonRecommendedBlog.optLong(RECOMMENDED_BLOG_ID))
-                            put(RECOMMENDED_FEED_ID, jsonRecommendedBlog.optLong(RECOMMENDED_FEED_ID))
+                            val jsonRecommendedBlog = jsonRecommendedBlogs
+                                    .getJSONObject(i)
+                            put(
+                                    RECOMMENDED_BLOG_ID,
+                                    jsonRecommendedBlog.optLong(RECOMMENDED_BLOG_ID)
+                            )
+
+                            put(
+                                    RECOMMENDED_FEED_ID,
+                                    jsonRecommendedBlog.optLong(RECOMMENDED_FEED_ID)
+                            )
                         }.let {
                             put(it)
                         }
@@ -263,20 +291,26 @@ class ReaderDiscoverLogic(
         }
     }
 
-    private fun insertCardsJsonIntoDb(simplifiedCardsJson: JSONArray) {
-        ReaderDiscoverCardsTable.addCardsPage(simplifiedCardsJson.toString())
+    private fun insertCardsJsonIntoDb(simplifiedCardsJson: JSONArray, sortingType: DiscoverSortingType) {
+        ReaderDiscoverCardsTable.addCardsPage(simplifiedCardsJson.toString(), sortingType)
     }
 
-    private suspend fun clearCache() {
-        val blogIds = getRecommendedBlogsToBeDeleted().map { it.blogId }
+    /**
+     * Clear the saved data
+     *
+     * - Delete the Blogs that are not subscribed / interested by user
+     * - Delete card sequences for given sorting type
+     * - Posts are not deleted because they are used in other sorting type and they will be deleted on purging.
+     */
+    private suspend fun clearCache(sortingType: DiscoverSortingType) {
+        val blogIds = getRecommendedBlogsToBeDeleted(sortingType).map { it.blogId }
         ReaderBlogTable.deleteBlogsWithIds(blogIds)
 
-        ReaderDiscoverCardsTable.clear()
-        ReaderPostTable.deletePostsWithTag(ReaderTag.createDiscoverPostCardsTag())
+        ReaderDiscoverCardsTable.clear(sortingType)
     }
 
-    private suspend fun getRecommendedBlogsToBeDeleted(): List<ReaderBlog> {
-        val discoverCards = getDiscoverCardsUseCase.get()
+    private suspend fun getRecommendedBlogsToBeDeleted(sortingType: DiscoverSortingType): List<ReaderBlog> {
+        val discoverCards = getDiscoverCardsUseCase.get(sortingType)
 
         val blogsToBeDeleted = ArrayList<ReaderBlog>()
         discoverCards.cards.filterIsInstance<ReaderRecommendedBlogsCard>().forEach {

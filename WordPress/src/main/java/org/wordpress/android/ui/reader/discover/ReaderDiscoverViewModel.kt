@@ -22,6 +22,7 @@ import org.wordpress.android.modules.UI_THREAD
 import org.wordpress.android.ui.pages.SnackbarMessageHolder
 import org.wordpress.android.ui.prefs.AppPrefsWrapper
 import org.wordpress.android.ui.reader.ReaderTypes.ReaderPostListType.TAG_FOLLOWED
+import org.wordpress.android.ui.reader.discover.DiscoverSortingType.NONE
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderPostUiState
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderRecommendedBlogsCardUiState.ReaderRecommendedBlogUiState
 import org.wordpress.android.ui.reader.discover.ReaderCardUiState.ReaderWelcomeBannerCardUiState
@@ -87,6 +88,9 @@ class ReaderDiscoverViewModel @Inject constructor(
 
     private val _preloadPostEvents = MediatorLiveData<Event<PreLoadPostContent>>()
     val preloadPostEvents: LiveData<Event<PreLoadPostContent>> = _preloadPostEvents
+
+    var sortingType = NONE
+        private set
 
     /**
      * Post which is about to be reblogged after the user selects a target site.
@@ -318,8 +322,8 @@ class ReaderDiscoverViewModel @Inject constructor(
     private fun onFollowSiteClicked(recommendedBlogUiState: ReaderRecommendedBlogUiState) {
         launch {
             val properties = mapOf(
-                "blog_id" to recommendedBlogUiState.blogId,
-                "follow" to !recommendedBlogUiState.isFollowed
+                    "blog_id" to recommendedBlogUiState.blogId,
+                    "follow" to !recommendedBlogUiState.isFollowed
             )
             analyticsTrackerWrapper.track(AnalyticsTracker.Stat.READER_SUGGESTED_SITE_TOGGLE_FOLLOW, properties)
             readerPostCardActionsHandler.handleFollowRecommendedSiteClicked(recommendedBlogUiState)
@@ -416,7 +420,7 @@ class ReaderDiscoverViewModel @Inject constructor(
         analyticsTrackerWrapper.track(READER_PULL_TO_REFRESH)
         swipeToRefreshTriggered = true
         launch {
-            readerDiscoverDataProvider.refreshCards()
+            readerDiscoverDataProvider.refreshCards(sortingType)
         }
 
         appPrefsWrapper.readerDiscoverWelcomeBannerShown = true
@@ -424,7 +428,18 @@ class ReaderDiscoverViewModel @Inject constructor(
 
     fun onRetryButtonClick() {
         launch {
-            readerDiscoverDataProvider.refreshCards()
+            readerDiscoverDataProvider.refreshCards(sortingType)
+        }
+    }
+
+    fun onSortingTypeChanged(sortingType: DiscoverSortingType) {
+        // TODO consider adding analysis for sorting type
+        if (this.sortingType == sortingType) {
+            return
+        }
+        this.sortingType = sortingType
+        launch {
+            readerDiscoverDataProvider.refreshCards(sortingType)
         }
     }
 

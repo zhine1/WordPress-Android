@@ -8,9 +8,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import org.wordpress.android.WordPress
+import org.wordpress.android.ui.reader.discover.DiscoverSortingType
+import org.wordpress.android.ui.reader.discover.DiscoverSortingType.POPULARITY
 import org.wordpress.android.ui.reader.services.ServiceCompletionListener
 import org.wordpress.android.ui.reader.services.discover.ReaderDiscoverLogic.DiscoverTasks
 import org.wordpress.android.ui.reader.services.discover.ReaderDiscoverServiceStarter.ARG_DISCOVER_TASK
+import org.wordpress.android.ui.reader.services.discover.ReaderDiscoverServiceStarter.ARG_SORTING_TYPE
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T.READER
 import org.wordpress.android.util.LocaleManager
@@ -22,7 +25,9 @@ import kotlin.coroutines.CoroutineContext
  * Service which updates data for discover tab in Reader, relies on EventBus to notify of changes.
  */
 class ReaderDiscoverService : Service(), ServiceCompletionListener, CoroutineScope {
-    @Inject @field:Named("IO_THREAD") lateinit var ioDispatcher: CoroutineDispatcher
+    @Inject
+    @field:Named("IO_THREAD")
+    lateinit var ioDispatcher: CoroutineDispatcher
     private lateinit var readerDiscoverLogic: ReaderDiscoverLogic
 
     private var job: Job = Job()
@@ -54,8 +59,13 @@ class ReaderDiscoverService : Service(), ServiceCompletionListener, CoroutineSco
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && intent.hasExtra(ARG_DISCOVER_TASK)) {
-            val task = intent.getSerializableExtra(ARG_DISCOVER_TASK) as DiscoverTasks
-            readerDiscoverLogic.performTasks(task, null)
+            val task = intent.getSerializableExtra(ARG_DISCOVER_TASK)
+                    as DiscoverTasks
+
+            val sortingType = intent.getSerializableExtra(ARG_SORTING_TYPE)
+                    as? DiscoverSortingType
+
+            readerDiscoverLogic.performTasks(task, null, sortingType ?: POPULARITY)
         }
         return START_NOT_STICKY
     }

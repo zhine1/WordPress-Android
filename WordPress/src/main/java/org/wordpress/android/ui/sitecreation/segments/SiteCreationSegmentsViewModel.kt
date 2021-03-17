@@ -214,8 +214,10 @@ sealed class SegmentsUiState {
 
 sealed class SegmentsItemUiState {
     object HeaderUiState : SegmentsItemUiState() {
-        const val titleResId: Int = R.string.site_creation_segments_title
-        const val subtitleResId: Int = R.string.site_creation_segments_subtitle
+        @JvmField
+        val titleResId: Int = R.string.site_creation_segments_title
+        @JvmField
+        val subtitleResId: Int = R.string.site_creation_segments_subtitle
     }
 
     object ProgressUiState : SegmentsItemUiState()

@@ -145,18 +145,17 @@ public class AppLogViewerActivity extends LocaleAwareActivity {
 
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                finish();
-                return true;
-            case R.id.app_log_share:
-                shareAppLog();
-                return true;
-            case R.id.app_log_copy_to_clipboard:
-                copyAppLogToClipboard();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            finish();
+            return true;
+        } else if (itemId == R.id.app_log_share) {
+            shareAppLog();
+            return true;
+        } else if (itemId == R.id.app_log_copy_to_clipboard) {
+            copyAppLogToClipboard();
+            return true;
         }
+        return super.onOptionsItemSelected(item);
     }
 }

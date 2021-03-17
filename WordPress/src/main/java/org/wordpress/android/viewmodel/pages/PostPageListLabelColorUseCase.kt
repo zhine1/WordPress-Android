@@ -14,9 +14,12 @@ import org.wordpress.android.viewmodel.pages.PostModelUploadUiStateUseCase.PostU
 import org.wordpress.android.viewmodel.pages.PostModelUploadUiStateUseCase.PostUploadUiState.UploadingPost
 import javax.inject.Inject
 
-const val ERROR_COLOR = R.color.error
-const val PROGRESS_INFO_COLOR = R.color.neutral_50
-const val STATE_INFO_COLOR = R.color.warning_dark
+@JvmField
+val ERROR_COLOR = R.color.error
+@JvmField
+val PROGRESS_INFO_COLOR = R.color.neutral_50
+@JvmField
+val STATE_INFO_COLOR = R.color.warning_dark
 
 class PostPageListLabelColorUseCase @Inject constructor() {
     @ColorRes fun getLabelsColor(

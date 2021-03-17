@@ -87,19 +87,19 @@ public class ReleaseNotesActivity extends WebViewActivity {
             return false;
         }
 
-        switch (item.getItemId()) {
-            case R.id.menu_share:
-                Intent share = new Intent(Intent.ACTION_SEND);
-                share.setType("text/plain");
-                share.putExtra(Intent.EXTRA_TEXT, mWebView.getUrl());
-                share.putExtra(Intent.EXTRA_SUBJECT, mWebView.getTitle());
-                startActivity(Intent.createChooser(share, getText(R.string.share_link)));
-                return true;
-            case R.id.menu_bug:
-                HelpActivity.Origin origin = (HelpActivity.Origin) getIntent().getSerializableExtra(KEY_ORIGIN);
-                SiteModel selectedSite = (SiteModel) getIntent().getSerializableExtra(WordPress.SITE);
-                mZendeskHelper.createNewTicket(ReleaseNotesActivity.this, origin, selectedSite);
-                return true;
+        int itemId = item.getItemId();
+        if (itemId == R.id.menu_share) {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("text/plain");
+            share.putExtra(Intent.EXTRA_TEXT, mWebView.getUrl());
+            share.putExtra(Intent.EXTRA_SUBJECT, mWebView.getTitle());
+            startActivity(Intent.createChooser(share, getText(R.string.share_link)));
+            return true;
+        } else if (itemId == R.id.menu_bug) {
+            Origin origin = (Origin) getIntent().getSerializableExtra(KEY_ORIGIN);
+            SiteModel selectedSite = (SiteModel) getIntent().getSerializableExtra(WordPress.SITE);
+            mZendeskHelper.createNewTicket(ReleaseNotesActivity.this, origin, selectedSite);
+            return true;
         }
 
         return super.onOptionsItemSelected(item);

@@ -610,27 +610,27 @@ public class MediaBrowserActivity extends LocaleAwareActivity implements MediaGr
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                onBackPressed();
-                return true;
-            case R.id.menu_new_media:
-                showAddMediaPopup();
-                return true;
-            case R.id.menu_search:
-                mSearchMenuItem = item;
-                mSearchMenuItem.setOnActionExpandListener(this);
-                mSearchMenuItem.expandActionView();
+        int itemId = item.getItemId();
+        if (itemId == android.R.id.home) {
+            onBackPressed();
+            return true;
+        } else if (itemId == R.id.menu_new_media) {
+            showAddMediaPopup();
+            return true;
+        } else if (itemId == R.id.menu_search) {
+            mSearchMenuItem = item;
+            mSearchMenuItem.setOnActionExpandListener(this);
+            mSearchMenuItem.expandActionView();
 
-                mSearchView = (SearchView) item.getActionView();
-                mSearchView.setOnQueryTextListener(this);
+            mSearchView = (SearchView) item.getActionView();
+            mSearchView.setOnQueryTextListener(this);
 
-                // load last saved query
-                if (!TextUtils.isEmpty(mQuery)) {
-                    onQueryTextSubmit(mQuery);
-                    mSearchView.setQuery(mQuery, true);
-                }
-                return true;
+            // load last saved query
+            if (!TextUtils.isEmpty(mQuery)) {
+                onQueryTextSubmit(mQuery);
+                mSearchView.setQuery(mQuery, true);
+            }
+            return true;
         }
 
         return super.onOptionsItemSelected(item);

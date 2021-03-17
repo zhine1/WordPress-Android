@@ -32,5 +32,6 @@ android {
 }
 
 dependencies {
+    implementation project(path:':WordPress')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 }

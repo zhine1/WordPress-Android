@@ -981,7 +981,7 @@ public class MediaBrowserActivity extends LocaleAwareActivity implements MediaGr
 
         switch (item) {
             case ITEM_CAPTURE_PHOTO:
-                WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID, this);
+                WPMediaUtils.launchCamera(this, BuildConfig.LIBRARY_PACKAGE_NAME, this);
                 break;
             case ITEM_CAPTURE_VIDEO:
                 WPMediaUtils.launchVideoCamera(this);

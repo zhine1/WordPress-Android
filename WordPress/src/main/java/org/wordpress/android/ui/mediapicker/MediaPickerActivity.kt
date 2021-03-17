@@ -317,7 +317,7 @@ class MediaPickerActivity : LocaleAwareActivity(), MediaPickerListener {
                 startActivityForResult(buildIntent(this, action.mediaPickerSetup, site, localPostId), PHOTO_PICKER)
             }
             OpenCameraForPhotos -> {
-                WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID) { mediaCapturePath = it }
+                WPMediaUtils.launchCamera(this, BuildConfig.LIBRARY_PACKAGE_NAME) { mediaCapturePath = it }
             }
         }
     }

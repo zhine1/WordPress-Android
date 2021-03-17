@@ -229,7 +229,7 @@ public class PhotoPickerActivity extends LocaleAwareActivity
     }
 
     private void launchCameraForImage() {
-        WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID,
+        WPMediaUtils.launchCamera(this, BuildConfig.LIBRARY_PACKAGE_NAME,
                 mediaCapturePath -> mMediaCapturePath = mediaCapturePath);
     }
 

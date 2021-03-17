@@ -29,6 +29,13 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    bundle {
+        language {
+            // Don't split language resources for App Bundles.
+            // This is required to switch language in app.
+            enableSplit = false
+        }
+    }
 }
 
 dependencies {

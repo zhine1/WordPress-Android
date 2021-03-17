@@ -174,14 +174,6 @@ android {
 
     }
 
-    bundle {
-        language {
-            // Don't split language resources for App Bundles.
-            // This is required to switch language in app.
-            enableSplit = false
-        }
-    }
-
     buildFeatures {
         viewBinding true
     }

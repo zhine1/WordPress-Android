@@ -8,6 +8,8 @@ android {
 
     defaultConfig {
         applicationId "org.wordpress.android"
+        archivesBaseName = "$applicationId"
+
         minSdkVersion rootProject.minSdkVersion
         targetSdkVersion rootProject.targetSdkVersion
         versionCode 1

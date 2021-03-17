@@ -82,6 +82,19 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    packagingOptions {
+        // MPAndroidChart uses androidX - remove this line when we migrate everything to androidX
+        exclude 'META-INF/proguard/androidx-annotations.pro'
+
+        // Exclude React Native's JSC and Hermes debug binaries
+        exclude '**/libjscexecutor.so'
+        exclude '**/libhermes-inspector.so'
+        exclude '**/libhermes-executor-debug.so'
+
+        pickFirst 'META-INF/-no-jdk.kotlin_module'
+
+    }
+
     bundle {
         language {
             // Don't split language resources for App Bundles.

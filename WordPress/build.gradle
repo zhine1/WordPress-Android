@@ -7,7 +7,6 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
         classpath 'com.google.gms:google-services:3.2.0'
         classpath 'se.bjurr.violations:violation-comments-to-github-gradle-plugin:1.67'
-        classpath 'io.sentry:sentry-android-gradle-plugin:1.7.28'
     }
 }
 
@@ -441,4 +440,3 @@ assert !(file(legacyGBBundleFile).exists()) : "Error: Legacy Gutenberg JS bundle
 
 // Keep this at the bottom (https://stackoverflow.com/a/37565535)
 apply plugin: 'com.google.gms.google-services'
-apply plugin: 'io.sentry.android.gradle'

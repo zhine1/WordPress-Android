@@ -55,6 +55,7 @@ import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.util.ToastUtils;
+import org.wordpress.android.util.UrlUtils;
 import org.wordpress.android.util.analytics.AnalyticsUtils;
 import org.wordpress.android.util.config.SeenUnseenWithCounterFeatureConfig;
 import org.wordpress.android.widgets.WPSwipeSnackbar;
@@ -338,11 +339,12 @@ public class ReaderPostPagerActivity extends LocaleAwareActivity {
                         // not stored locally, so request it
                         ReaderPostActions.requestBlogPost(
                             blogIdentifier, postIdentifier,
-                            new ReaderActions.OnRequestListener() {
+                            new ReaderActions.OnRequestListener<String>() {
                                 @Override
-                                public void onSuccess() {
+                                public void onSuccess(String blogUrl) {
                                     mPostSlugsResolutionUnderway = false;
-                                    ReaderPost post = ReaderPostTable.getBlogPost(blogIdentifier, postIdentifier,
+
+                                    ReaderPost post = ReaderPostTable.getBlogPost(UrlUtils.removeScheme(blogUrl), postIdentifier,
                                                                                   true);
                                     ReaderEvents.PostSlugsRequestCompleted slugsResolved = (post != null)
                                             ? new ReaderEvents.PostSlugsRequestCompleted(200, post.blogId, post.postId)

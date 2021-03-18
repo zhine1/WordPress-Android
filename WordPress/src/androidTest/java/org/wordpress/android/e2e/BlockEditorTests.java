@@ -29,11 +29,10 @@ public class BlockEditorTests extends BaseTest {
 
     @Before
     public void setUp() {
-        logoutIfNecessary();
-        wpLogin();
+        //logoutIfNecessary();
+        //wpLogin();
     }
 
-    @Ignore("until startup times are improved or idling resources are made more reliable")
     @Test
     public void testSwitchToClassicAndPreview() {
         String title = "Hello Espresso!";
@@ -53,14 +52,14 @@ public class BlockEditorTests extends BaseTest {
 
         mySitesPage.startNewPost();
 
+        EditorPage editorPage = new EditorPage();
+        sleep();
+
         BlockEditorPage blockEditorPage = new BlockEditorPage();
         blockEditorPage.waitForTitleDisplayed();
 
         blockEditorPage.enterTitle(title);
 
-        blockEditorPage.switchToClassic();
-
-        EditorPage editorPage = new EditorPage();
         editorPage.hasTitle(title);
 
         editorPage.previewPost();

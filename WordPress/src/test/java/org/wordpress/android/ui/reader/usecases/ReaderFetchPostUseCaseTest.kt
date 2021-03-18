@@ -49,7 +49,7 @@ class ReaderFetchPostUseCaseTest : BaseUnitTest() {
     fun `given feed, when reader post is fetched, then feed post is requested`() = test {
         whenever(readerPostActionsWrapper.requestFeedPost(anyLong(), anyLong(), any())).then {
             (it.arguments[REQUEST_BLOG_LISTENER_PARAM_POSITION] as ReaderActions.OnRequestListener)
-                    .onSuccess()
+                    .onSuccess(null)
         }
 
         useCase.fetchPost(postId = postId, blogId = blogId, isFeed = true)

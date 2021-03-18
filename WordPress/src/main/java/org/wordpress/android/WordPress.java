@@ -202,13 +202,6 @@ public abstract class WordPress extends MultiDexApplication implements HasAndroi
     }
 
     /**
-     * This is a method to allow each app to implement their own logic ... this is just a test
-     * We could use an interface or since this class is open, you can override, seriously though,
-     * this is a POC - just to see if we can execute from individual apps
-     */
-    abstract void customAppLogic();
-
-    /**
      * Update site list in a background task. (WPCOM site list, and eventually self hosted multisites)
      */
     public RateLimitedTask mUpdateSiteList = new RateLimitedTask(SECONDS_BETWEEN_BLOGLIST_UPDATE) {
@@ -256,9 +249,6 @@ public abstract class WordPress extends MultiDexApplication implements HasAndroi
         super.onCreate();
         mContext = this;
         long startDate = SystemClock.elapsedRealtime();
-
-        // todo: remove this - it is just a test
-        customAppLogic();
 
         // This call needs be made before accessing any methods in android.webkit package
         setWebViewDataDirectorySuffixOnAndroidP();

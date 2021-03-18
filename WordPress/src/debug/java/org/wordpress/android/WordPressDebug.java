@@ -15,12 +15,6 @@ import org.wordpress.android.util.AppLog.T;
 import org.wordpress.android.util.UploadWorker;
 
 public class WordPressDebug extends WordPress {
-    // todo: womp womp - there is a DEBUG version of WordPress - lol - There is a way around this, perhaps
-    // not a quite an abstract method, but a registration of sorts - this can be solved, so no worries
-    @Override void customAppLogic() {
-        Log.i(WordPressDebug.class.getSimpleName(), "***=> customAppLogic in WordPressDebug");
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();

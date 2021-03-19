@@ -138,6 +138,7 @@ import kotlinx.coroutines.CoroutineScope;
 import static org.wordpress.android.modules.ThreadModuleKt.APPLICATION_SCOPE;
 
 public abstract class WordPress extends MultiDexApplication implements HasAndroidInjector, LifecycleObserver {
+    public static final String APPLICATION_ID = "APPLICATION_ID";
     public static final String SITE = "SITE";
     public static final String LOCAL_SITE_ID = "LOCAL_SITE_ID";
     public static final String REMOTE_SITE_ID = "REMOTE_SITE_ID";

@@ -2426,7 +2426,7 @@ public class EditPostActivity extends LocaleAwareActivity implements
     }
 
     private void launchCamera() {
-        WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID,
+        WPMediaUtils.launchCamera(this, WordPress.getBuildConfigString(this, WordPress.APPLICATION_ID),
                 mediaCapturePath -> mMediaCapturePath = mediaCapturePath);
     }
 

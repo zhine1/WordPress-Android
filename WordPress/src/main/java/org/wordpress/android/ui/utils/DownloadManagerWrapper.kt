@@ -1,5 +1,6 @@
 package org.wordpress.android.ui.utils
 
+import android.app.Application
 import android.app.DownloadManager
 import android.app.DownloadManager.Query
 import android.app.DownloadManager.Request
@@ -12,7 +13,7 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import android.webkit.URLUtil
 import androidx.core.content.FileProvider
-import org.wordpress.android.BuildConfig
+import org.wordpress.android.WordPress
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.AppLog.T
 import java.io.File
@@ -48,7 +49,9 @@ class DownloadManagerWrapper
             val file = File(fileUri.path)
             FileProvider.getUriForFile(
                     context,
-                    "${BuildConfig.APPLICATION_ID}.provider",
+                    "${
+                        WordPress.getBuildConfigValue((WordPress.getContext() as Application), WordPress.APPLICATION_ID)
+                    }.provider",
                     file
             )
         } else {

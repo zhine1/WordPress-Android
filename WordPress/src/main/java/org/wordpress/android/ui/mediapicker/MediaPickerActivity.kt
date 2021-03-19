@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.view.MenuItem
 import androidx.fragment.app.FragmentTransaction
-import org.wordpress.android.BuildConfig
 import org.wordpress.android.R
 import org.wordpress.android.WordPress
 import org.wordpress.android.databinding.PhotoPickerActivityBinding
@@ -317,7 +316,10 @@ class MediaPickerActivity : LocaleAwareActivity(), MediaPickerListener {
                 startActivityForResult(buildIntent(this, action.mediaPickerSetup, site, localPostId), PHOTO_PICKER)
             }
             OpenCameraForPhotos -> {
-                WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID) { mediaCapturePath = it }
+                WPMediaUtils.launchCamera(
+                        this,
+                        WordPress.getBuildConfigString(this, WordPress.APPLICATION_ID)
+                ) { mediaCapturePath = it }
             }
         }
     }

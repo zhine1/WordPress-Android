@@ -43,7 +43,6 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.jetbrains.annotations.NotNull;
-import org.wordpress.android.BuildConfig;
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.analytics.AnalyticsTracker;
@@ -981,7 +980,7 @@ public class MediaBrowserActivity extends LocaleAwareActivity implements MediaGr
 
         switch (item) {
             case ITEM_CAPTURE_PHOTO:
-                WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID, this);
+                WPMediaUtils.launchCamera(this, WordPress.getBuildConfigString(this, WordPress.APPLICATION_ID), this);
                 break;
             case ITEM_CAPTURE_VIDEO:
                 WPMediaUtils.launchVideoCamera(this);

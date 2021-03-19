@@ -15,7 +15,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import org.wordpress.android.BuildConfig;
 import org.wordpress.android.R;
 import org.wordpress.android.WordPress;
 import org.wordpress.android.fluxc.Dispatcher;
@@ -229,7 +228,7 @@ public class PhotoPickerActivity extends LocaleAwareActivity
     }
 
     private void launchCameraForImage() {
-        WPMediaUtils.launchCamera(this, BuildConfig.APPLICATION_ID,
+        WPMediaUtils.launchCamera(this, WordPress.getBuildConfigString(this, WordPress.APPLICATION_ID),
                 mediaCapturePath -> mMediaCapturePath = mediaCapturePath);
     }
 

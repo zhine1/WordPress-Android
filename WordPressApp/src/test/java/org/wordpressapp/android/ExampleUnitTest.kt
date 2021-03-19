@@ -1,4 +1,4 @@
-package org.jetpack.android
+package org.wordpressapp.android
 
 import org.junit.Test
 

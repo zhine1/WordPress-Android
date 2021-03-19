@@ -1,4 +1,4 @@
-package org.jetpack.android
+package org.jetpackapp.android
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

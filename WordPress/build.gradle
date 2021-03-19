@@ -84,22 +84,6 @@ android {
         buildConfigField "boolean", "RESTORE_AVAILABLE", "false"
     }
 
-    flavorDimensions "buildType"
-
-    productFlavors {
-        vanilla { // used for release and beta
-        }
-
-        zalpha {
-        }
-
-        wasabi {
-        }
-
-        jalapeno {
-        }
-    }
-
     // Gutenberg's dependency - react-native-video is using
     // Java API 1.8
     compileOptions {

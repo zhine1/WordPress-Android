@@ -1,5 +1,6 @@
 package org.wordpress.android.util.analytics;
 
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,6 +18,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.wordpress.android.BuildConfig;
 import org.wordpress.android.R;
+import org.wordpress.android.WordPress;
 import org.wordpress.android.analytics.AnalyticsMetadata;
 import org.wordpress.android.analytics.AnalyticsTracker;
 import org.wordpress.android.analytics.AnalyticsTracker.Stat;
@@ -178,7 +180,8 @@ public class AnalyticsUtils {
         metadata.setNumBlogs(siteStore.getSitesCount());
         metadata.setUsername(accountStore.getAccount().getUserName());
         metadata.setEmail(accountStore.getAccount().getEmail());
-        String scheme = BuildConfig.DEBUG ? "debug" : BuildConfig.FLAVOR;
+        String scheme = BuildConfig.DEBUG ? "debug" : WordPress
+                .getBuildConfigValue((Application) WordPress.getContext(), "FLAVOR").toString();
         metadata.setAppScheme(scheme);
         if (siteStore.hasSite()) {
             metadata.setGutenbergEnabled(isGutenbergEnabledOnAnySite(siteStore.getSites()));

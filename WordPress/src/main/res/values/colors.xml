@@ -4,6 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="UnusedResources">
 
+    <color name="colorPrimary">@color/blue_50</color>
+    <color name="colorPrimaryVariant">@color/blue_70</color>
+    <color name="colorSecondary">@color/pink_50</color>
+    <color name="colorSecondaryVariant">@color/pink_70</color>
+
     <!-- APPLICATION -->
     <color name="background_dark">#121212</color>
     <color name="background_dark_elevated">#2e2e2e</color>

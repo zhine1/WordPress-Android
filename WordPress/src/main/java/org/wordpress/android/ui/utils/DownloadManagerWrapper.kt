@@ -48,7 +48,7 @@ class DownloadManagerWrapper
             val file = File(fileUri.path)
             FileProvider.getUriForFile(
                     context,
-                    "${BuildConfig.LIBRARY_PACKAGE_NAME}.provider",
+                    "${BuildConfig.APPLICATION_ID}.provider",
                     file
             )
         } else {

@@ -1,3 +1,4 @@
+<!--WARNING - build flavors might use a copy of this file -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android"
            xmlns:tools="http://schemas.android.com/tools"
            tools:targetApi="n_mr1">
@@ -8,7 +9,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.prealpha">
+            android:targetPackage="org.jetpack.android.prealpha">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
                 android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_STATS"/>
@@ -21,7 +22,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.prealpha">
+            android:targetPackage="org.jetpack.android.prealpha">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
                 android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_NOTIFICATIONS"/>
@@ -34,7 +35,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.prealpha">
+            android:targetPackage="org.jetpack.android.prealpha">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
                 android:value="org.wordpress.android.ui.ShortcutsNavigator.CREATE_NEW_POST"/>

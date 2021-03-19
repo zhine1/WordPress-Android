@@ -1,6 +1,7 @@
+<!--WARNING - build flavors might use a copy of this file -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:targetApi="n_mr1">
+           xmlns:tools="http://schemas.android.com/tools"
+           tools:targetApi="n_mr1">
     <shortcut
         android:icon="@drawable/ic_shortcut_stats"
         android:shortcutId="stats"
@@ -8,11 +9,10 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.beta">
-            <!--            android:targetPackage="com.jetpack.android.beta">-->
+            android:targetPackage="org.jetpack.android">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
-                android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_STATS" />
+                android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_STATS"/>
         </intent>
     </shortcut>
     <shortcut
@@ -22,11 +22,10 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.beta">
-            <!--            android:targetPackage="com.jetpack.android.beta">-->
+            android:targetPackage="org.jetpack.android">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
-                android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_NOTIFICATIONS" />
+                android:value="org.wordpress.android.ui.ShortcutsNavigator.OPEN_NOTIFICATIONS"/>
         </intent>
     </shortcut>
     <shortcut
@@ -36,11 +35,10 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="org.wordpress.android.ui.main.WPMainActivity"
-            android:targetPackage="org.wordpress.android.beta">
-            <!--            android:targetPackage="com.jetpack.android.beta">-->
+            android:targetPackage="org.jetpack.android">
             <extra
                 android:name="org.wordpress.android.ui.ShortcutsNavigator.ACTION_OPEN_SHORTCUT"
-                android:value="org.wordpress.android.ui.ShortcutsNavigator.CREATE_NEW_POST" />
+                android:value="org.wordpress.android.ui.ShortcutsNavigator.CREATE_NEW_POST"/>
         </intent>
     </shortcut>
 </shortcuts>

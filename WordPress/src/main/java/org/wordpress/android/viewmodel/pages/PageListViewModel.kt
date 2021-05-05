@@ -7,7 +7,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.Transformations
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.wordpress.android.R
@@ -173,7 +172,7 @@ class PageListViewModel @Inject constructor(
     private fun completeEditHomePageTour(pageItem: Page, context: Context) {
         if (isHomepage(pageItem)) {
             if (mySiteImprovementsFeatureConfig.isEnabled()) {
-                quickStartRepository.completeTask(EDIT_HOMEPAGE)
+                quickStartRepository.completeTask(EDIT_HOMEPAGE, quickStartEvent = _quickStartEvent.value)
             } else {
                 quickStartUtilsWrapper.completeTaskAndRemindNextOne(
                         EDIT_HOMEPAGE,

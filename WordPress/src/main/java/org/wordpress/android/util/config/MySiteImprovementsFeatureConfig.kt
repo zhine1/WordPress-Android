@@ -30,7 +30,7 @@ class MySiteImprovementsFeatureConfig
 
     // Temporary solution until the Firebase bug gets fixed
     override fun isEnabled(): Boolean {
-        return initEnabledValue(accountStore.accessToken.orEmpty().hashCode(), accountStore.hasAccessToken())
+        return true
     }
 
     private fun initEnabledValue(

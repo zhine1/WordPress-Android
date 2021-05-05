@@ -163,6 +163,7 @@ class MySiteViewModel
         }
     }
     val onSnackbarMessage = merge(_onSnackbarMessage, siteStoriesHandler.onSnackbar, quickStartRepository.onSnackbar)
+    val onQuickStartSnackbar = quickStartRepository.onQuickStartSnackbar
     val onQuickStartMySitePrompts = quickStartRepository.onQuickStartMySitePrompts
     val onTextInputDialogShown = _onTechInputDialogShown as LiveData<Event<TextInputDialogModel>>
     val onBasicDialogShown = _onBasicDialogShown as LiveData<Event<SiteDialogModel>>
@@ -595,6 +596,10 @@ class MySiteViewModel
                 }
             }
         }
+    }
+
+    fun onQuickStartSnackbarShown() {
+        quickStartRepository.onQuickStartSnackbarShown()
     }
 
     data class UiModel(

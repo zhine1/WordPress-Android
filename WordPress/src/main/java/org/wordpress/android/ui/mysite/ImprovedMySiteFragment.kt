@@ -85,6 +85,7 @@ import org.wordpress.android.util.image.ImageManager
 import org.wordpress.android.util.image.ImageType.USER
 import org.wordpress.android.util.setVisible
 import org.wordpress.android.viewmodel.observeEvent
+import org.wordpress.android.widgets.WPDialogSnackbar
 import java.io.File
 import javax.inject.Inject
 
@@ -218,6 +219,27 @@ class ImprovedMySiteFragment : Fragment(R.layout.new_my_site_fragment),
         })
         viewModel.onNavigation.observeEvent(viewLifecycleOwner, { handleNavigationAction(it) })
         viewModel.onSnackbarMessage.observeEvent(viewLifecycleOwner, { showSnackbar(it) })
+        viewModel.onQuickStartSnackbar.observeEvent(viewLifecycleOwner) { quickStartSnackbar ->
+            val quickStartNoticeSnackBar = WPDialogSnackbar.make(
+                    requireActivity().findViewById(R.id.coordinator),
+                    getString(quickStartSnackbar.message),
+                    resources.getInteger(R.integer.quick_start_snackbar_duration_ms)
+            )
+            quickStartNoticeSnackBar.setTitle(getString(quickStartSnackbar.title))
+            quickStartNoticeSnackBar.setPositiveButton(
+                    getString(R.string.quick_start_button_positive)
+            ) {
+                quickStartSnackbar.positiveAction(quickStartSnackbar.quickStartTask)
+            }
+            quickStartNoticeSnackBar
+                    .setNegativeButton(
+                            getString(R.string.quick_start_button_negative)
+                    ) {
+                        quickStartSnackbar.negativeAction(quickStartSnackbar.quickStartTask)
+                    }
+            (requireActivity() as WPMainActivity).showQuickStartSnackBar(quickStartNoticeSnackBar)
+            viewModel.onQuickStartSnackbarShown()
+        }
         viewModel.onQuickStartMySitePrompts.observeEvent(viewLifecycleOwner, { activeTutorialPrompt ->
             val message = quickStartUtils.stylizeThemedQuickStartPrompt(
                     requireContext(),

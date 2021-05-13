@@ -3,9 +3,6 @@ package org.wordpress.android.ui.posts
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.wordpress.android.R
 import org.wordpress.android.analytics.AnalyticsTracker.Stat
 import org.wordpress.android.fluxc.model.SiteModel
@@ -20,6 +17,7 @@ import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.HomeUiState
 import org.wordpress.android.ui.posts.PrepublishingHomeItemUiState.StoryTitleUiState
 import org.wordpress.android.ui.posts.prepublishing.home.usecases.GetButtonUiStateUseCase
 import org.wordpress.android.ui.stories.StoryRepositoryWrapper
+import org.wordpress.android.ui.stories.usecase.SetUntitledStoryTitleIfTitleEmptyUseCase
 import org.wordpress.android.ui.stories.usecase.UpdateStoryPostTitleUseCase
 import org.wordpress.android.ui.utils.UiString.UiStringRes
 import org.wordpress.android.ui.utils.UiString.UiStringText
@@ -30,8 +28,6 @@ import org.wordpress.android.viewmodel.ScopedViewModel
 import javax.inject.Inject
 import javax.inject.Named
 
-private const val THROTTLE_DELAY = 500L
-
 class PrepublishingHomeViewModel @Inject constructor(
     private val getPostTagsUseCase: GetPostTagsUseCase,
     private val postSettingsUtils: PostSettingsUtils,
@@ -40,10 +36,12 @@ class PrepublishingHomeViewModel @Inject constructor(
     private val storyRepositoryWrapper: StoryRepositoryWrapper,
     private val updateStoryPostTitleUseCase: UpdateStoryPostTitleUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val setUntitledStoryTitleIfTitleEmptyUseCase: SetUntitledStoryTitleIfTitleEmptyUseCase,
     @Named(BG_THREAD) private val bgDispatcher: CoroutineDispatcher
 ) : ScopedViewModel(bgDispatcher) {
     private var isStarted = false
-    private var updateStoryTitleJob: Job? = null
+    private var lastEnteredStoryTitle: String? = null
+    private var isStoryPost: Boolean = false
     private lateinit var editPostRepository: EditPostRepository
 
     private val _uiState = MutableLiveData<List<PrepublishingHomeItemUiState>>()
@@ -63,6 +61,7 @@ class PrepublishingHomeViewModel @Inject constructor(
         if (isStarted) return
         isStarted = true
 
+        this.isStoryPost = isStoryPost
         setupHomeUiState(editPostRepository, site, isStoryPost)
     }
 
@@ -157,6 +156,12 @@ class PrepublishingHomeViewModel @Inject constructor(
             ))
 
             add(getButtonUiStateUseCase.getUiState(editPostRepository, site) { publishPost ->
+                if (isStoryPost) {
+                    lastEnteredStoryTitle?.let {
+                        storyRepositoryWrapper.setCurrentStoryTitle(it)
+                        updateStoryPostTitleUseCase.updateStoryTitle(it, editPostRepository)
+                    } ?: setUntitledStoryTitleIfTitleEmptyUseCase.setUntitledStoryTitleIfTitleEmpty(editPostRepository)
+                }
                 analyticsTrackerWrapper.trackPrepublishingNudges(Stat.EDITOR_POST_PUBLISH_NOW_TAPPED)
                 _onSubmitButtonClicked.postValue(Event(publishPost))
             })
@@ -166,19 +171,7 @@ class PrepublishingHomeViewModel @Inject constructor(
     }
 
     private fun onStoryTitleChanged(storyTitle: String) {
-        updateStoryTitleJob?.cancel()
-        updateStoryTitleJob = launch(bgDispatcher) {
-            // there's a delay here since every single character change event triggers onStoryTitleChanged
-            // and without a delay we would have multiple save operations being triggered unnecessarily.
-            delay(THROTTLE_DELAY)
-            storyRepositoryWrapper.setCurrentStoryTitle(storyTitle)
-            updateStoryPostTitleUseCase.updateStoryTitle(storyTitle, editPostRepository)
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        updateStoryTitleJob?.cancel()
+        lastEnteredStoryTitle = storyTitle
     }
 
     private fun onActionClicked(actionType: ActionType) {

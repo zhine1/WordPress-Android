@@ -353,8 +353,10 @@ class MediaPickerViewModel @Inject constructor(
             this.mediaLoader = mediaLoaderFactory.build(mediaPickerSetup, site)
             this.mediaInsertHandler = mediaInsertHandlerFactory.build(mediaPickerSetup, site)
             launch {
-                mediaLoader.loadMedia(loadActions).flowOn(bgDispatcher).collect { domainModel ->
-                    _domainModel.value = domainModel
+                site?.let {
+                    mediaLoader.loadMedia(loadActions).flowOn(bgDispatcher).collect { domainModel ->
+                        _domainModel.value = domainModel
+                    }
                 }
             }
             if (!mediaPickerSetup.requiresStoragePermissions || permissionsHandler.hasStoragePermission()) {

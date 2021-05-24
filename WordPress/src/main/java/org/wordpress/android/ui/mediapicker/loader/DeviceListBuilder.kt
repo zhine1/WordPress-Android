@@ -28,7 +28,7 @@ class DeviceListBuilder(
     private val localeManagerWrapper: LocaleManagerWrapper,
     private val deviceMediaLoader: DeviceMediaLoader,
     private val mediaUtilsWrapper: MediaUtilsWrapper,
-    private val site: SiteModel?,
+    private val site: SiteModel,
     @param:Named(BG_THREAD) private val bgDispatcher: CoroutineDispatcher,
     private val mediaTypes: Set<MediaType>,
     private val pageSize: Int
@@ -161,7 +161,7 @@ class DeviceListBuilder(
         private val mediaUtilsWrapper: MediaUtilsWrapper,
         @param:Named(BG_THREAD) private val bgDispatcher: CoroutineDispatcher
     ) {
-        fun build(mediaTypes: Set<MediaType>, site: SiteModel?): DeviceListBuilder {
+        fun build(mediaTypes: Set<MediaType>, site: SiteModel): DeviceListBuilder {
             return DeviceListBuilder(
                     localeManagerWrapper,
                     deviceMediaLoader,

@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Translation-Revision-Date: 2021-05-13 09:54:08+0000
+Translation-Revision-Date: 2021-05-27 09:54:08+0000
 Plural-Forms: nplurals=1; plural=0;
 Generator: GlotPress/3.0.0-alpha.2
 Language: zh_TW
 -->
 <resources>
+    <string name="gutenberg_native_double_tap_to_add_a_link">按兩下以新增連結。</string>
+    <string name="gutenberg_native_add_link">新增連結</string>
+    <string name="login_empty_view_try_another_account">嘗試其他帳號</string>
+    <string name="login_empty_view_see_instructions">查看說明</string>
+    <string name="login_empty_view_avatar_content_description">你的個人檔案照片</string>
+    <string name="login_not_a_jetpack_site">若要將此應用程式用於 %1$s，你需要安裝 Jetpack 外掛程式並連結 WordPress.com 帳號。</string>
     <string name="gutenberg_native_size">尺寸</string>
     <string name="gutenberg_native_image_settings">圖片設定</string>
     <string name="gutenberg_native_audio_settings">音訊設定</string>
@@ -13,6 +19,7 @@ Language: zh_TW
     <string name="user_profile_site_section_header">網站</string>
     <string name="user_profile_bottom_sheet_description">使用者個人資料底頁資訊</string>
     <string name="likes_list_screen_title">按讚清單%s</string>
+    <string name="gutenberg_native_write_title">撰寫標題…</string>
     <string name="gutenberg_native_write_code">撰寫程式碼…</string>
     <string name="gutenberg_native_sorting_and_filtering">排序及篩選方式</string>
     <string name="gutenberg_native_show_download_button">顯示下載按鈕</string>
@@ -26,10 +33,10 @@ Language: zh_TW
     <string name="gutenberg_native_media_area">媒體區域</string>
     <string name="gutenberg_native_loop">循環播放</string>
     <string name="gutenberg_native_link_to_12d6f96a">連結到</string>
+    <string name="gutenberg_native_link_label">連結標籤</string>
     <string name="gutenberg_native_image_1_d_of_2_d_in_gallery">第 %1$d 張圖片，圖庫中總計 %2$d 張圖片</string>
     <string name="gutenberg_native_heading_d">標題 %d</string>
     <string name="gutenberg_native_featured">精選內容</string>
-    <string name="gutenberg_native_enter_url_to_embed_here">在這裡輸入網址以嵌入內容…</string>
     <string name="gutenberg_native_edit_image">編輯圖片</string>
     <string name="gutenberg_native_display_post_date">顯示內容發佈日期</string>
     <string name="gutenberg_native_code">標示為程式碼</string>
@@ -42,6 +49,7 @@ Language: zh_TW
     <string name="gutenberg_native_attachment_page">附件頁面</string>
     <string name="gutenberg_native_add_text">加入文字…</string>
     <string name="gutenberg_native_add_caption">新增說明文字</string>
+    <string name="login_no_jetpack_sites">找不到任何 Jetpack 網站</string>
     <string name="gutenberg_native_what_is_alt_text">替代文字是什麼？</string>
     <string name="gutenberg_native_transform_s_to">將 %s 轉換為</string>
     <string name="gutenberg_native_transform_block">轉換區塊…</string>
@@ -54,27 +62,36 @@ Language: zh_TW
     <string name="like_faces_singular_text">1 位部落客說這個讚。</string>
     <string name="like_title_plural">%d 按讚數</string>
     <string name="like_title_singular">1 個讚</string>
-    <string name="threat_fix_enter_server_creds_message_plural">輸入你的伺服器憑證以修正威脅。</string>
-    <string name="threat_fix_enter_server_creds_message_singular">輸入你的伺服器憑證以修正威脅。</string>
     <string name="suggestion">建議：</string>
+    <string name="gutenberg_native_use_icon_button">使用圖示按鈕</string>
+    <string name="gutenberg_native_search_input_field">搜尋意見回饋欄位。</string>
+    <string name="gutenberg_native_search_button_current_button_text_is">搜尋按鈕。 目前的按鈕文字是</string>
     <string name="gutenberg_native_search_blocks">搜尋區塊</string>
+    <string name="gutenberg_native_search_block_label_current_text_is">搜尋區塊標籤。 目前的文字是</string>
     <string name="gutenberg_native_search_block">搜尋區塊</string>
+    <string name="gutenberg_native_no_custom_placeholder_set">未設定自訂預留位置</string>
+    <string name="gutenberg_native_no_button">沒有按鈕</string>
+    <string name="gutenberg_native_inside">內部</string>
+    <string name="gutenberg_native_hide_search_heading">隱藏搜尋標題</string>
+    <string name="gutenberg_native_double_tap_to_edit_placeholder_text">按兩下以編輯預留位置文字</string>
+    <string name="gutenberg_native_double_tap_to_edit_label_text">按兩下以編輯標籤文字</string>
+    <string name="gutenberg_native_double_tap_to_edit_button_text">按兩下以編輯按鈕文字</string>
     <string name="gutenberg_native_double_tap_to_change_unit">按兩下以變更單位</string>
+    <string name="gutenberg_native_current_placeholder_text_is">目前的預留位置文字是</string>
     <string name="gutenberg_native_clear_search">清除搜尋</string>
     <string name="gutenberg_native_cancel_search">取消搜尋</string>
+    <string name="gutenberg_native_button_position">按鈕位置</string>
+    <string name="gutenberg_native_button_outside">按鈕外部</string>
+    <string name="gutenberg_native_button_inside">按鈕內部</string>
     <string name="gutenberg_native_1_s_2_s_is_3_s_4_s">%1$s。%2$s 是 %3$s %4$s。</string>
     <string name="get_likes_empty_state_title">取得按讚資料時發生錯誤</string>
     <string name="get_likes_unknown_error">獲得「讚」時發生未知的錯誤。</string>
     <string name="get_likes_no_network_error">沒有可用的網路。</string>
     <string name="comments_empty_list_filtered_unreplied">沒有尚未回覆的留言</string>
     <string name="comment_status_unreplied">尚未回覆</string>
-    <string name="gutenberg_native_table_of_contents">目錄</string>
-    <string name="gutenberg_native_summary">摘要</string>
-    <string name="gutenberg_native_summarize_your_post_with_a_list_of_headings_add_html_anchors_to_h">列出標題以呈現文章摘要。 將 HTML 錨點新增至標題區塊，藉此連結相應文章內容。</string>
-    <string name="gutenberg_native_document_outline">文件大綱</string>
-    <string name="gutenberg_native_buttongroup">ButtonGroup</string>
     <string name="jetpack_brute_force_allowlist_title">一律允許的 IP 位址</string>
     <string name="site_settings_denylist_title">留言含有不允許的內容</string>
+    <string name="gutenberg_native_add_button_text">新增按鈕文字</string>
     <string name="reader_title_interests">追蹤主題</string>
     <string name="stories_intro_main_subtitle">在網站創作並發布引人注目內容的全新方式。</string>
     <string name="activity_log_backup_download_notice_dismiss_action">忽略</string>
@@ -154,7 +171,6 @@ Language: zh_TW
     <string name="gutenberg_native_double_tap_to_listen_the_audio_file">按兩下以聆聽音訊檔案</string>
     <string name="gutenberg_native_choose_audio">選擇音樂</string>
     <string name="gutenberg_native_audio_player">音樂播放器</string>
-    <string name="gutenberg_native_audio_file">音訊檔案</string>
     <string name="gutenberg_native_audio_caption_s">音訊字幕。 %s</string>
     <string name="gutenberg_native_audio_caption_empty">音訊字幕。 清空</string>
     <string name="gutenberg_native_add_audio">新增音訊</string>
@@ -478,7 +494,6 @@ Language: zh_TW
     <string name="media_uploading_gif_library_photo">正在上傳 GIF 媒體</string>
     <string name="media_uploading_stock_library_photo">正在上傳庫存媒體</string>
     <string name="media_uploading_default">正在上傳媒體</string>
-    <string name="gutenberg_native_select_item">選取項目</string>
     <string name="gutenberg_native_search_or_type_url">搜尋或輸入 URL</string>
     <string name="gutenberg_native_page_break">分頁符號</string>
     <string name="gutenberg_native_add_this_telephone_link">新增此電話連結</string>
@@ -637,7 +652,6 @@ Language: zh_TW
     <string name="gutenberg_native_double_tap_to_select_the_option">按兩下以選擇</string>
     <string name="gutenberg_native_customize_gradient">自訂漸層色彩</string>
     <string name="pages_list_author">頁面作者</string>
-    <string name="photo_picker_use_gif">使用此 GIF</string>
     <string name="error_media_thumbnail_not_loaded">無法載入媒體縮圖</string>
     <string name="menu_content_info">內容結構</string>
     <string name="everyone">所有人</string>
@@ -673,6 +687,7 @@ Language: zh_TW
     <string name="update_now">馬上更新</string>
     <string name="gutenberg_native_open_block_actions_menu">開啟區塊操作選單</string>
     <string name="gutenberg_native_move_to_top">移至頂端</string>
+    <string name="gutenberg_native_insert_mention">插入標記</string>
     <string name="gutenberg_native_double_tap_to_open_bottom_sheet_with_available_options">按兩下以開啟含有可用選項的底部工作表</string>
     <string name="gutenberg_native_double_tap_to_open_action_sheet_with_available_options">按兩下以開啟含有可用選項的操作工作表</string>
     <string name="pages_cannot_be_started">目前我們無法開啟頁面。請稍後再試一次</string>
@@ -731,6 +746,7 @@ Language: zh_TW
     <string name="gutenberg_native_move_block_left">向左移動區塊</string>
     <string name="gutenberg_native_double_tap_to_move_the_block_to_the_right">按兩下將區塊向右移</string>
     <string name="gutenberg_native_double_tap_to_move_the_block_to_the_left">按兩下將區塊向左移</string>
+    <string name="gutenberg_native_block_settings">區塊設定</string>
     <string name="new_site_creation_creating_site_loading_4">建立儀表板</string>
     <string name="new_site_creation_creating_site_loading_3">設定佈景主題</string>
     <string name="new_site_creation_creating_site_loading_2">新增網站功能</string>
@@ -740,7 +756,6 @@ Language: zh_TW
     <string name="pages_and_posts_cancel_auto_upload">取消上傳</string>
     <string name="gif_list_search_returned_unknown_error">處理要求時發生問題</string>
     <string name="gif_powered_by_tenor">由 Tenor 支援</string>
-    <string name="gif_picker_search_hint">搜尋 Tenor</string>
     <string name="photo_picker_gif">從 Tenor 中選擇</string>
     <string name="weekday_saturday">星期六</string>
     <string name="weekday_friday">星期五</string>
@@ -791,8 +806,11 @@ Language: zh_TW
     <string name="gutenberg_native_link_to">連結至</string>
     <string name="gutenberg_native_link_settings">連結設定</string>
     <string name="gutenberg_native_excerpt_length_words">摘要長度 (字數)</string>
+    <string name="gutenberg_native_edit_cover_media">編輯封面媒體</string>
     <string name="gutenberg_native_customize">自訂</string>
+    <string name="gutenberg_native_button_link_url">按鈕連結網址</string>
     <string name="gutenberg_native_video_settings">視訊設定</string>
+    <string name="gutenberg_native_border_radius">框線半徑</string>
     <string name="gutenberg_native_add_paragraph_block">新增段落區塊</string>
     <string name="create_post_page_fab_tooltip_contributors">建立文章</string>
     <string name="post_list_tab_trashed_posts">已移至垃圾桶</string>
@@ -832,6 +850,7 @@ Language: zh_TW
     <string name="reader_filter_cta">篩選</string>
     <string name="gutenberg_native_video_caption_s">視訊標題。%s</string>
     <string name="gutenberg_native_edit_video">編輯視訊</string>
+    <string name="gutenberg_native_edit_media">編輯媒體</string>
     <string name="gutenberg_native_add_a_shortcode">新增短代碼…</string>
     <string name="post_list_author">文章作者</string>
     <string name="fab_create_desc">建立文章</string>
@@ -890,14 +909,12 @@ Language: zh_TW
     <string name="gutenberg_native_wordpress_media_library">WordPress 媒體庫</string>
     <string name="gutenberg_native_unsupported">不支援</string>
     <string name="gutenberg_native_ungroup">取消群組</string>
-    <string name="gutenberg_native_translate">翻譯</string>
     <string name="gutenberg_native_tap_to_hide_the_keyboard">點選即可隱藏鍵盤</string>
     <string name="gutenberg_native_tap_here_to_show_help">點選此處顯示說明</string>
     <string name="gutenberg_native_take_a_video">拍攝視訊</string>
     <string name="gutenberg_native_take_a_photo_or_video">拍攝相片或視訊</string>
     <string name="gutenberg_native_take_a_photo">拍攝照片</string>
     <string name="gutenberg_native_start_writing">開始撰寫內容…</string>
-    <string name="gutenberg_native_show_section">顯示區段</string>
     <string name="gutenberg_native_s_block_this_block_has_invalid_content">%s 區塊含有無效內容</string>
     <string name="gutenberg_native_s_block_empty">%s 區塊空白</string>
     <string name="gutenberg_native_cut_block">剪下區塊</string>
@@ -914,6 +931,7 @@ Language: zh_TW
     <string name="gutenberg_native_move_block_up">向上移動區塊</string>
     <string name="gutenberg_native_move_block_down_from_row_1_s_to_row_2_s">將區塊從第 %1$s 列向下移至第 %2$s 列</string>
     <string name="gutenberg_native_move_block_down">向下移動區塊</string>
+    <string name="gutenberg_native_link_inserted">連結已插入</string>
     <string name="gutenberg_native_image_caption_s">圖片說明。%s</string>
     <string name="gutenberg_native_hide_keyboard">隱藏鍵盤</string>
     <string name="gutenberg_native_help_icon">說明圖示</string>
@@ -928,6 +946,7 @@ Language: zh_TW
     <string name="gutenberg_native_double_tap_to_move_the_block_down">按兩下將區塊向下移</string>
     <string name="gutenberg_native_double_tap_to_edit_this_value">按兩下以編輯此數值</string>
     <string name="gutenberg_native_double_tap_to_add_a_block">按兩下以新增區塊</string>
+    <string name="gutenberg_native_double_tap_and_hold_to_edit">點兩下並按住不放即可編輯</string>
     <string name="gutenberg_native_current_value_is_s">目前的值是 %s</string>
     <string name="gutenberg_native_choose_from_device">從裝置中選擇</string>
     <string name="gutenberg_native_an_unknown_error_occurred_please_try_again">發生不明的錯誤，請再試一次。</string>
@@ -1286,7 +1305,6 @@ Language: zh_TW
     <string name="stats_no_data_for_period">此期間沒有資料</string>
     <string name="preference_strip_image_location">從媒體移除位置資訊</string>
     <string name="stats_cannot_be_started">目前我們無法開啟統計資料。請稍後再試一次</string>
-    <string name="gif_picker_endless_scroll_network_error">網路發生錯誤，導致部份媒體載入失敗。</string>
     <string name="gif_picker_empty_search_list">沒有符合搜尋條件的媒體</string>
     <string name="gif_picker_initial_empty_text">搜尋 GIF 以新增至你的媒體庫！</string>
     <string name="stats_author_views_label">瀏覽數</string>

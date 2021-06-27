@@ -40,7 +40,7 @@ public class RestClientUtils {
     /**
      * Socket timeout in milliseconds for rest requests
      */
-    private static final int REST_TIMEOUT_MS = 30000;
+    private static final int REST_TIMEOUT_MS = 120000;
 
     /**
      * Default number of retries for POST rest requests
